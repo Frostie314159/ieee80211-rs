@@ -3,7 +3,7 @@ use scroll::{
     Pwrite,
 };
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// A SSID tlv.
 ///
 /// The SSID isn't public, since if we check the length at initialization, we won't have to do checks while serializing.
