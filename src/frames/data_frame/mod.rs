@@ -1,3 +1,4 @@
+use either::Either;
 use mac_parser::MACAddress;
 use macro_bits::{bit, serializable_enum};
 use scroll::{
@@ -7,9 +8,7 @@ use scroll::{
 
 use crate::{frag_seq_info::FragSeqInfo, frame_control_field::FCFFlags};
 
-use self::
-    amsdu::AMSDUPayload
-;
+use self::amsdu::{AMSDUPayload, AMSDUSubframeIterator};
 
 pub mod amsdu;
 pub mod builder;
@@ -72,7 +71,7 @@ impl DataFramePayload<'_> {
     pub const fn length_in_bytes(&self) -> usize {
         match self {
             Self::Single(slice) => slice.len(),
-            Self::AMSDU(amsdu_payload) => amsdu_payload.length_in_bytes()
+            Self::AMSDU(amsdu_payload) => amsdu_payload.length_in_bytes(),
         }
     }
 }
@@ -202,6 +201,17 @@ impl DataFrame<'_> {
         if self.qos.is_some() { 2 } else { 0 } + // QoS
         if let Some(payload) = self.payload { payload.length_in_bytes() } else { 0 }
         // Payload
+    }
+    pub fn payload<'a>(&'a self) -> Option<Either<&'a [u8], AMSDUSubframeIterator<'a>>> {
+        if let Some(DataFramePayload::Single(payload)) = self.payload {
+            Some(if self.is_amsdu() {
+                Either::Right(AMSDUSubframeIterator::from_bytes(payload))
+            } else {
+                Either::Left(payload)
+            })
+        } else {
+            None
+        }
     }
 }
 impl MeasureWith<()> for DataFrame<'_> {

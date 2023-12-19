@@ -9,7 +9,7 @@ use self::type_state::{
     QoSNull,
 };
 
-use super::{amsdu::AMSDUPayload, DataFrame, DataFrameSubtype, DataFramePayload};
+use super::{amsdu::AMSDUPayload, DataFrame, DataFramePayload, DataFrameSubtype};
 
 #[allow(dead_code)]
 pub mod type_state {
@@ -160,9 +160,7 @@ impl<'a> DataFrameBuilderInner<'a, (), (), (), (), (), (), ()> {
     }
 }
 impl<'a, DS> DataFrameBuilderInner<'a, DS, (), (), (), (), (), ()> {
-    pub const fn category_data(
-        self,
-    ) -> DataFrameBuilderInner<'a, DS, Data, (), (), (), (), ()> {
+    pub const fn category_data(self) -> DataFrameBuilderInner<'a, DS, Data, (), (), (), (), ()> {
         self.change_type_state()
     }
     pub const fn category_data_null(

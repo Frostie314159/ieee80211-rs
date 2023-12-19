@@ -5,10 +5,7 @@ use scroll::{
 
 use crate::frame_control_field::{FrameControlField, FrameType};
 
-use self::{
-    data_frame::DataFrame,
-    mgmt_frame::ManagementFrame,
-};
+use self::{data_frame::DataFrame, mgmt_frame::ManagementFrame};
 
 pub mod data_frame;
 pub mod mgmt_frame;
