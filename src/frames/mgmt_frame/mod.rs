@@ -36,18 +36,21 @@ serializable_enum! {
 pub enum ManagementFrameBody<'a> {
     Action(ActionFrameBody<'a>),
     Beacon(BeaconFrameBody<'a>),
+    ATIM,
 }
 impl ManagementFrameBody<'_> {
     pub const fn get_sub_type(&self) -> ManagementFrameSubtype {
         match self {
             Self::Action(_) => ManagementFrameSubtype::Action,
             Self::Beacon(_) => ManagementFrameSubtype::Beacon,
+            Self::ATIM => ManagementFrameSubtype::ATIM
         }
     }
     pub const fn length_in_bytes(&self) -> usize {
         match self {
             Self::Action(action) => action.length_in_bytes(),
             Self::Beacon(beacon) => beacon.length_in_bytes(),
+            Self::ATIM => 0
         }
     }
 }
@@ -67,6 +70,7 @@ impl<'a> TryFromCtx<'a, ManagementFrameSubtype> for ManagementFrameBody<'a> {
             match sub_type {
                 ManagementFrameSubtype::Action => Self::Action(from.gread(&mut offset)?),
                 ManagementFrameSubtype::Beacon => Self::Beacon(from.gread(&mut offset)?),
+                ManagementFrameSubtype::ATIM => Self::ATIM,
                 _ => {
                     return Err(scroll::Error::BadInput {
                         size: offset,
@@ -84,6 +88,7 @@ impl TryIntoCtx for ManagementFrameBody<'_> {
         match self {
             Self::Action(action_frame_body) => buf.pwrite(action_frame_body, 0),
             Self::Beacon(beacon_frame_body) => buf.pwrite(beacon_frame_body, 0),
+            Self::ATIM => Ok(0)
         }
     }
 }
