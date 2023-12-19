@@ -1,9 +1,9 @@
-use alloc::borrow::Cow;
 use macro_bits::serializable_enum;
-use scroll::{ctx::MeasureWith, Pread};
+use scroll::{
+    ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
+    Endian, Pwrite,
+};
 use tlv_rs::TLV;
-
-use crate::util::write_to_vec;
 
 use self::ssid::SSIDTLV;
 
@@ -18,37 +18,50 @@ serializable_enum! {
     }
 }
 
-pub type RawIEEE80211TLV<'a> = TLV<'a, u8, TLVType, u8>;
+pub type RawIEEE80211TLV<'a, Payload> = TLV<'a, u8, TLVType, u8, Payload>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum IEEE80211TLV<'a> {
-    SSID(SSIDTLV),
-    Unknown(RawIEEE80211TLV<'a>),
+    SSID(SSIDTLV<'a>),
+    Unknown(RawIEEE80211TLV<'a, &'a [u8]>),
 }
-impl<'a> MeasureWith<()> for IEEE80211TLV<'a> {
+impl MeasureWith<()> for IEEE80211TLV<'_> {
     fn measure_with(&self, ctx: &()) -> usize {
-        (match self {
+        2 + match self {
             Self::SSID(tlv) => tlv.measure_with(ctx),
-            Self::Unknown(tlv) => tlv.measure_with(ctx) - 2, // header is already included
-        }) + 2
+            Self::Unknown(tlv) => tlv.data.len(),
+        }
     }
 }
-impl<'a> IEEE80211TLV<'a> {
-    pub fn from_raw_tlv(raw_tlv: RawIEEE80211TLV<'a>) -> Result<Self, scroll::Error> {
-        Ok(match raw_tlv.tlv_type {
-            TLVType::SSID => Self::SSID(raw_tlv.data.pread(0)?),
-            _ => Self::Unknown(raw_tlv),
-        })
+impl<'a> TryFromCtx<'a> for IEEE80211TLV<'a> {
+    type Error = scroll::Error;
+    fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
+        let (tlv, len) = <RawIEEE80211TLV<'a, &'a [u8]> as TryFromCtx<'a, Endian>>::try_from_ctx(
+            from,
+            Endian::Little,
+        )?;
+        Ok((
+            match tlv.tlv_type {
+                TLVType::SSID => Self::SSID(SSIDTLV::try_from_ctx(from, ()).map(|(ssid, _)| ssid)?),
+                TLVType::Unknown(_) => Self::Unknown(tlv),
+            },
+            len,
+        ))
     }
-    pub fn to_raw_tlv(self) -> Result<RawIEEE80211TLV<'a>, scroll::Error> {
-        let (tlv_type, data) = match self {
-            Self::SSID(tlv) => (TLVType::SSID, Cow::Owned(write_to_vec(tlv, &())?)),
-            Self::Unknown(tlv) => (tlv.tlv_type, tlv.data.into()),
-        };
-        Ok(RawIEEE80211TLV {
-            tlv_type,
-            data: data.into(),
-            ..Default::default()
-        })
+}
+impl TryIntoCtx for IEEE80211TLV<'_> {
+    type Error = scroll::Error;
+    fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
+        match self {
+            IEEE80211TLV::SSID(ssid_tlv) => buf.pwrite(
+                RawIEEE80211TLV {
+                    tlv_type: TLVType::SSID,
+                    data: ssid_tlv,
+                    ..Default::default()
+                },
+                0,
+            ),
+            Self::Unknown(tlv) => buf.pwrite(tlv, 0),
+        }
     }
 }

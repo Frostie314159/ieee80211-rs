@@ -2,7 +2,7 @@ use macro_bits::{bit, bitfield, serializable_enum};
 
 serializable_enum! {
     #[derive(Debug, Default, Clone, Copy, PartialEq)]
-    pub enum FrameType: u8 {
+    pub enum FrameTypes: u8 {
         #[default]
         AssociationRequest => 0x00,
         Data => 0x02,
@@ -31,8 +31,17 @@ serializable_enum! {
         ControlFrameEnd => 0x39
     }
 }
+serializable_enum! {
+    #[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
+    pub enum FrameType: u8 {
+        #[default]
+        Management => 0b00,
+        Control => 0b01,
+        Data => 0b10
+    }
+}
 bitfield! {
-    #[derive(Debug, Default, Clone, Copy, PartialEq)]
+    #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
     pub struct FCFFlags: u8 {
         pub to_ds: bool => bit!(0),
         pub from_ds: bool => bit!(1),
@@ -40,15 +49,16 @@ bitfield! {
         pub retry: bool => bit!(3),
         pub pwr_mgt: bool => bit!(4),
         pub more_data: bool => bit!(5),
-        pub protected_flags: bool => bit!(6),
-        pub htc_plus: bool => bit!(7)
+        pub protected: bool => bit!(6),
+        pub htc_plus_order: bool => bit!(7)
     }
 }
 bitfield! {
     #[derive(Debug, Default, Clone, Copy, PartialEq)]
     pub struct FrameControlField: u16 {
         pub version: u8 => bit!(0,1),
-        pub frame_type: FrameType => bit!(2,3,4,5,6,7),
+        pub frame_type: FrameType => bit!(2,3),
+        pub frame_sub_type: u8 => bit!(4,5,6,7),
         pub flags: FCFFlags => 0xff00
     }
 }

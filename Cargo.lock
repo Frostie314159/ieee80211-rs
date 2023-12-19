@@ -4,9 +4,9 @@ version = 3
 
 [[package]]
 name = "atomic-polyfill"
-version = "0.1.11"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3ff7eb3f316534d83a8a2c3d1674ace8a5a71198eba31e2e2b597833f699b28"
+checksum = "8cf2bce30dfe09ef0bfaef228b9d414faaf7e563035494d7fe092dba54b300f4"
 dependencies = [
  "critical-section",
 ]
@@ -70,9 +70,9 @@ dependencies = [
 
 [[package]]
 name = "heapless"
-version = "0.7.16"
+version = "0.7.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db04bc24a18b9ea980628ecf00e6c0264f3c1426dac36c00cb49b6fbad8b0743"
+checksum = "cdc6457c0eb62c71aac4bc17216026d8410337c4126773b9c5daba343f17964f"
 dependencies = [
  "atomic-polyfill",
  "hash32",
@@ -106,7 +106,7 @@ dependencies = [
 [[package]]
 name = "mac-parser"
 version = "0.1.3"
-source = "git+https://github.com/Frostie314159/mac-parser.git#69a29f052c68fca963f0e0ba49756b0cebe27268"
+source = "git+https://github.com/Frostie314159/mac-parser.git#41d471fefaf09b3e509bb3f92c839e40e71ecf74"
 dependencies = [
  "scroll",
 ]
@@ -122,9 +122,9 @@ dependencies = [
 
 [[package]]
 name = "no-panic"
-version = "0.1.26"
+version = "0.1.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71a6d126424f5ce0bb4587ff4561421d44aeede520541cc66f1bb912506ae46a"
+checksum = "bf98081e1af7145ec0f77baf9ec845903ccb6ae4a8b1e881265d5487f37f90a2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -133,9 +133,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.69"
+version = "1.0.70"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "134c189feb4956b20f6f547d2cf727d4c0fe06722b20a0eec87ed445a97f92da"
+checksum = "39278fbbf5fb4f646ce651690877f89d1c5811a3d4acb27700c1cb3cdb78fd3b"
 dependencies = [
  "unicode-ident",
 ]
@@ -167,20 +167,7 @@ checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 [[package]]
 name = "scroll"
 version = "0.11.0"
-source = "git+https://github.com/Frostie314159/scroll.git?branch=no-unsafe#f90f3454ba69511cd4f69b6891d835b8856a2eee"
-dependencies = [
- "scroll_derive",
-]
-
-[[package]]
-name = "scroll_derive"
-version = "0.11.1"
-source = "git+https://github.com/Frostie314159/scroll.git?branch=no-unsafe#f90f3454ba69511cd4f69b6891d835b8856a2eee"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
+source = "git+https://github.com/Frostie314159/scroll.git?branch=fixed-array-impl#d555e3b6700ae1434ea7dcaf71a98f7dc96e4f32"
 
 [[package]]
 name = "semver"
@@ -205,9 +192,9 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "syn"
-version = "2.0.39"
+version = "2.0.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23e78b90f2fcf45d3e842032ce32e3f2d1545ba6636271dcbf24fa306d87be7a"
+checksum = "44c8b28c477cc3bf0e7966561e3460130e1255f7a1cf71931075f1c5e7a7e269"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -217,6 +204,7 @@ dependencies = [
 [[package]]
 name = "tlv-rs"
 version = "0.2.4"
+source = "git+https://github.com/Frostie314159/tlv-rs#d55c20c3c0617529e8de435f1c7e1ded415f967b"
 dependencies = [
  "heapless",
  "no-panic",
