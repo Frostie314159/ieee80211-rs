@@ -7,10 +7,9 @@ use scroll::{
 
 use crate::{frag_seq_info::FragSeqInfo, frame_control_field::FCFFlags};
 
-use self::{
-    amsdu::{AMSDUPayload, AMSDUSubframeIterator},
-    builder::type_state::Payload,
-};
+use self::
+    amsdu::AMSDUPayload
+;
 
 pub mod amsdu;
 pub mod builder;
@@ -64,13 +63,37 @@ impl DataFrameSubtype {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DataFramePayload<'a> {
     Single(&'a [u8]),
-    AMSDU(AMSDUSubframeIterator<'a>),
+    AMSDU(AMSDUPayload<'a>),
+}
+impl DataFramePayload<'_> {
+    pub const fn length_in_bytes(&self) -> usize {
+        match self {
+            Self::Single(slice) => slice.len(),
+            Self::AMSDU(amsdu_payload) => amsdu_payload.length_in_bytes()
+        }
+    }
+}
+impl TryIntoCtx for DataFramePayload<'_> {
+    type Error = scroll::Error;
+    fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
+        match self {
+            DataFramePayload::Single(slice) => buf.pwrite(slice, 0),
+            DataFramePayload::AMSDU(amsdu_payload) => {
+                let mut offset = 0;
+                for amsdu_sub_frame in amsdu_payload.sub_frames {
+                    buf.gwrite(*amsdu_sub_frame, &mut offset)?;
+                }
+                Ok(offset)
+            }
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct DataFrame<PayloadType: Payload> {
+pub struct DataFrame<'a> {
     pub sub_type: DataFrameSubtype,
     pub fcf_flags: FCFFlags,
 
@@ -82,9 +105,9 @@ pub struct DataFrame<PayloadType: Payload> {
     pub address_4: Option<MACAddress>,
     pub qos: Option<[u8; 2]>,
     pub ht_control: Option<[u8; 4]>,
-    pub payload: Option<PayloadType>,
+    payload: Option<DataFramePayload<'a>>,
 }
-impl<PayloadType: Payload> DataFrame<PayloadType> {
+impl DataFrame<'_> {
     const fn is_amsdu(&self) -> bool {
         if let Some(qos) = self.qos {
             qos[0] & bit!(7) != 0 && self.sub_type.has_payload()
@@ -169,7 +192,7 @@ impl<PayloadType: Payload> DataFrame<PayloadType> {
         }
     }
 
-    pub fn length_in_bytes(&self) -> usize {
+    pub const fn length_in_bytes(&self) -> usize {
         2 + // Duration
         6 + // Address 1
         6 + // Address 2
@@ -177,34 +200,16 @@ impl<PayloadType: Payload> DataFrame<PayloadType> {
         2 + // FragSeqInfo
         if self.address_4.is_some() { 6 } else { 0 } + // Address 4
         if self.qos.is_some() { 2 } else { 0 } + // QoS
-        if let Some(payload) = self.payload { payload.measure_with(&()) } else { 0 }
+        if let Some(payload) = self.payload { payload.length_in_bytes() } else { 0 }
         // Payload
     }
 }
-impl DataFrame<&'_ [u8]> {
-    pub const fn payload(&self) -> Option<DataFramePayload<'_>> {
-        if let Some(payload) = self.payload {
-            Some(if self.is_amsdu() {
-                DataFramePayload::AMSDU(AMSDUSubframeIterator::from_bytes(payload))
-            } else {
-                DataFramePayload::Single(payload)
-            })
-        } else {
-            None
-        }
-    }
-}
-impl MeasureWith<()> for DataFrame<&'_ [u8]> {
+impl MeasureWith<()> for DataFrame<'_> {
     fn measure_with(&self, _ctx: &()) -> usize {
         self.length_in_bytes()
     }
 }
-impl MeasureWith<()> for DataFrame<AMSDUPayload<'_>> {
-    fn measure_with(&self, _ctx: &()) -> usize {
-        self.length_in_bytes()
-    }
-}
-impl<'a> TryFromCtx<'a, (u8, FCFFlags)> for DataFrame<&'a [u8]> {
+impl<'a> TryFromCtx<'a, (u8, FCFFlags)> for DataFrame<'a> {
     type Error = scroll::Error;
     fn try_from_ctx(
         from: &'a [u8],
@@ -235,7 +240,7 @@ impl<'a> TryFromCtx<'a, (u8, FCFFlags)> for DataFrame<&'a [u8]> {
         };
         let payload = if sub_type.has_payload() {
             let len = from.len() - offset;
-            Some(from.gread_with(&mut offset, len)?)
+            Some(DataFramePayload::Single(from.gread_with(&mut offset, len)?))
         } else {
             None
         };
@@ -257,7 +262,7 @@ impl<'a> TryFromCtx<'a, (u8, FCFFlags)> for DataFrame<&'a [u8]> {
         ))
     }
 }
-impl<PayloadType: Payload> TryIntoCtx for DataFrame<PayloadType> {
+impl TryIntoCtx for DataFrame<'_> {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         let mut offset = 0;

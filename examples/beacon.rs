@@ -34,7 +34,7 @@ const NEW_BYTES: &[u8] = &[
 ];
 
 fn main() {
-    let mut frame = INITIAL_BYTES.pread::<Frame<'_, &'_ [u8]>>(0).unwrap();
+    let mut frame = INITIAL_BYTES.pread::<Frame<'_>>(0).unwrap();
     let Frame::Management(mut management_frame) = frame else {
         panic!()
     };

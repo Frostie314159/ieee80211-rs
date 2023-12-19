@@ -6,7 +6,7 @@ use scroll::{
 use crate::frame_control_field::{FrameControlField, FrameType};
 
 use self::{
-    data_frame::{builder::type_state::Payload, DataFrame},
+    data_frame::DataFrame,
     mgmt_frame::ManagementFrame,
 };
 
@@ -14,12 +14,12 @@ pub mod data_frame;
 pub mod mgmt_frame;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Frame<'a, PayloadType: Payload> {
+pub enum Frame<'a> {
     Management(ManagementFrame<'a>),
-    Data(DataFrame<PayloadType>),
+    Data(DataFrame<'a>),
 }
-impl<PayloadType: Payload> Frame<'_, PayloadType> {
-    pub fn length_in_bytes(&self) -> usize {
+impl Frame<'_> {
+    pub const fn length_in_bytes(&self) -> usize {
         2 + // Type/Subtype and Flags
         4 + // FCS
         match self {
@@ -44,12 +44,12 @@ impl<PayloadType: Payload> Frame<'_, PayloadType> {
         }
     }
 }
-impl<PayloadType: Payload> MeasureWith<()> for Frame<'_, PayloadType> {
+impl MeasureWith<()> for Frame<'_> {
     fn measure_with(&self, _ctx: &()) -> usize {
         self.length_in_bytes()
     }
 }
-impl<'a> TryFromCtx<'a> for Frame<'a, &'a [u8]> {
+impl<'a> TryFromCtx<'a> for Frame<'a> {
     type Error = scroll::Error;
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
@@ -80,7 +80,7 @@ impl<'a> TryFromCtx<'a> for Frame<'a, &'a [u8]> {
         }
     }
 }
-impl<PayloadType: Payload> TryIntoCtx for Frame<'_, PayloadType> {
+impl TryIntoCtx for Frame<'_> {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         let mut offset = 0;

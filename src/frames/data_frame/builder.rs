@@ -9,7 +9,7 @@ use self::type_state::{
     QoSNull,
 };
 
-use super::{amsdu::AMSDUPayload, DataFrame, DataFrameSubtype};
+use super::{amsdu::AMSDUPayload, DataFrame, DataFrameSubtype, DataFramePayload};
 
 #[allow(dead_code)]
 pub mod type_state {
@@ -93,10 +93,11 @@ pub struct DataFrameBuilderInner<
     address_2: Address2,
     address_3: Address3,
     address_4: Address4,
-    payload: Option<PayloadType>,
-    _phantom: PhantomData<(DS, Category, &'a ())>,
+    payload: Option<DataFramePayload<'a>>,
+    _phantom: PhantomData<(DS, Category, PayloadType)>,
 }
 impl<
+        'a,
         DS,
         Category,
         PayloadType: Copy,
@@ -104,10 +105,10 @@ impl<
         Address2: Copy,
         Address3: Copy,
         Address4: Copy,
-    > DataFrameBuilderInner<'_, DS, Category, PayloadType, Address1, Address2, Address3, Address4>
+    > DataFrameBuilderInner<'a, DS, Category, PayloadType, Address1, Address2, Address3, Address4>
 {
     #[inline]
-    const fn change_type_state<'a, NewDS, NewCategory>(
+    const fn change_type_state<NewDS, NewCategory>(
         self,
     ) -> DataFrameBuilderInner<
         'a,
@@ -129,9 +130,9 @@ impl<
         }
     }
 }
-impl DataFrameBuilderInner<'_, (), (), (), (), (), (), ()> {
+impl<'a> DataFrameBuilderInner<'a, (), (), (), (), (), (), ()> {
     #[inline]
-    pub const fn new<'a>() -> DataFrameBuilderInner<'a, (), (), (), (), (), (), ()> {
+    pub const fn new() -> DataFrameBuilderInner<'a, (), (), (), (), (), (), ()> {
         DataFrameBuilderInner {
             address_1: (),
             address_2: (),
@@ -141,38 +142,38 @@ impl DataFrameBuilderInner<'_, (), (), (), (), (), (), ()> {
             _phantom: PhantomData,
         }
     }
-    pub const fn neither_to_nor_from_ds<'a>(
+    pub const fn neither_to_nor_from_ds(
         self,
     ) -> DataFrameBuilderInner<'a, NeitherToNorFromDS, (), (), (), (), (), ()> {
         self.change_type_state()
     }
-    pub const fn to_ds<'a>(self) -> DataFrameBuilderInner<'a, ToDS, (), (), (), (), (), ()> {
+    pub const fn to_ds(self) -> DataFrameBuilderInner<'a, ToDS, (), (), (), (), (), ()> {
         self.change_type_state()
     }
-    pub const fn from_ds<'a>(self) -> DataFrameBuilderInner<'a, FromDS, (), (), (), (), (), ()> {
+    pub const fn from_ds(self) -> DataFrameBuilderInner<'a, FromDS, (), (), (), (), (), ()> {
         self.change_type_state()
     }
-    pub const fn to_and_from_ds<'a>(
+    pub const fn to_and_from_ds(
         self,
     ) -> DataFrameBuilderInner<'a, ToAndFromDS, (), (), (), (), (), ()> {
         self.change_type_state()
     }
 }
-impl<DS> DataFrameBuilderInner<'_, DS, (), (), (), (), (), ()> {
-    pub const fn category_data<'a>(
+impl<'a, DS> DataFrameBuilderInner<'a, DS, (), (), (), (), (), ()> {
+    pub const fn category_data(
         self,
     ) -> DataFrameBuilderInner<'a, DS, Data, (), (), (), (), ()> {
         self.change_type_state()
     }
-    pub const fn category_data_null<'a>(
+    pub const fn category_data_null(
         self,
     ) -> DataFrameBuilderInner<'a, DS, DataNull, (), (), (), (), ()> {
         self.change_type_state()
     }
-    pub const fn category_qos<'a>(self) -> DataFrameBuilderInner<'a, DS, QoS, (), (), (), (), ()> {
+    pub const fn category_qos(self) -> DataFrameBuilderInner<'a, DS, QoS, (), (), (), (), ()> {
         self.change_type_state()
     }
-    pub const fn category_qos_null<'a>(
+    pub const fn category_qos_null(
         self,
     ) -> DataFrameBuilderInner<'a, DS, QoSNull, (), (), (), (), ()> {
         self.change_type_state()
@@ -190,7 +191,7 @@ impl<DS, Category: HasPayload + DataFrameCategory>
             address_2: (),
             address_3: (),
             address_4: (),
-            payload: Some(payload),
+            payload: Some(DataFramePayload::Single(payload)),
             _phantom: PhantomData,
         }
     }
@@ -205,15 +206,15 @@ impl<DS> DataFrameBuilderInner<'_, DS, QoS, (), (), (), (), ()> {
             address_2: (),
             address_3: (),
             address_4: (),
-            payload: Some(payload),
+            payload: Some(DataFramePayload::AMSDU(payload)),
             _phantom: PhantomData,
         }
     }
 }
-impl<DS, Category, PayloadType: Copy, Address2: Copy, Address3: Copy, Address4: Copy>
-    DataFrameBuilderInner<'_, DS, Category, PayloadType, (), Address2, Address3, Address4>
+impl<'a, DS, Category, PayloadType: Copy, Address2: Copy, Address3: Copy, Address4: Copy>
+    DataFrameBuilderInner<'a, DS, Category, PayloadType, (), Address2, Address3, Address4>
 {
-    pub const fn receiver_address<'a>(
+    pub const fn receiver_address(
         self,
         receiver_address: MACAddress,
     ) -> DataFrameBuilderInner<
@@ -236,10 +237,10 @@ impl<DS, Category, PayloadType: Copy, Address2: Copy, Address3: Copy, Address4: 
         }
     }
 }
-impl<DS, Category, PayloadType: Copy, Address1: Copy, Address3: Copy, Address4: Copy>
-    DataFrameBuilderInner<'_, DS, Category, PayloadType, Address1, (), Address3, Address4>
+impl<'a, DS, Category, PayloadType: Copy, Address1: Copy, Address3: Copy, Address4: Copy>
+    DataFrameBuilderInner<'a, DS, Category, PayloadType, Address1, (), Address3, Address4>
 {
-    pub const fn transmitter_address<'a>(
+    pub const fn transmitter_address(
         self,
         transmitter_address: MACAddress,
     ) -> DataFrameBuilderInner<
@@ -350,10 +351,10 @@ impl<'a, Category, Address1: Copy, Address2: Copy, Address4: Copy>
         }
     }
 }
-impl<DS: AddressTwoIsSA, Category, PayloadType: Copy, Address1: Copy, Address3: Copy>
-    DataFrameBuilderInner<'_, DS, Category, PayloadType, Address1, (), Address3, ()>
+impl<'a, DS: AddressTwoIsSA, Category, PayloadType: Copy, Address1: Copy, Address3: Copy>
+    DataFrameBuilderInner<'a, DS, Category, PayloadType, Address1, (), Address3, ()>
 {
-    pub const fn source_address<'a>(
+    pub const fn source_address(
         self,
         source_address: MACAddress,
     ) -> DataFrameBuilderInner<'a, DS, Category, PayloadType, Address1, MACAddress, Address3, ()>
@@ -553,11 +554,11 @@ impl<'a, Category, Address1: Copy>
         }
     }
 }
-impl<DS: DSField, Category: DataFrameCategory, PayloadType: Payload>
-    DataFrameBuilderInner<'_, DS, Category, PayloadType, MACAddress, MACAddress, MACAddress, ()>
+impl<'a, DS: DSField, Category: DataFrameCategory, PayloadType: Payload>
+    DataFrameBuilderInner<'a, DS, Category, PayloadType, MACAddress, MACAddress, MACAddress, ()>
 {
     #[inline]
-    pub const fn build<'a>(self) -> DataFrame<PayloadType> {
+    pub const fn build(self) -> DataFrame<'a> {
         DataFrame {
             sub_type: DataFrameSubtype::from_representation(Category::UPPER_TWO_BITS << 2),
             address_1: self.address_1,
