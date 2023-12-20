@@ -3,7 +3,7 @@
 
 use core::time::Duration;
 
-pub mod frag_seq_info;
+pub mod common;
 pub mod frame_control_field;
 pub mod frames;
 pub mod tlvs;

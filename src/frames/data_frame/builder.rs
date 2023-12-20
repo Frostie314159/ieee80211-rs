@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 
 use mac_parser::MACAddress;
 
-use crate::{frag_seq_info::FragSeqInfo, frame_control_field::FCFFlags, type_state::*};
+use crate::{common::FragSeqInfo, frame_control_field::FCFFlags, type_state::*};
 
 use self::type_state::{
     AddressExtractor, AddressTwoIsSA, Data, DataFrameCategory, DataNull, HasPayload, Payload, QoS,

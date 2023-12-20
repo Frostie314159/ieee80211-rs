@@ -5,7 +5,7 @@ use scroll::{
     Endian, Pread, Pwrite,
 };
 
-use crate::{frag_seq_info::FragSeqInfo, frame_control_field::FCFFlags};
+use crate::{common::FragSeqInfo, frame_control_field::FCFFlags};
 
 use self::{action::ActionFrameBody, beacon::BeaconFrameBody};
 

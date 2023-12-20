@@ -6,7 +6,7 @@ use scroll::{
     Pread, Pwrite,
 };
 
-use crate::{frag_seq_info::FragSeqInfo, frame_control_field::FCFFlags};
+use crate::{common::FragSeqInfo, frame_control_field::FCFFlags};
 
 use self::amsdu::{AMSDUPayload, AMSDUSubframeIterator};
 
