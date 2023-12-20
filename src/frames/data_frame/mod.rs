@@ -25,26 +25,26 @@ serializable_enum! {
         CFAck => 0b0101,
         CFPoll => 0b0110,
         CFAckCFPoll => 0b0111,
-        QOSData => 0b1000,
-        QOSDataCFAck => 0b1001,
-        QOSDataCFPoll => 0b1010,
-        QOSDataCFAckCFPoll => 0b1011,
-        QOSNull => 0b1100,
-        QOSCFPoll => 0b1110,
-        QOSCFAckCFPoll => 0b1111
+        QoSData => 0b1000,
+        QoSDataCFAck => 0b1001,
+        QoSDataCFPoll => 0b1010,
+        QoSDataCFAckCFPoll => 0b1011,
+        QoSNull => 0b1100,
+        QoSCFPoll => 0b1110,
+        QoSCFAckCFPoll => 0b1111
     }
 }
 impl DataFrameSubtype {
     pub const fn is_qos(&self) -> bool {
         matches!(
             self,
-            Self::QOSData
-                | Self::QOSDataCFAck
-                | Self::QOSDataCFPoll
-                | Self::QOSDataCFAckCFPoll
-                | Self::QOSNull
-                | Self::QOSCFPoll
-                | Self::QOSCFAckCFPoll
+            Self::QoSData
+                | Self::QoSDataCFAck
+                | Self::QoSDataCFPoll
+                | Self::QoSDataCFAckCFPoll
+                | Self::QoSNull
+                | Self::QoSCFPoll
+                | Self::QoSCFAckCFPoll
         )
     }
     pub const fn has_payload(&self) -> bool {
@@ -54,10 +54,10 @@ impl DataFrameSubtype {
                 | Self::DataCFAck
                 | Self::DataCFPoll
                 | Self::DataCFAckCFPoll
-                | Self::QOSData
-                | Self::QOSDataCFAck
-                | Self::QOSDataCFPoll
-                | Self::QOSDataCFAckCFPoll
+                | Self::QoSData
+                | Self::QoSDataCFAck
+                | Self::QoSDataCFPoll
+                | Self::QoSDataCFAckCFPoll
         )
     }
 }
@@ -107,15 +107,24 @@ pub struct DataFrame<'a> {
     payload: Option<DataFramePayload<'a>>,
 }
 impl DataFrame<'_> {
-    const fn is_amsdu(&self) -> bool {
+    pub const fn is_amsdu(&self) -> bool {
         if let Some(qos) = self.qos {
             qos[0] & bit!(7) != 0 && self.sub_type.has_payload()
         } else {
             false
         }
     }
-    pub const fn get_sub_type(&self) -> DataFrameSubtype {
-        self.sub_type
+    pub const fn is_no_cf(&self) -> bool {
+        matches!(self.sub_type, DataFrameSubtype::Data | DataFrameSubtype::Null | DataFrameSubtype::QoSData | DataFrameSubtype::QoSNull)
+    }
+    pub const fn is_cf_ack(&self) -> bool {
+        matches!(self.sub_type, DataFrameSubtype::DataCFAck | DataFrameSubtype::CFAck | DataFrameSubtype::QoSDataCFAck)
+    }
+    pub const fn is_cf_poll(&self) -> bool {
+        matches!(self.sub_type, DataFrameSubtype::DataCFPoll | DataFrameSubtype::CFPoll | DataFrameSubtype::QoSDataCFPoll | DataFrameSubtype::QoSCFPoll)
+    }
+    pub const fn is_cf_ack_poll(&self) -> bool {
+        matches!(self.sub_type, DataFrameSubtype::DataCFAckCFPoll | DataFrameSubtype::CFAckCFPoll | DataFrameSubtype::QoSDataCFAckCFPoll | DataFrameSubtype::QoSCFAckCFPoll)
     }
 
     pub const fn receiver_address(&self) -> &MACAddress {
