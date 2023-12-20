@@ -35,6 +35,7 @@ serializable_enum! {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ManagementFrameBody<'a> {
     Action(ActionFrameBody<'a>),
+    ActionNoAck(ActionFrameBody<'a>),
     Beacon(BeaconFrameBody<'a>),
     ATIM,
 }
@@ -42,13 +43,14 @@ impl ManagementFrameBody<'_> {
     pub const fn get_sub_type(&self) -> ManagementFrameSubtype {
         match self {
             Self::Action(_) => ManagementFrameSubtype::Action,
+            Self::ActionNoAck(_) => ManagementFrameSubtype::ActionNoAck,
             Self::Beacon(_) => ManagementFrameSubtype::Beacon,
             Self::ATIM => ManagementFrameSubtype::ATIM
         }
     }
     pub const fn length_in_bytes(&self) -> usize {
         match self {
-            Self::Action(action) => action.length_in_bytes(),
+            Self::Action(action) | Self::ActionNoAck(action) => action.length_in_bytes(),
             Self::Beacon(beacon) => beacon.length_in_bytes(),
             Self::ATIM => 0
         }
@@ -69,6 +71,7 @@ impl<'a> TryFromCtx<'a, ManagementFrameSubtype> for ManagementFrameBody<'a> {
         Ok((
             match sub_type {
                 ManagementFrameSubtype::Action => Self::Action(from.gread(&mut offset)?),
+                ManagementFrameSubtype::ActionNoAck => Self::ActionNoAck(from.gread(&mut offset)?),
                 ManagementFrameSubtype::Beacon => Self::Beacon(from.gread(&mut offset)?),
                 ManagementFrameSubtype::ATIM => Self::ATIM,
                 _ => {
@@ -86,7 +89,7 @@ impl TryIntoCtx for ManagementFrameBody<'_> {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         match self {
-            Self::Action(action_frame_body) => buf.pwrite(action_frame_body, 0),
+            Self::Action(action_frame_body) | Self::ActionNoAck(action_frame_body) => buf.pwrite(action_frame_body, 0),
             Self::Beacon(beacon_frame_body) => buf.pwrite(beacon_frame_body, 0),
             Self::ATIM => Ok(0)
         }
