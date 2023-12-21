@@ -199,9 +199,9 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "syn"
-version = "2.0.41"
+version = "2.0.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44c8b28c477cc3bf0e7966561e3460130e1255f7a1cf71931075f1c5e7a7e269"
+checksum = "5b7d0a2c048d661a1a59fcd7355baa232f7ed34e0ee4df2eef3c1c1c0d3852d8"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -211,7 +211,7 @@ dependencies = [
 [[package]]
 name = "tlv-rs"
 version = "0.2.4"
-source = "git+https://github.com/Frostie314159/tlv-rs#d55c20c3c0617529e8de435f1c7e1ded415f967b"
+source = "git+https://github.com/Frostie314159/tlv-rs#e3885131be091bc78a3265ec191f1d39cca9c4e1"
 dependencies = [
  "heapless",
  "no-panic",
