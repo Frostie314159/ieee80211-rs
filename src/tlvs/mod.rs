@@ -7,13 +7,14 @@ use scroll::{
 };
 use tlv_rs::{TLV, raw_tlv::RawTLV};
 
-use self::{ssid::SSIDTLV, supported_rates::SupportedRatesTLV};
+use self::{ssid::SSIDTLV, supported_rates::{SupportedRatesTLV, ReadIterator, EncodedRate}};
 
 pub mod ssid;
 pub mod supported_rates;
 
 serializable_enum! {
     #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+    /// Type of an IEEE 802.11 TLV.
     pub enum TLVType: u8 {
         #[default]
         SSID => 0x00,
@@ -21,13 +22,14 @@ serializable_enum! {
     }
 }
 
+/// A raw TLV.
 pub type RawIEEE80211TLV<'a> = RawTLV<'a, u8, u8>;
 type TypedIEEE80211TLV<Payload> = TLV<u8, u8, TLVType, Payload>;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum IEEE80211TLV<'a> {
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum IEEE80211TLV<'a, RateIterator = ReadIterator<'a>> {
     SSID(SSIDTLV<'a>),
-    SupportedRates(SupportedRatesTLV),
+    SupportedRates(SupportedRatesTLV<RateIterator>),
     Unknown(RawIEEE80211TLV<'a>),
 }
 impl MeasureWith<()> for IEEE80211TLV<'_> {
@@ -50,7 +52,7 @@ impl<'a> TryFromCtx<'a> for IEEE80211TLV<'a> {
             match TLVType::from_representation(tlv.tlv_type) {
                 TLVType::SSID => Self::SSID(SSIDTLV::try_from_ctx(from, ()).map(|(tlv, _)| tlv)?),
                 TLVType::SupportedRates => Self::SupportedRates(
-                    SupportedRatesTLV::try_from_ctx(from, ()).map(|(tlv, _)| tlv)?,
+                    SupportedRatesTLV::<ReadIterator>::try_from_ctx(from, ()).map(|(tlv, _)| tlv)?,
                 ),
                 TLVType::Unknown(_) => Self::Unknown(tlv),
             },
@@ -58,7 +60,7 @@ impl<'a> TryFromCtx<'a> for IEEE80211TLV<'a> {
         ))
     }
 }
-impl TryIntoCtx for IEEE80211TLV<'_> {
+impl<RateIterator: Iterator<Item = EncodedRate> + Clone> TryIntoCtx for IEEE80211TLV<'_, RateIterator> {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         match self {

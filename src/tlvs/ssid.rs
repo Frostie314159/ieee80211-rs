@@ -58,12 +58,6 @@ impl<'a> TryFromCtx<'a> for SSIDTLV<'a> {
             .map(|(ssid, len)| (SSIDTLV(ssid), len))
     }
 }
-impl<'a> TryFromCtx<'a, usize> for SSIDTLV<'a> {
-    type Error = scroll::Error;
-    fn try_from_ctx(from: &'a [u8], _ctx: usize) -> Result<(Self, usize), Self::Error> {
-        <Self as TryFromCtx<'a>>::try_from_ctx(from, ())
-    }
-}
 impl TryIntoCtx for SSIDTLV<'_> {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
