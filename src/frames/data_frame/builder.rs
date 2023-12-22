@@ -2,14 +2,14 @@ use core::marker::PhantomData;
 
 use mac_parser::MACAddress;
 
-use crate::{common::FragSeqInfo, frame_control_field::FCFFlags, type_state::*};
+use crate::{common::{FragSeqInfo, FCFFlags, subtypes::DataFrameSubtype}, type_state::*};
 
 use self::type_state::{
     Data, DataFrameCategory, DataNull, HasPayload, Payload, QoS,
     QoSNull,
 };
 
-use super::{amsdu::AMSDUPayload, DataFrame, DataFramePayload, DataFrameSubtype};
+use super::{amsdu::AMSDUPayload, DataFrame, DataFramePayload, header::DataFrameHeader};
 
 pub mod type_state {
     use scroll::ctx::{MeasureWith, TryIntoCtx};
@@ -55,7 +55,6 @@ pub mod type_state {
         }
     }
 }
-#[doc(hidden)]
 /// A type state based data frame builder.
 pub struct DataFrameBuilderInner<
     'a,
@@ -444,8 +443,8 @@ impl<'a, DS: DSField, Category: DataFrameCategory, PayloadType: Payload>
 {
     #[inline]
     pub const fn build(self) -> DataFrame<'a> {
-        DataFrame {
-            sub_type: DataFrameSubtype::from_representation(Category::UPPER_TWO_BITS << 2),
+        let header = DataFrameHeader {
+            subtype: DataFrameSubtype::from_representation(Category::UPPER_TWO_BITS << 2),
             address_1: self.address_1,
             address_2: self.address_2,
             address_3: self.address_3,
@@ -467,6 +466,9 @@ impl<'a, DS: DSField, Category: DataFrameCategory, PayloadType: Payload>
             },
             qos: None,
             ht_control: None,
+        };
+        DataFrame {
+            header,
             payload: self.payload,
         }
     }

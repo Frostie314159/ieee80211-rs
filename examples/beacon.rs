@@ -43,7 +43,7 @@ fn main() {
     };
     println!(
         "BSSID: {:?}, SSID: {}",
-        management_frame.bssid,
+        management_frame.header.bssid,
         beacon.ssid().unwrap().ssid()
     );
 
