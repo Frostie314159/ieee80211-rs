@@ -1,5 +1,5 @@
 use ieee80211::{
-    frames::{mgmt_frame::ManagementFrameBody, Frame},
+    frames::{Frame, mgmt_frame::body::ManagementFrameBody},
     tlvs::{ssid::SSIDTLV, IEEE80211TLV},
 };
 use scroll::{ctx::MeasureWith, Pread, Pwrite};
