@@ -36,9 +36,9 @@ impl MeasureWith<()> for Frame<'_> {
         self.length_in_bytes()
     }
 }
-impl<'a> TryFromCtx<'a> for Frame<'a> {
+impl<'a> TryFromCtx<'a, bool> for Frame<'a> {
     type Error = scroll::Error;
-    fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
+    fn try_from_ctx(from: &'a [u8], fcs_at_end: bool) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
 
         let fcf =
@@ -55,7 +55,7 @@ impl<'a> TryFromCtx<'a> for Frame<'a> {
             }
             _ => return Err(scroll::Error::BadInput { size: offset, msg: "Frame type not yet implemented." }),
         };
-        if crc32fast::hash(&from[..(from.len() - 4)])
+        if fcs_at_end && crc32fast::hash(&from[..(from.len() - 4)])
             != from.gread_with(&mut offset, Endian::Little)?
         {
             Err(scroll::Error::BadInput {
@@ -67,9 +67,9 @@ impl<'a> TryFromCtx<'a> for Frame<'a> {
         }
     }
 }
-impl TryIntoCtx for Frame<'_> {
+impl TryIntoCtx<bool> for Frame<'_> {
     type Error = scroll::Error;
-    fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
+    fn try_into_ctx(self, buf: &mut [u8], fcs_at_end: bool) -> Result<usize, Self::Error> {
         let mut offset = 0;
 
         buf.gwrite(self.get_fcf().to_representation(), &mut offset)?;
@@ -78,8 +78,9 @@ impl TryIntoCtx for Frame<'_> {
             Self::Management(management_frame) => buf.gwrite(management_frame, &mut offset)?,
             Self::Data(data_frame) => buf.gwrite(data_frame, &mut offset)?,
         };
-
-        buf.gwrite_with(crc32fast::hash(&buf[..offset]), &mut offset, Endian::Little)?;
+        if fcs_at_end {
+            buf.gwrite_with(crc32fast::hash(&buf[..offset]), &mut offset, Endian::Little)?;
+        }
 
         Ok(offset)
     }
