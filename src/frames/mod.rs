@@ -53,7 +53,7 @@ impl<'a> TryFromCtx<'a> for Frame<'a> {
             FrameType::Data(subtype) => {
                 Self::Data(body_slice.gread_with(&mut offset, (subtype, fcf.flags))?)
             }
-            _ => todo!(),
+            _ => return Err(scroll::Error::BadInput { size: offset, msg: "Frame type not yet implemented." }),
         };
         if crc32fast::hash(&from[..(from.len() - 4)])
             != from.gread_with(&mut offset, Endian::Little)?
