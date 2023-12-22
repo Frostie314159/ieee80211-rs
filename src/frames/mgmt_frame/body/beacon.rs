@@ -38,10 +38,11 @@ impl<'a> BeaconFrameBody<'a> {
         2 + // Capabilities information
         self.tagged_payload.len()
     }
-    // This returns an iterator over the contained tlvs
+    /// Get an [Iterator] over the contained [IEEE80211TLV]s.
     pub fn tlv_iter(&'a self) -> impl Iterator<Item = IEEE80211TLV<'a, ReadIterator>> + 'a {
         repeat(()).scan(0usize, |offset, _| self.tagged_payload.gread(offset).ok())
     }
+    /// Extract the SSID from the tlvs.
     pub fn ssid(&'a self) -> Option<&'a str> {
         // SSID should be the first TLV.
         self.tlv_iter().find_map(|tlv| {
