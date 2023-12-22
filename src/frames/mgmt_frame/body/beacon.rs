@@ -6,7 +6,7 @@ use scroll::{
     Endian, Pread, Pwrite,
 };
 
-use crate::tlvs::{ssid::SSIDTLV, supported_rates::ReadIterator, IEEE80211TLV};
+use crate::tlvs::{supported_rates::ReadIterator, IEEE80211TLV};
 
 bitfield! {
     #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -42,11 +42,11 @@ impl<'a> BeaconFrameBody<'a> {
     pub fn tlv_iter(&'a self) -> impl Iterator<Item = IEEE80211TLV<'a, ReadIterator>> + 'a {
         repeat(()).scan(0usize, |offset, _| self.tagged_payload.gread(offset).ok())
     }
-    pub fn ssid(&'a self) -> Option<SSIDTLV<'a>> {
+    pub fn ssid(&'a self) -> Option<&'a str> {
         // SSID should be the first TLV.
         self.tlv_iter().find_map(|tlv| {
-            if let IEEE80211TLV::SSID(ssid) = tlv {
-                Some(ssid)
+            if let IEEE80211TLV::SSID(ssid_tlv) = tlv {
+                Some(ssid_tlv.take_ssid())
             } else {
                 None
             }

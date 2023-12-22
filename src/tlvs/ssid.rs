@@ -22,6 +22,11 @@ impl<'a> SSIDTLV<'a> {
 
     /// Returns a refrence to the SSID.
     pub const fn ssid(&'a self) -> &'a str {
+        self.take_ssid()
+    }
+
+    /// Take the SSID.
+    pub const fn take_ssid(self) -> &'a str {
         self.0
     }
 

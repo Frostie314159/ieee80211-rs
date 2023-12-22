@@ -44,7 +44,7 @@ fn main() {
     println!(
         "BSSID: {:?}, SSID: {}",
         management_frame.header.bssid,
-        beacon.ssid().unwrap().ssid()
+        beacon.ssid().unwrap()
     );
 
     let ssid_tlv = IEEE80211TLV::SSID(SSIDTLV::new("OpenRF").unwrap());
