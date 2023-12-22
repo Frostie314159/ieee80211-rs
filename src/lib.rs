@@ -4,7 +4,6 @@
 use core::time::Duration;
 
 pub mod common;
-pub mod frame_control_field;
 pub mod frames;
 pub mod tlvs;
 pub mod type_state;

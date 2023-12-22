@@ -3,7 +3,7 @@ use scroll::{
     Endian, Pread, Pwrite,
 };
 
-use crate::frame_control_field::{FrameControlField, FrameType};
+use crate::common::{FrameControlField, FrameType};
 
 use self::{data_frame::DataFrame, mgmt_frame::ManagementFrame};
 
@@ -26,18 +26,8 @@ impl Frame<'_> {
     }
     pub const fn get_fcf(&self) -> FrameControlField {
         match self {
-            Self::Management(management_frame) => FrameControlField {
-                version: 0,
-                frame_type: FrameType::Management,
-                frame_sub_type: management_frame.body.get_sub_type().to_representation(),
-                flags: management_frame.fcf_flags,
-            },
-            Self::Data(data_frame) => FrameControlField {
-                version: 0,
-                frame_type: FrameType::Data,
-                frame_sub_type: data_frame.sub_type.to_representation(),
-                flags: data_frame.fcf_flags,
-            },
+            Self::Management(management_frame) => management_frame.get_fcf(),
+            Self::Data(data_frame) => data_frame.header.get_fcf(),
         }
     }
 }
