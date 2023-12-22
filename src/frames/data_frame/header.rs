@@ -1,12 +1,17 @@
 use mac_parser::MACAddress;
 use macro_bits::bit;
-use scroll::{ctx::{TryFromCtx, MeasureWith, TryIntoCtx}, Pread, Pwrite, Endian};
+use scroll::{
+    ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
+    Endian, Pread, Pwrite,
+};
 
-use crate::common::{FragSeqInfo, FCFFlags, FrameControlField, FrameType, subtypes::DataFrameSubtype};
+use crate::common::{
+    subtypes::DataFrameSubtype, FCFFlags, FragSeqInfo, FrameControlField, FrameType,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 /// A generic data frame header.
-/// 
+///
 /// The address fields are unnamed, since their meaning is context dependent.
 /// To access them use the provided methods.
 pub struct DataFrameHeader {
@@ -29,7 +34,7 @@ pub struct DataFrameHeader {
     /// Potentially fourth address.
     pub address_4: Option<MACAddress>,
     pub qos: Option<[u8; 2]>,
-    pub ht_control: Option<[u8; 4]>
+    pub ht_control: Option<[u8; 4]>,
 }
 impl DataFrameHeader {
     /// Generate the [FrameControlField] from the header.
@@ -37,11 +42,11 @@ impl DataFrameHeader {
         FrameControlField {
             version: 0,
             frame_type: FrameType::Data(self.subtype),
-            flags: self.fcf_flags
+            flags: self.fcf_flags,
         }
     }
     /// The total length in bytes of the header.
-    /// 
+    ///
     /// This can be used in const contexts.
     pub const fn length_in_bytes(&self) -> usize {
         let mut size = 2 + 6 + 6 + 6 + 2;
@@ -65,54 +70,75 @@ impl DataFrameHeader {
         }
     }
     /// Check if no control frame is encapsulated.
-    /// 
+    ///
     /// # Returns
     /// `true` If the subtype is one of the following: [Data](DataFrameSubtype::Data), [Null](DataFrameSubtype::Null), [QoSData](DataFrameSubtype::QoSData) or [QoSNull](DataFrameSubtype::QoSNull).
     /// `false` In all other cases.
     pub const fn is_no_cf(&self) -> bool {
-        matches!(self.subtype, DataFrameSubtype::Data | DataFrameSubtype::Null | DataFrameSubtype::QoSData | DataFrameSubtype::QoSNull)
+        matches!(
+            self.subtype,
+            DataFrameSubtype::Data
+                | DataFrameSubtype::Null
+                | DataFrameSubtype::QoSData
+                | DataFrameSubtype::QoSNull
+        )
     }
     /// Check if an Ack control frame is encapsulated.
-    /// 
+    ///
     /// # Returns
     /// `true` If the subtype is one of the following: [DataCFAck](DataFrameSubtype::DataCFAck), [CFAck](DataFrameSubtype::CFAck) or [QoSDataCFAck](DataFrameSubtype::QoSDataCFAck).
     /// `false` In all other cases.
     pub const fn is_cf_ack(&self) -> bool {
-        matches!(self.subtype, DataFrameSubtype::DataCFAck | DataFrameSubtype::CFAck | DataFrameSubtype::QoSDataCFAck)
+        matches!(
+            self.subtype,
+            DataFrameSubtype::DataCFAck | DataFrameSubtype::CFAck | DataFrameSubtype::QoSDataCFAck
+        )
     }
     /// Check if a Poll control frame is encapsulated.
-    /// 
+    ///
     /// # Returns
     /// `true` If the subtype is one of the following: [DataCFPoll](DataFrameSubtype::DataCFPoll), [CFPoll](DataFrameSubtype::CFPoll), [QoSDataCFPoll](DataFrameSubtype::QoSDataCFPoll) or [QoSCFPoll](DataFrameSubtype::QoSCFPoll).
     /// `false` In all other cases.
     pub const fn is_cf_poll(&self) -> bool {
-        matches!(self.subtype, DataFrameSubtype::DataCFPoll | DataFrameSubtype::CFPoll | DataFrameSubtype::QoSDataCFPoll | DataFrameSubtype::QoSCFPoll)
+        matches!(
+            self.subtype,
+            DataFrameSubtype::DataCFPoll
+                | DataFrameSubtype::CFPoll
+                | DataFrameSubtype::QoSDataCFPoll
+                | DataFrameSubtype::QoSCFPoll
+        )
     }
     /// Check if an Ack/Poll control frame is encapsulated.
-    /// 
+    ///
     /// # Returns
     /// `true` If the subtype is one of the following: [DataCFAckCFPoll](DataFrameSubtype::DataCFAckCFPoll), [CFAckCFPoll](DataFrameSubtype::CFAckCFPoll), [QoSDataCFAckCFPoll](DataFrameSubtype::QoSDataCFAckCFPoll) or [QoSCFAckCFPoll](DataFrameSubtype::QoSCFAckCFPoll).
     /// `false` In all other cases.
     pub const fn is_cf_ack_poll(&self) -> bool {
-        matches!(self.subtype, DataFrameSubtype::DataCFAckCFPoll | DataFrameSubtype::CFAckCFPoll | DataFrameSubtype::QoSDataCFAckCFPoll | DataFrameSubtype::QoSCFAckCFPoll)
+        matches!(
+            self.subtype,
+            DataFrameSubtype::DataCFAckCFPoll
+                | DataFrameSubtype::CFAckCFPoll
+                | DataFrameSubtype::QoSDataCFAckCFPoll
+                | DataFrameSubtype::QoSCFAckCFPoll
+        )
     }
 
     /// Returns a reference to the receiver address.
-    /// 
+    ///
     /// This will always return the first address.
     pub const fn receiver_address(&self) -> &MACAddress {
         &self.address_1
     }
 
     /// Returns a reference to the transmitter address.
-    /// 
+    ///
     /// This will always return the second address.
     pub const fn transmitter_address(&self) -> &MACAddress {
         &self.address_2
     }
 
     /// Returns an optional reference to the destination address.
-    /// 
+    ///
     /// # Mapping
     /// To DS | From DS | Is A-MSDU | Address
     /// -- | -- | -- | --
@@ -128,7 +154,7 @@ impl DataFrameHeader {
         }
     }
     /// Returns an optional mutable reference to the destination address.
-    /// 
+    ///
     /// The mapping is the same as [`Self::destination_address()`].
     pub fn destination_address_mut(&mut self) -> Option<&mut MACAddress> {
         if !self.fcf_flags.to_ds {
@@ -141,7 +167,7 @@ impl DataFrameHeader {
     }
 
     /// Returns an optional reference to the source_address.
-    /// 
+    ///
     /// # Mapping
     /// To DS | From DS | Is A-MSDU | Address
     /// -- | -- | -- | --
@@ -160,7 +186,7 @@ impl DataFrameHeader {
         }
     }
     /// Returns an optional mutable reference to the source address.
-    /// 
+    ///
     /// The mapping is the same as [`Self::source_address()`].
     pub fn source_address_mut(&mut self) -> Option<&mut MACAddress> {
         if !self.fcf_flags.from_ds {
@@ -175,7 +201,7 @@ impl DataFrameHeader {
     }
 
     /// Returns an optional reference to the bssid.
-    /// 
+    ///
     /// # Mapping
     /// To DS | From DS | Is A-MSDU | Address
     /// -- | -- | -- | --
@@ -194,7 +220,7 @@ impl DataFrameHeader {
         }
     }
     /// Returns an optional mutable reference to the bssid.
-    /// 
+    ///
     /// The mapping is the same as [`Self::bssid()`].
     pub fn bssid_mut(&mut self) -> Option<&mut MACAddress> {
         if (!self.fcf_flags.to_ds && !self.fcf_flags.from_ds) || self.is_amsdu() {
@@ -215,7 +241,10 @@ impl MeasureWith<()> for DataFrameHeader {
 }
 impl TryFromCtx<'_, (DataFrameSubtype, FCFFlags)> for DataFrameHeader {
     type Error = scroll::Error;
-    fn try_from_ctx(from: &'_ [u8], (subtype, fcf_flags): (DataFrameSubtype, FCFFlags)) -> Result<(Self, usize), Self::Error> {
+    fn try_from_ctx(
+        from: &'_ [u8],
+        (subtype, fcf_flags): (DataFrameSubtype, FCFFlags),
+    ) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
 
         let duration = from.gread(&mut offset)?;
@@ -250,9 +279,9 @@ impl TryFromCtx<'_, (DataFrameSubtype, FCFFlags)> for DataFrameHeader {
                 frag_seq_info,
                 address_4,
                 qos,
-                ht_control
+                ht_control,
             },
-            offset
+            offset,
         ))
     }
 }
@@ -265,7 +294,11 @@ impl TryIntoCtx for DataFrameHeader {
         buf.gwrite(self.address_1, &mut offset)?;
         buf.gwrite(self.address_2, &mut offset)?;
         buf.gwrite(self.address_3, &mut offset)?;
-        buf.gwrite_with(self.frag_seq_info.to_representation(), &mut offset, Endian::Little)?;
+        buf.gwrite_with(
+            self.frag_seq_info.to_representation(),
+            &mut offset,
+            Endian::Little,
+        )?;
         if let Some(address_4) = self.address_4 {
             buf.gwrite(address_4, &mut offset)?;
         }

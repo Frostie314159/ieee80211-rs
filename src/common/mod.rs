@@ -1,6 +1,6 @@
 use macro_bits::{bit, bitfield};
 
-use self::subtypes::{DataFrameSubtype, ManagementFrameSubtype, ControlFrameSubtype};
+use self::subtypes::{ControlFrameSubtype, DataFrameSubtype, ManagementFrameSubtype};
 
 pub mod subtypes;
 
@@ -9,7 +9,7 @@ pub enum FrameType {
     Management(ManagementFrameSubtype),
     Control(ControlFrameSubtype),
     Data(DataFrameSubtype),
-    Unknown(u8)
+    Unknown(u8),
 }
 impl FrameType {
     pub const fn from_representation(value: u8) -> Self {
@@ -19,7 +19,7 @@ impl FrameType {
             0b00 => Self::Management(ManagementFrameSubtype::from_representation(frame_subtype)),
             0b01 => Self::Control(ControlFrameSubtype::from_representation(frame_subtype)),
             0b10 => Self::Data(DataFrameSubtype::from_representation(frame_subtype)),
-            _ => Self::Unknown(frame_subtype)
+            _ => Self::Unknown(frame_subtype),
         }
     }
     pub const fn to_representation(self) -> u8 {
@@ -27,7 +27,7 @@ impl FrameType {
             FrameType::Management(subtype) => 0b00 | (subtype.to_representation() << 2),
             FrameType::Control(subtype) => 0b01 | (subtype.to_representation() << 2),
             FrameType::Data(subtype) => 0b10 | (subtype.to_representation() << 2),
-            FrameType::Unknown(subtype) => 0b11 | (subtype << 2)
+            FrameType::Unknown(subtype) => 0b11 | (subtype << 2),
         }
     }
 }

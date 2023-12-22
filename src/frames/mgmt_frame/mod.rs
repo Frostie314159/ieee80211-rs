@@ -3,14 +3,12 @@ use scroll::{
     Pread, Pwrite,
 };
 
-use crate::common::{
-    subtypes::ManagementFrameSubtype, FCFFlags, FrameControlField, FrameType,
-};
+use crate::common::{subtypes::ManagementFrameSubtype, FCFFlags, FrameControlField, FrameType};
 
-use self::{header::ManagementFrameHeader, body::ManagementFrameBody};
+use self::{body::ManagementFrameBody, header::ManagementFrameHeader};
 
-pub mod header;
 pub mod body;
+pub mod header;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ManagementFrame<'a> {

@@ -1,4 +1,7 @@
-use scroll::{ctx::{MeasureWith, TryFromCtx, TryIntoCtx}, Pread, Pwrite};
+use scroll::{
+    ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
+    Pread, Pwrite,
+};
 
 use crate::common::subtypes::ManagementFrameSubtype;
 

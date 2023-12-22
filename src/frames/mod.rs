@@ -47,9 +47,9 @@ impl<'a> TryFromCtx<'a> for Frame<'a> {
         // This prevents subsequent parsers from reading the FCS.
         let body_slice = &from[..(from.len() - 4)];
         let frame = match fcf.frame_type {
-            FrameType::Management(subtype) => Self::Management(
-                body_slice.gread_with(&mut offset, (subtype, fcf.flags))?,
-            ),
+            FrameType::Management(subtype) => {
+                Self::Management(body_slice.gread_with(&mut offset, (subtype, fcf.flags))?)
+            }
             FrameType::Data(subtype) => {
                 Self::Data(body_slice.gread_with(&mut offset, (subtype, fcf.flags))?)
             }

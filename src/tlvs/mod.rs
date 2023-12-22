@@ -5,9 +5,12 @@ use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
     Endian, Pwrite,
 };
-use tlv_rs::{TLV, raw_tlv::RawTLV};
+use tlv_rs::{raw_tlv::RawTLV, TLV};
 
-use self::{ssid::SSIDTLV, supported_rates::{SupportedRatesTLV, ReadIterator, EncodedRate}};
+use self::{
+    ssid::SSIDTLV,
+    supported_rates::{EncodedRate, ReadIterator, SupportedRatesTLV},
+};
 
 pub mod ssid;
 pub mod supported_rates;
@@ -44,15 +47,14 @@ impl MeasureWith<()> for IEEE80211TLV<'_> {
 impl<'a> TryFromCtx<'a> for IEEE80211TLV<'a> {
     type Error = scroll::Error;
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
-        let (tlv, len) = <RawIEEE80211TLV<'a> as TryFromCtx<'a, Endian>>::try_from_ctx(
-            from,
-            Endian::Little,
-        )?;
+        let (tlv, len) =
+            <RawIEEE80211TLV<'a> as TryFromCtx<'a, Endian>>::try_from_ctx(from, Endian::Little)?;
         Ok((
             match TLVType::from_representation(tlv.tlv_type) {
                 TLVType::SSID => Self::SSID(SSIDTLV::try_from_ctx(from, ()).map(|(tlv, _)| tlv)?),
                 TLVType::SupportedRates => Self::SupportedRates(
-                    SupportedRatesTLV::<ReadIterator>::try_from_ctx(from, ()).map(|(tlv, _)| tlv)?,
+                    SupportedRatesTLV::<ReadIterator>::try_from_ctx(from, ())
+                        .map(|(tlv, _)| tlv)?,
                 ),
                 TLVType::Unknown(_) => Self::Unknown(tlv),
             },
@@ -60,7 +62,9 @@ impl<'a> TryFromCtx<'a> for IEEE80211TLV<'a> {
         ))
     }
 }
-impl<RateIterator: Iterator<Item = EncodedRate> + Clone> TryIntoCtx for IEEE80211TLV<'_, RateIterator> {
+impl<RateIterator: Iterator<Item = EncodedRate> + Clone> TryIntoCtx
+    for IEEE80211TLV<'_, RateIterator>
+{
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         match self {
@@ -68,7 +72,7 @@ impl<RateIterator: Iterator<Item = EncodedRate> + Clone> TryIntoCtx for IEEE8021
                 TypedIEEE80211TLV {
                     tlv_type: TLVType::SSID,
                     payload,
-                    _phantom: PhantomData
+                    _phantom: PhantomData,
                 },
                 0,
             ),
@@ -76,7 +80,7 @@ impl<RateIterator: Iterator<Item = EncodedRate> + Clone> TryIntoCtx for IEEE8021
                 TypedIEEE80211TLV {
                     tlv_type: TLVType::SupportedRates,
                     payload,
-                    _phantom: PhantomData
+                    _phantom: PhantomData,
                 },
                 0,
             ),

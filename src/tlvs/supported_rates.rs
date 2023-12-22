@@ -1,4 +1,7 @@
-use core::{iter::{Map, Copied}, slice::Iter};
+use core::{
+    iter::{Copied, Map},
+    slice::Iter,
+};
 use macro_bits::{bit, bitfield};
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
@@ -10,7 +13,7 @@ bitfield! {
     /// Data rate encoded as specified in IEEE 802.11.
     pub struct EncodedRate: u8 {
         /// The value of the data rate.
-        /// 
+        ///
         /// The formular is `rate * 500` to get kbps. Use [EncodedRate::rate_in_kbps] to calculate this.
         pub rate: u8 => bit!(0, 1, 2, 3, 4, 5, 6),
         /// Is the data rate IEEE 802.11b.
@@ -29,7 +32,7 @@ pub type ReadIterator<'a> = Map<Copied<Iter<'a, u8>>, fn(u8) -> EncodedRate>;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// TLV containing the rates supported by the AP.
-/// 
+///
 /// The `supported_rates` field is an [Iterator] over [EncodedRate]. This allows passing rates, agnostic of the collection.
 /// When deserializing this struct, the Iterator is [ReadIterator].
 /// There must be no more than 8 rates present, since anything after that gets truncated.
@@ -52,7 +55,7 @@ impl<'a> TryFromCtx<'a> for SupportedRatesTLV<ReadIterator<'a>> {
         } else {
             Ok((
                 SupportedRatesTLV {
-                    supported_rates: from.iter().copied().map(EncodedRate::from_representation)
+                    supported_rates: from.iter().copied().map(EncodedRate::from_representation),
                 },
                 from.len(),
             ))

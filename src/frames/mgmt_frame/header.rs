@@ -1,7 +1,10 @@
 use mac_parser::MACAddress;
-use scroll::{ctx::{TryFromCtx, TryIntoCtx}, Pread, Endian, Pwrite};
+use scroll::{
+    ctx::{TryFromCtx, TryIntoCtx},
+    Endian, Pread, Pwrite,
+};
 
-use crate::common::{FragSeqInfo, FCFFlags};
+use crate::common::{FCFFlags, FragSeqInfo};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 /// A management frame header.
@@ -48,9 +51,9 @@ impl TryFromCtx<'_, FCFFlags> for ManagementFrameHeader {
                 transmitter_address,
                 bssid,
                 frag_seq_info,
-                ht_control
+                ht_control,
             },
-            offset
+            offset,
         ))
     }
 }

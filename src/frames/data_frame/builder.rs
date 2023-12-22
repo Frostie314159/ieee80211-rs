@@ -2,14 +2,14 @@ use core::marker::PhantomData;
 
 use mac_parser::MACAddress;
 
-use crate::{common::{FragSeqInfo, FCFFlags, subtypes::DataFrameSubtype}, type_state::*};
-
-use self::type_state::{
-    Data, DataFrameCategory, DataNull, HasPayload, Payload, QoS,
-    QoSNull,
+use crate::{
+    common::{subtypes::DataFrameSubtype, FCFFlags, FragSeqInfo},
+    type_state::*,
 };
 
-use super::{amsdu::AMSDUPayload, DataFrame, DataFramePayload, header::DataFrameHeader};
+use self::type_state::{Data, DataFrameCategory, DataNull, HasPayload, Payload, QoS, QoSNull};
+
+use super::{amsdu::AMSDUPayload, header::DataFrameHeader, DataFrame, DataFramePayload};
 
 pub mod type_state {
     use scroll::ctx::{MeasureWith, TryIntoCtx};
@@ -238,203 +238,367 @@ impl<'a, DS, Category, PayloadType: Copy, Address1: Copy, Address3: Copy, Addres
         }
     }
 }
-impl<'a, Category: DataFrameCategory, PayloadType, Address1: Copy, Address2: Copy, Address3: Copy> DataFrameBuilderInner<'a, NeitherToNorFromDS, Category, PayloadType, Address1, Address2, Address3, ()> {
+impl<
+        'a,
+        Category: DataFrameCategory,
+        PayloadType,
+        Address1: Copy,
+        Address2: Copy,
+        Address3: Copy,
+    >
+    DataFrameBuilderInner<
+        'a,
+        NeitherToNorFromDS,
+        Category,
+        PayloadType,
+        Address1,
+        Address2,
+        Address3,
+        (),
+    >
+{
     pub const fn destination_address(
         self,
-        desination_address: MACAddress
-    ) -> DataFrameBuilderInner<'a, NeitherToNorFromDS, Category, PayloadType, MACAddress, Address2, Address3, ()> {
+        desination_address: MACAddress,
+    ) -> DataFrameBuilderInner<
+        'a,
+        NeitherToNorFromDS,
+        Category,
+        PayloadType,
+        MACAddress,
+        Address2,
+        Address3,
+        (),
+    > {
         DataFrameBuilderInner {
             address_1: desination_address,
             address_2: self.address_2,
             address_3: self.address_3,
             address_4: self.address_4,
             payload: self.payload,
-            _phantom: PhantomData
+            _phantom: PhantomData,
         }
     }
     pub const fn source_address(
         self,
-        source_address: MACAddress
-    ) -> DataFrameBuilderInner<'a, NeitherToNorFromDS, Category, PayloadType, Address1, MACAddress, Address3, ()> {
+        source_address: MACAddress,
+    ) -> DataFrameBuilderInner<
+        'a,
+        NeitherToNorFromDS,
+        Category,
+        PayloadType,
+        Address1,
+        MACAddress,
+        Address3,
+        (),
+    > {
         DataFrameBuilderInner {
             address_1: self.address_1,
             address_2: source_address,
             address_3: self.address_3,
             address_4: self.address_4,
             payload: self.payload,
-            _phantom: PhantomData
+            _phantom: PhantomData,
         }
     }
     pub const fn bssid(
         self,
-        bssid: MACAddress
-    ) -> DataFrameBuilderInner<'a, NeitherToNorFromDS, Category, PayloadType, MACAddress, Address2, Address3, ()> {
+        bssid: MACAddress,
+    ) -> DataFrameBuilderInner<
+        'a,
+        NeitherToNorFromDS,
+        Category,
+        PayloadType,
+        MACAddress,
+        Address2,
+        Address3,
+        (),
+    > {
         DataFrameBuilderInner {
             address_1: bssid,
             address_2: self.address_2,
             address_3: self.address_3,
             address_4: self.address_4,
             payload: self.payload,
-            _phantom: PhantomData
+            _phantom: PhantomData,
         }
     }
 }
-impl<'a, Category: DataFrameCategory, PayloadType, Address1: Copy, Address2: Copy, Address3: Copy> DataFrameBuilderInner<'a, FromDS, Category, PayloadType, Address1, Address2, Address3, ()> {
+impl<
+        'a,
+        Category: DataFrameCategory,
+        PayloadType,
+        Address1: Copy,
+        Address2: Copy,
+        Address3: Copy,
+    > DataFrameBuilderInner<'a, FromDS, Category, PayloadType, Address1, Address2, Address3, ()>
+{
     pub const fn destination_address(
         self,
-        desination_address: MACAddress
-    ) -> DataFrameBuilderInner<'a, NeitherToNorFromDS, Category, PayloadType, MACAddress, Address2, Address3, ()> {
+        desination_address: MACAddress,
+    ) -> DataFrameBuilderInner<
+        'a,
+        NeitherToNorFromDS,
+        Category,
+        PayloadType,
+        MACAddress,
+        Address2,
+        Address3,
+        (),
+    > {
         DataFrameBuilderInner {
             address_1: desination_address,
             address_2: self.address_2,
             address_3: self.address_3,
             address_4: self.address_4,
             payload: self.payload,
-            _phantom: PhantomData
+            _phantom: PhantomData,
         }
     }
 }
-impl<'a, Category: DataFrameCategory, Address1: Copy, Address2: Copy, Address3: Copy> DataFrameBuilderInner<'a, FromDS, Category, &'a [u8], Address1, Address2, Address3, ()> {
+impl<'a, Category: DataFrameCategory, Address1: Copy, Address2: Copy, Address3: Copy>
+    DataFrameBuilderInner<'a, FromDS, Category, &'a [u8], Address1, Address2, Address3, ()>
+{
     pub const fn source_address(
         self,
-        source_address: MACAddress
-    ) -> DataFrameBuilderInner<'a, FromDS, Category, &'a [u8], Address1, Address2, MACAddress, ()> {
+        source_address: MACAddress,
+    ) -> DataFrameBuilderInner<'a, FromDS, Category, &'a [u8], Address1, Address2, MACAddress, ()>
+    {
         DataFrameBuilderInner {
             address_1: self.address_1,
             address_2: self.address_2,
             address_3: source_address,
             address_4: self.address_4,
             payload: self.payload,
-            _phantom: PhantomData
+            _phantom: PhantomData,
         }
     }
     pub const fn bssid(
         self,
-        bssid: MACAddress
-    ) -> DataFrameBuilderInner<'a, FromDS, Category, &'a [u8], Address1, MACAddress, Address3, ()> {
+        bssid: MACAddress,
+    ) -> DataFrameBuilderInner<'a, FromDS, Category, &'a [u8], Address1, MACAddress, Address3, ()>
+    {
         DataFrameBuilderInner {
             address_1: self.address_1,
             address_2: bssid,
             address_3: self.address_3,
             address_4: self.address_4,
             payload: self.payload,
-            _phantom: PhantomData
+            _phantom: PhantomData,
         }
     }
 }
-impl<'a, Category: DataFrameCategory, Address1: Copy, Address2: Copy, Address3: Copy> DataFrameBuilderInner<'a, FromDS, Category, AMSDUPayload<'a>, Address1, Address2, Address3, ()> {
+impl<'a, Category: DataFrameCategory, Address1: Copy, Address2: Copy, Address3: Copy>
+    DataFrameBuilderInner<'a, FromDS, Category, AMSDUPayload<'a>, Address1, Address2, Address3, ()>
+{
     pub const fn bssid(
         self,
-        bssid: MACAddress
-    ) -> DataFrameBuilderInner<'a, FromDS, Category, &'a [u8], Address1, MACAddress, MACAddress, ()> {
+        bssid: MACAddress,
+    ) -> DataFrameBuilderInner<'a, FromDS, Category, &'a [u8], Address1, MACAddress, MACAddress, ()>
+    {
         DataFrameBuilderInner {
             address_1: self.address_1,
             address_2: bssid,
             address_3: bssid,
             address_4: self.address_4,
             payload: self.payload,
-            _phantom: PhantomData
+            _phantom: PhantomData,
         }
     }
 }
-impl<'a, Category: DataFrameCategory, PayloadType, Address1: Copy, Address2: Copy, Address3: Copy> DataFrameBuilderInner<'a, ToDS, Category, PayloadType, Address1, Address2, Address3, ()> {
+impl<
+        'a,
+        Category: DataFrameCategory,
+        PayloadType,
+        Address1: Copy,
+        Address2: Copy,
+        Address3: Copy,
+    > DataFrameBuilderInner<'a, ToDS, Category, PayloadType, Address1, Address2, Address3, ()>
+{
     pub const fn source_address(
         self,
-        source_address: MACAddress
-    ) -> DataFrameBuilderInner<'a, NeitherToNorFromDS, Category, PayloadType, Address1, MACAddress, Address3, ()> {
+        source_address: MACAddress,
+    ) -> DataFrameBuilderInner<
+        'a,
+        NeitherToNorFromDS,
+        Category,
+        PayloadType,
+        Address1,
+        MACAddress,
+        Address3,
+        (),
+    > {
         DataFrameBuilderInner {
             address_1: self.address_1,
             address_2: source_address,
             address_3: self.address_3,
             address_4: self.address_4,
             payload: self.payload,
-            _phantom: PhantomData
+            _phantom: PhantomData,
         }
     }
 }
-impl<'a, Category: DataFrameCategory, Address1: Copy, Address2: Copy, Address3: Copy> DataFrameBuilderInner<'a, ToDS, Category, &'a [u8], Address1, Address2, Address3, ()> {
+impl<'a, Category: DataFrameCategory, Address1: Copy, Address2: Copy, Address3: Copy>
+    DataFrameBuilderInner<'a, ToDS, Category, &'a [u8], Address1, Address2, Address3, ()>
+{
     pub const fn desination_address(
         self,
-        desination_address: MACAddress
-    ) -> DataFrameBuilderInner<'a, ToDS, Category, &'a [u8], Address1, Address2, MACAddress, ()> {
+        desination_address: MACAddress,
+    ) -> DataFrameBuilderInner<'a, ToDS, Category, &'a [u8], Address1, Address2, MACAddress, ()>
+    {
         DataFrameBuilderInner {
             address_1: self.address_1,
             address_2: self.address_2,
             address_3: desination_address,
             address_4: self.address_4,
             payload: self.payload,
-            _phantom: PhantomData
+            _phantom: PhantomData,
         }
     }
     pub const fn bssid(
         self,
-        bssid: MACAddress
-    ) -> DataFrameBuilderInner<'a, ToDS, Category, &'a [u8], MACAddress, Address2, Address3, ()> {
+        bssid: MACAddress,
+    ) -> DataFrameBuilderInner<'a, ToDS, Category, &'a [u8], MACAddress, Address2, Address3, ()>
+    {
         DataFrameBuilderInner {
             address_1: bssid,
             address_2: self.address_2,
             address_3: self.address_3,
             address_4: self.address_4,
             payload: self.payload,
-            _phantom: PhantomData
+            _phantom: PhantomData,
         }
     }
 }
-impl<'a, Category: DataFrameCategory, Address1: Copy, Address2: Copy, Address3: Copy> DataFrameBuilderInner<'a, ToDS, Category, AMSDUPayload<'a>, Address1, Address2, Address3, ()> {
+impl<'a, Category: DataFrameCategory, Address1: Copy, Address2: Copy, Address3: Copy>
+    DataFrameBuilderInner<'a, ToDS, Category, AMSDUPayload<'a>, Address1, Address2, Address3, ()>
+{
     pub const fn bssid(
         self,
-        bssid: MACAddress
-    ) -> DataFrameBuilderInner<'a, ToDS, Category, AMSDUPayload<'a>, MACAddress, Address2, MACAddress, ()> {
+        bssid: MACAddress,
+    ) -> DataFrameBuilderInner<
+        'a,
+        ToDS,
+        Category,
+        AMSDUPayload<'a>,
+        MACAddress,
+        Address2,
+        MACAddress,
+        (),
+    > {
         DataFrameBuilderInner {
             address_1: bssid,
             address_2: self.address_2,
             address_3: bssid,
             address_4: self.address_4,
             payload: self.payload,
-            _phantom: PhantomData
+            _phantom: PhantomData,
         }
     }
 }
-impl<'a, Category: DataFrameCategory, Address1: Copy, Address2: Copy, Address3: Copy, Address4: Copy> DataFrameBuilderInner<'a, ToAndFromDS, Category, &'a [u8], Address1, Address2, Address3, Address4> {
+impl<
+        'a,
+        Category: DataFrameCategory,
+        Address1: Copy,
+        Address2: Copy,
+        Address3: Copy,
+        Address4: Copy,
+    >
+    DataFrameBuilderInner<
+        'a,
+        ToAndFromDS,
+        Category,
+        &'a [u8],
+        Address1,
+        Address2,
+        Address3,
+        Address4,
+    >
+{
     pub const fn desination_address(
         self,
-        desination_address: MACAddress
-    ) -> DataFrameBuilderInner<'a, ToAndFromDS, Category, &'a [u8], Address1, Address2, MACAddress, Address4> {
+        desination_address: MACAddress,
+    ) -> DataFrameBuilderInner<
+        'a,
+        ToAndFromDS,
+        Category,
+        &'a [u8],
+        Address1,
+        Address2,
+        MACAddress,
+        Address4,
+    > {
         DataFrameBuilderInner {
             address_1: self.address_1,
             address_2: self.address_2,
             address_3: desination_address,
             address_4: self.address_4,
             payload: self.payload,
-            _phantom: PhantomData
+            _phantom: PhantomData,
         }
     }
     pub const fn source_address(
         self,
-        source_address: MACAddress
-    ) -> DataFrameBuilderInner<'a, ToAndFromDS, Category, &'a [u8], Address1, Address2, Address3, MACAddress> {
+        source_address: MACAddress,
+    ) -> DataFrameBuilderInner<
+        'a,
+        ToAndFromDS,
+        Category,
+        &'a [u8],
+        Address1,
+        Address2,
+        Address3,
+        MACAddress,
+    > {
         DataFrameBuilderInner {
             address_1: self.address_1,
             address_2: self.address_2,
             address_3: self.address_3,
             address_4: Some(source_address),
             payload: self.payload,
-            _phantom: PhantomData
+            _phantom: PhantomData,
         }
     }
 }
-impl<'a, Category: DataFrameCategory, Address1: Copy, Address2: Copy, Address3: Copy, Address4: Copy> DataFrameBuilderInner<'a, ToAndFromDS, Category, AMSDUPayload<'a>, Address1, Address2, Address3, Address4> {
+impl<
+        'a,
+        Category: DataFrameCategory,
+        Address1: Copy,
+        Address2: Copy,
+        Address3: Copy,
+        Address4: Copy,
+    >
+    DataFrameBuilderInner<
+        'a,
+        ToAndFromDS,
+        Category,
+        AMSDUPayload<'a>,
+        Address1,
+        Address2,
+        Address3,
+        Address4,
+    >
+{
     pub const fn bssid(
         self,
-        bssid: MACAddress
-    ) -> DataFrameBuilderInner<'a, ToAndFromDS, Category, AMSDUPayload<'a>, Address1, Address2, MACAddress, MACAddress> {
+        bssid: MACAddress,
+    ) -> DataFrameBuilderInner<
+        'a,
+        ToAndFromDS,
+        Category,
+        AMSDUPayload<'a>,
+        Address1,
+        Address2,
+        MACAddress,
+        MACAddress,
+    > {
         DataFrameBuilderInner {
             address_1: self.address_1,
             address_2: self.address_2,
             address_3: bssid,
             address_4: Some(bssid),
             payload: self.payload,
-            _phantom: PhantomData
+            _phantom: PhantomData,
         }
     }
 }

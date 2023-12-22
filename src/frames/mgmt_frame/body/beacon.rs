@@ -6,7 +6,7 @@ use scroll::{
     Endian, Pread, Pwrite,
 };
 
-use crate::tlvs::{ssid::SSIDTLV, IEEE80211TLV, supported_rates::ReadIterator};
+use crate::tlvs::{ssid::SSIDTLV, supported_rates::ReadIterator, IEEE80211TLV};
 
 bitfield! {
     #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]

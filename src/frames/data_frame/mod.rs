@@ -4,9 +4,12 @@ use scroll::{
     Pread, Pwrite,
 };
 
-use crate::common::{FCFFlags, subtypes::DataFrameSubtype};
+use crate::common::{subtypes::DataFrameSubtype, FCFFlags};
 
-use self::{amsdu::{AMSDUPayload, AMSDUSubframeIterator}, header::DataFrameHeader};
+use self::{
+    amsdu::{AMSDUPayload, AMSDUSubframeIterator},
+    header::DataFrameHeader,
+};
 
 pub mod amsdu;
 pub mod builder;
@@ -48,7 +51,12 @@ pub struct DataFrame<'a> {
 }
 impl DataFrame<'_> {
     pub const fn length_in_bytes(&self) -> usize {
-        self.header.length_in_bytes() + if let Some(payload) = self.payload { payload.length_in_bytes() } else { 0 }
+        self.header.length_in_bytes()
+            + if let Some(payload) = self.payload {
+                payload.length_in_bytes()
+            } else {
+                0
+            }
     }
     pub fn payload<'a>(&'a self) -> Option<Either<&'a [u8], AMSDUSubframeIterator<'a>>> {
         if let Some(DataFramePayload::Single(payload)) = self.payload {
@@ -82,13 +90,7 @@ impl<'a> TryFromCtx<'a, (DataFrameSubtype, FCFFlags)> for DataFrame<'a> {
         } else {
             None
         };
-        Ok((
-            Self {
-                header,
-                payload,
-            },
-            offset,
-        ))
+        Ok((Self { header, payload }, offset))
     }
 }
 impl TryIntoCtx for DataFrame<'_> {
