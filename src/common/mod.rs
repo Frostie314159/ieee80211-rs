@@ -1,8 +1,12 @@
+use core::time::Duration;
+
 use macro_bits::{bit, bitfield};
 
 use self::subtypes::{ControlFrameSubtype, DataFrameSubtype, ManagementFrameSubtype};
 
 pub mod subtypes;
+
+pub const TU: Duration = Duration::from_micros(1024);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum FrameType {
