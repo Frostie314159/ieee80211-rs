@@ -1,4 +1,4 @@
-use core::iter::repeat;
+use core::{iter::repeat, time::Duration};
 
 use macro_bits::{bit, bitfield};
 use scroll::{
@@ -6,10 +6,10 @@ use scroll::{
     Endian, Pread, Pwrite,
 };
 
-use crate::tlvs::{supported_rates::ReadIterator, IEEE80211TLV};
+use crate::{tlvs::{supported_rates::ReadIterator, IEEE80211TLV}, common::TU};
 
 bitfield! {
-    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+    #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
     pub struct CapabilitiesInformation: u16 {
         pub is_ap: bool => bit!(0),
         pub is_ibss: bool => bit!(1),
@@ -24,7 +24,7 @@ bitfield! {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct BeaconFrameBody<'a> {
     pub timestamp: u64,
     pub beacon_interval: u16,
@@ -37,6 +37,9 @@ impl<'a> BeaconFrameBody<'a> {
         2 + // Beacon interval
         2 + // Capabilities information
         self.tagged_payload.len()
+    }
+    pub const fn beacon_interval_as_duration(&self) -> Duration {
+        Duration::from_micros(self.beacon_interval as u64 * TU.as_micros() as u64)
     }
     /// Get an [Iterator] over the contained [IEEE80211TLV]s.
     pub fn tlv_iter(&'a self) -> impl Iterator<Item = IEEE80211TLV<'a, ReadIterator>> + 'a {
