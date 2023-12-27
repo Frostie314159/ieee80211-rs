@@ -1,12 +1,10 @@
-use core::{
-    iter::{Copied, Map},
-    slice::Iter,
-};
 use macro_bits::{bit, bitfield};
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
     Pwrite,
 };
+
+use super::RateReadIterator;
 
 bitfield! {
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
@@ -25,26 +23,31 @@ impl EncodedRate {
     pub const fn rate_in_kbps(&self) -> usize {
         self.rate as usize * 500
     }
+    /// Creates a rate from it's speed in kbps.
+    pub const fn from_rate_in_kbps(rate: usize, is_b: bool) -> Self {
+        Self {
+            rate: (rate / 500) as u8,
+            is_b,
+        }
+    }
 }
-
-/// The default rate iterator returned, when parsing the [SupportedRatesTLV].
-pub type ReadIterator<'a> = Map<Copied<Iter<'a, u8>>, fn(u8) -> EncodedRate>;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// TLV containing the rates supported by the AP.
 ///
 /// The `supported_rates` field is an [Iterator] over [EncodedRate]. This allows passing rates, agnostic of the collection.
-/// When deserializing this struct, the Iterator is [ReadIterator].
+/// When deserializing this struct, the Iterator is [SupportedRatesTLVReadRateIterator].
 /// There must be no more than 8 rates present, since anything after that gets truncated.
 pub struct SupportedRatesTLV<I> {
     pub supported_rates: I,
 }
-impl<I: Iterator<Item = EncodedRate> + Clone> MeasureWith<()> for SupportedRatesTLV<I> {
+impl<I: ExactSizeIterator> MeasureWith<()> for SupportedRatesTLV<I> {
     fn measure_with(&self, _ctx: &()) -> usize {
-        self.supported_rates.clone().count()
+        // Each rate is exactly one byte.
+        self.supported_rates.len()
     }
 }
-impl<'a> TryFromCtx<'a> for SupportedRatesTLV<ReadIterator<'a>> {
+impl<'a> TryFromCtx<'a> for SupportedRatesTLV<SupportedRatesTLVReadRateIterator<'a>> {
     type Error = scroll::Error;
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         if from.len() > 8 {
@@ -62,16 +65,18 @@ impl<'a> TryFromCtx<'a> for SupportedRatesTLV<ReadIterator<'a>> {
         }
     }
 }
-impl<I: Iterator<Item = EncodedRate> + Clone> TryIntoCtx for SupportedRatesTLV<I> {
+impl<I: IntoIterator<Item = EncodedRate> + Clone> TryIntoCtx for SupportedRatesTLV<I> {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         let mut offset = 0;
 
         // No more than 8 data rates.
-        for rate in self.supported_rates.take(8) {
+        for rate in self.supported_rates.into_iter().take(8) {
             buf.gwrite(rate.to_representation(), &mut offset)?;
         }
 
         Ok(offset)
     }
 }
+/// The Iterator returned, when reading the [SupportedRatesTLV].
+pub type SupportedRatesTLVReadRateIterator<'a> = RateReadIterator<'a, EncodedRate>;
