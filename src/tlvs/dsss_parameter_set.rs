@@ -4,6 +4,7 @@ use scroll::{
 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+/// TLV containing the current channel of the sender.
 pub struct DSSSParameterSet {
     pub current_channel: u8,
 }
