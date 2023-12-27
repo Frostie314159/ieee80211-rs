@@ -3,7 +3,10 @@ use scroll::{
     Pread, Pwrite,
 };
 
-use crate::common::subtypes::ManagementFrameSubtype;
+use crate::{
+    common::subtypes::ManagementFrameSubtype,
+    tlvs::{TLVReadIterator, IEEE80211TLV},
+};
 
 use self::{action::ActionFrameBody, beacon::BeaconFrameBody};
 
@@ -11,13 +14,13 @@ pub mod action;
 pub mod beacon;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ManagementFrameBody<'a> {
+pub enum ManagementFrameBody<'a, TLVIterator> {
     Action(ActionFrameBody<'a>),
     ActionNoAck(ActionFrameBody<'a>),
-    Beacon(BeaconFrameBody<'a>),
+    Beacon(BeaconFrameBody<TLVIterator>),
     ATIM,
 }
-impl ManagementFrameBody<'_> {
+impl<TLVIterator> ManagementFrameBody<'_, TLVIterator> {
     pub const fn get_sub_type(&self) -> ManagementFrameSubtype {
         match self {
             Self::Action(_) => ManagementFrameSubtype::Action,
@@ -26,6 +29,8 @@ impl ManagementFrameBody<'_> {
             Self::ATIM => ManagementFrameSubtype::ATIM,
         }
     }
+}
+impl ManagementFrameBody<'_, TLVReadIterator<'_>> {
     pub const fn length_in_bytes(&self) -> usize {
         match self {
             Self::Action(action) | Self::ActionNoAck(action) => action.length_in_bytes(),
@@ -34,12 +39,18 @@ impl ManagementFrameBody<'_> {
         }
     }
 }
-impl MeasureWith<()> for ManagementFrameBody<'_> {
-    fn measure_with(&self, _ctx: &()) -> usize {
-        self.length_in_bytes()
+impl<'a, TLVIterator: Iterator<Item = IEEE80211TLV<'a>> + Clone> MeasureWith<()>
+    for ManagementFrameBody<'a, TLVIterator>
+{
+    fn measure_with(&self, ctx: &()) -> usize {
+        match self {
+            Self::Action(action) | Self::ActionNoAck(action) => action.measure_with(ctx),
+            Self::Beacon(beacon) => beacon.measure_with(ctx),
+            Self::ATIM => 0,
+        }
     }
 }
-impl<'a> TryFromCtx<'a, ManagementFrameSubtype> for ManagementFrameBody<'a> {
+impl<'a> TryFromCtx<'a, ManagementFrameSubtype> for ManagementFrameBody<'a, TLVReadIterator<'a>> {
     type Error = scroll::Error;
     fn try_from_ctx(
         from: &'a [u8],
@@ -63,7 +74,9 @@ impl<'a> TryFromCtx<'a, ManagementFrameSubtype> for ManagementFrameBody<'a> {
         ))
     }
 }
-impl TryIntoCtx for ManagementFrameBody<'_> {
+impl<'a, TLVIterator: Iterator<Item = IEEE80211TLV<'a>>> TryIntoCtx
+    for ManagementFrameBody<'a, TLVIterator>
+{
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         match self {

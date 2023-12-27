@@ -1,6 +1,12 @@
 use ieee80211::{
-    frames::{mgmt_frame::body::ManagementFrameBody, Frame},
-    tlvs::{ssid::SSIDTLV, IEEE80211TLV},
+    frames::{
+        mgmt_frame::{
+            body::{beacon::BeaconFrameBody, ManagementFrameBody},
+            ManagementFrame,
+        },
+        Frame,
+    },
+    tlvs::{ssid::SSIDTLV, TLVReadIterator, IEEE80211TLV},
 };
 use scroll::{ctx::MeasureWith, Pread, Pwrite};
 
@@ -34,11 +40,13 @@ const NEW_BYTES: &[u8] = &[
 ];
 
 fn main() {
-    let mut frame = INITIAL_BYTES.pread::<Frame<'_>>(0).unwrap();
-    let Frame::Management(mut management_frame) = frame else {
+    let frame = INITIAL_BYTES
+        .pread::<Frame<'_, TLVReadIterator>>(0)
+        .unwrap();
+    let Frame::Management(management_frame) = frame else {
         panic!()
     };
-    let ManagementFrameBody::Beacon(mut beacon) = management_frame.body else {
+    let ManagementFrameBody::Beacon(beacon) = management_frame.body else {
         panic!()
     };
     println!(
@@ -48,15 +56,20 @@ fn main() {
     );
 
     let ssid_tlv = IEEE80211TLV::SSID(SSIDTLV::new("OpenRF").unwrap());
-    let mut buf = vec![0x00u8; ssid_tlv.measure_with(&())];
-    buf.pwrite(ssid_tlv, 0).unwrap();
+    let beacon = BeaconFrameBody {
+        capabilities_info: beacon.capabilities_info,
+        timestamp: beacon.timestamp,
+        beacon_interval: beacon.beacon_interval,
+        tagged_payload: [ssid_tlv].into_iter(),
+    };
+    let management_frame = ManagementFrame {
+        header: management_frame.header,
+        body: ManagementFrameBody::Beacon(beacon),
+    };
+    let frame = Frame::Management(management_frame);
 
-    beacon.tagged_payload = buf.as_slice();
-    management_frame.body = ManagementFrameBody::Beacon(beacon);
-    frame = Frame::Management(management_frame);
-
-    let mut buf = vec![0x00u8; frame.length_in_bytes()];
-    buf.pwrite(frame, 0).unwrap();
+    let mut buf = vec![0x00u8; frame.measure_with(&true)];
+    buf.pwrite_with(frame, 0, true).unwrap();
 
     assert_eq!(buf, NEW_BYTES);
 }
