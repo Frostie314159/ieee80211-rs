@@ -14,7 +14,7 @@ pub mod data_frame;
 pub mod mgmt_frame;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Frame<'a, TLVIterator> {
+pub enum Frame<'a, TLVIterator = TLVReadIterator<'a>> {
     Management(ManagementFrame<'a, TLVIterator>),
     Data(DataFrame<'a>),
 }
