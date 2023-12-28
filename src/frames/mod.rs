@@ -10,7 +10,6 @@ use crate::{
 
 use self::{data_frame::DataFrame, mgmt_frame::ManagementFrame};
 
-pub mod control_frame;
 pub mod data_frame;
 pub mod mgmt_frame;
 
