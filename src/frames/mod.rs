@@ -59,7 +59,7 @@ impl<'a> TryFromCtx<'a, bool> for Frame<'a, TLVReadIterator<'a>> {
             FrameControlField::from_representation(from.gread_with(&mut offset, Endian::Little)?);
 
         // This prevents subsequent parsers from reading the FCS.
-        let body_slice = from.pread_with::<&[u8]>(0, from.len() - 4)?;
+        let body_slice = if fcs_at_end { from.pread_with::<&[u8]>(0, from.len() - 4)? } else { from };
         let frame = match fcf.frame_type {
             FrameType::Management(subtype) => {
                 Self::Management(body_slice.gread_with(&mut offset, (subtype, fcf.flags))?)
