@@ -14,7 +14,7 @@ pub mod action;
 pub mod beacon;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ManagementFrameBody<'a, TLVIterator> {
+pub enum ManagementFrameBody<'a, TLVIterator = TLVReadIterator<'a>> {
     Action(ActionFrameBody<'a>),
     ActionNoAck(ActionFrameBody<'a>),
     Beacon(BeaconFrameBody<TLVIterator>),
