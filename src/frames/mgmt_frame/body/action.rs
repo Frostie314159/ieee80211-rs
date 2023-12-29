@@ -18,7 +18,7 @@ pub enum ActionFrameBody<'a> {
 }
 impl ActionFrameBody<'_> {
     pub const fn length_in_bytes(&self) -> usize {
-        match self {
+        1 + match self {
             Self::VendorSpecific { payload, .. } => 3 + payload.len(),
         }
     }
