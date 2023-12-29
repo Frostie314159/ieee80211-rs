@@ -6,7 +6,7 @@ use scroll::{
 
 use crate::common::{FCFFlags, FragSeqInfo};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// A management frame header.
 pub struct ManagementFrameHeader {
     pub fcf_flags: FCFFlags,

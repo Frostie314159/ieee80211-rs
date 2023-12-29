@@ -9,7 +9,7 @@ use crate::common::{
     subtypes::DataFrameSubtype, FCFFlags, FragSeqInfo, FrameControlField, FrameType,
 };
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// A generic data frame header.
 ///
 /// The address fields are unnamed, since their meaning is context dependent.
