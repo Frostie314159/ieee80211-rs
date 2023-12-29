@@ -1,4 +1,4 @@
-use core::time::Duration;
+use core::{time::Duration, marker::PhantomData};
 
 use macro_bits::{bit, bitfield};
 use scroll::{
@@ -28,13 +28,14 @@ bitfield! {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct BeaconFrameBody<I> {
+pub struct BeaconFrameBody<'a, I = TLVReadIterator<'a>> {
     pub timestamp: u64,
     pub beacon_interval: u16,
     pub capabilities_info: CapabilitiesInformation,
     pub tagged_payload: I,
+    pub _phantom: PhantomData<&'a ()>
 }
-impl BeaconFrameBody<TLVReadIterator<'_>> {
+impl<'a> BeaconFrameBody<'a> {
     pub const fn length_in_bytes(&self) -> usize {
         8 + // Timestamp
         2 + // Beacon interval
@@ -42,7 +43,7 @@ impl BeaconFrameBody<TLVReadIterator<'_>> {
         self.tagged_payload.bytes.len()
     }
 }
-impl<'a, I: Iterator<Item = IEEE80211TLV<'a>> + Clone> BeaconFrameBody<I> {
+impl<'a, I: Iterator<Item = IEEE80211TLV<'a>> + Clone> BeaconFrameBody<'a, I> {
     pub const fn beacon_interval_as_duration(&self) -> Duration {
         Duration::from_micros(self.beacon_interval as u64 * TU.as_micros() as u64)
     }
@@ -59,7 +60,7 @@ impl<'a, I: Iterator<Item = IEEE80211TLV<'a>> + Clone> BeaconFrameBody<I> {
     }
 }
 impl<'a, TLVIterator: Iterator<Item = IEEE80211TLV<'a>> + Clone> MeasureWith<()>
-    for BeaconFrameBody<TLVIterator>
+    for BeaconFrameBody<'a, TLVIterator>
 {
     fn measure_with(&self, ctx: &()) -> usize {
         12 + self
@@ -69,7 +70,7 @@ impl<'a, TLVIterator: Iterator<Item = IEEE80211TLV<'a>> + Clone> MeasureWith<()>
             .sum::<usize>()
     }
 }
-impl<'a> TryFromCtx<'a> for BeaconFrameBody<TLVReadIterator<'a>> {
+impl<'a> TryFromCtx<'a> for BeaconFrameBody<'a> {
     type Error = scroll::Error;
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
@@ -86,13 +87,14 @@ impl<'a> TryFromCtx<'a> for BeaconFrameBody<TLVReadIterator<'a>> {
                 beacon_interval,
                 capabilities_info,
                 tagged_payload,
+                _phantom: PhantomData
             },
             offset,
         ))
     }
 }
 impl<'a, TLVIterator: Iterator<Item = IEEE80211TLV<'a>>> TryIntoCtx
-    for BeaconFrameBody<TLVIterator>
+    for BeaconFrameBody<'a, TLVIterator>
 {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {

@@ -17,7 +17,7 @@ pub mod beacon;
 pub enum ManagementFrameBody<'a, TLVIterator = TLVReadIterator<'a>> {
     Action(ActionFrameBody<'a>),
     ActionNoAck(ActionFrameBody<'a>),
-    Beacon(BeaconFrameBody<TLVIterator>),
+    Beacon(BeaconFrameBody<'a, TLVIterator>),
     ATIM,
 }
 impl<TLVIterator> ManagementFrameBody<'_, TLVIterator> {
@@ -30,7 +30,7 @@ impl<TLVIterator> ManagementFrameBody<'_, TLVIterator> {
         }
     }
 }
-impl ManagementFrameBody<'_, TLVReadIterator<'_>> {
+impl ManagementFrameBody<'_> {
     pub const fn length_in_bytes(&self) -> usize {
         match self {
             Self::Action(action) | Self::ActionNoAck(action) => action.length_in_bytes(),

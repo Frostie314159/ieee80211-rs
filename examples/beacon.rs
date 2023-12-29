@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use ieee80211::{
     frames::{
         mgmt_frame::{
@@ -61,6 +63,7 @@ fn main() {
         timestamp: beacon.timestamp,
         beacon_interval: beacon.beacon_interval,
         tagged_payload: [ssid_tlv].into_iter(),
+        _phantom: PhantomData
     };
     let management_frame = ManagementFrame {
         header: management_frame.header,
