@@ -1,4 +1,4 @@
-use core::{time::Duration, marker::PhantomData};
+use core::time::Duration;
 
 use macro_bits::{bit, bitfield};
 use scroll::{
@@ -13,6 +13,7 @@ use crate::{
 
 bitfield! {
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+    /// This bitfield contains the capabilities of the sender.
     pub struct CapabilitiesInformation: u16 {
         pub is_ap: bool => bit!(0),
         pub is_ibss: bool => bit!(1),
@@ -23,19 +24,22 @@ bitfield! {
         pub is_short_time_slot_in_use: bool => bit!(10),
         pub is_auto_power_save_implemented: bool => bit!(11),
         pub is_radio_measurement_implemented: bool => bit!(12),
-        pub is_epd_implemented: bool => bit!(13)
+        pub is_epd_implemented: bool => bit!(13),
+        pub reserved: u8 => bit!(14, 15)
     }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct BeaconFrameBody<'a, I = TLVReadIterator<'a>> {
+/// This is the body of a beacon frame.
+/// The generic parameter can be any type, which implements [IntoIterator<Item = IEEE80211TLV<'_>>](IntoIterator).
+/// When reading this struct the generic parameter is set to [TLVReadIterator].
+pub struct BeaconFrameBody<I> {
     pub timestamp: u64,
     pub beacon_interval: u16,
     pub capabilities_info: CapabilitiesInformation,
     pub tagged_payload: I,
-    pub _phantom: PhantomData<&'a ()>
 }
-impl<'a> BeaconFrameBody<'a> {
+impl BeaconFrameBody<TLVReadIterator<'_>> {
     pub const fn length_in_bytes(&self) -> usize {
         8 + // Timestamp
         2 + // Beacon interval
@@ -43,14 +47,14 @@ impl<'a> BeaconFrameBody<'a> {
         self.tagged_payload.bytes.len()
     }
 }
-impl<'a, I: Iterator<Item = IEEE80211TLV<'a>> + Clone> BeaconFrameBody<'a, I> {
+impl<'a, I: IntoIterator<Item = IEEE80211TLV<'a>> + Clone> BeaconFrameBody<I> {
     pub const fn beacon_interval_as_duration(&self) -> Duration {
         Duration::from_micros(self.beacon_interval as u64 * TU.as_micros() as u64)
     }
     /// Extract the SSID from the tlvs.
     pub fn ssid(&'a self) -> Option<&'a str> {
         // SSID should be the first TLV.
-        self.tagged_payload.clone().find_map(|tlv| {
+        self.tagged_payload.clone().into_iter().find_map(|tlv| {
             if let IEEE80211TLV::SSID(ssid_tlv) = tlv {
                 Some(ssid_tlv.take_ssid())
             } else {
@@ -59,18 +63,19 @@ impl<'a, I: Iterator<Item = IEEE80211TLV<'a>> + Clone> BeaconFrameBody<'a, I> {
         })
     }
 }
-impl<'a, TLVIterator: Iterator<Item = IEEE80211TLV<'a>> + Clone> MeasureWith<()>
-    for BeaconFrameBody<'a, TLVIterator>
+impl<'a, I: IntoIterator<Item = IEEE80211TLV<'a>> + Clone> MeasureWith<()>
+    for BeaconFrameBody<I>
 {
     fn measure_with(&self, ctx: &()) -> usize {
         12 + self
             .tagged_payload
             .clone()
+            .into_iter()
             .map(|tlv| tlv.measure_with(ctx))
             .sum::<usize>()
     }
 }
-impl<'a> TryFromCtx<'a> for BeaconFrameBody<'a> {
+impl<'a> TryFromCtx<'a> for BeaconFrameBody<TLVReadIterator<'a>> {
     type Error = scroll::Error;
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
@@ -87,14 +92,13 @@ impl<'a> TryFromCtx<'a> for BeaconFrameBody<'a> {
                 beacon_interval,
                 capabilities_info,
                 tagged_payload,
-                _phantom: PhantomData
             },
             offset,
         ))
     }
 }
-impl<'a, TLVIterator: Iterator<Item = IEEE80211TLV<'a>>> TryIntoCtx
-    for BeaconFrameBody<'a, TLVIterator>
+impl<'a, I: IntoIterator<Item = IEEE80211TLV<'a>>> TryIntoCtx
+    for BeaconFrameBody<I>
 {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {

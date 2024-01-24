@@ -1,20 +1,17 @@
 use core::marker::PhantomData;
-
 use mac_parser::MACAddress;
+use scroll::ctx::TryIntoCtx;
 
 use crate::{
     common::{subtypes::DataFrameSubtype, FCFFlags, FragSeqInfo},
     type_state::*,
 };
 
-use self::type_state::{Data, DataFrameCategory, DataNull, HasPayload, Payload, QoS, QoSNull};
+use self::type_state::{Data, DataFrameCategory, DataNull, HasPayload, QoS, QoSNull};
 
-use super::{amsdu::AMSDUPayload, header::DataFrameHeader, DataFrame, DataFramePayload};
+use super::{amsdu::AMSDUPayload, header::DataFrameHeader, DataFrame};
 
 pub mod type_state {
-    use scroll::ctx::{MeasureWith, TryIntoCtx};
-
-    use crate::frames::data_frame::AMSDUPayload;
 
     pub trait DataFrameCategory {
         const UPPER_TWO_BITS: u8;
@@ -34,26 +31,6 @@ pub mod type_state {
     data_frame_category!(DataNull, NoPayload, 0b01);
     data_frame_category!(QoS, HasPayload, 0b10);
     data_frame_category!(QoSNull, NoPayload, 0b11);
-    pub trait Payload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()> + Copy {
-        const IS_AMSDU: bool;
-    }
-    impl Payload for &'_ [u8] {
-        const IS_AMSDU: bool = false;
-    }
-    impl Payload for AMSDUPayload<'_> {
-        const IS_AMSDU: bool = true;
-    }
-    pub struct PayloadLengthExtractor<PayloadType: Payload>(pub PayloadType);
-    impl PayloadLengthExtractor<&'_ [u8]> {
-        pub const fn length_in_bytes(&self) -> usize {
-            self.0.len()
-        }
-    }
-    impl PayloadLengthExtractor<AMSDUPayload<'_>> {
-        pub const fn length_in_bytes(&self) -> usize {
-            self.0.length_in_bytes()
-        }
-    }
 }
 /// A type state based data frame builder.
 pub struct DataFrameBuilderInner<
@@ -70,8 +47,9 @@ pub struct DataFrameBuilderInner<
     address_2: Address2,
     address_3: Address3,
     address_4: Option<MACAddress>,
-    payload: Option<DataFramePayload<'a>>,
-    _phantom: PhantomData<(DS, Category, PayloadType, Address4)>,
+    payload: Option<PayloadType>,
+    fcf_flags: FCFFlags,
+    _phantom: PhantomData<(&'a (), DS, Category, Address4)>,
 }
 impl<
         'a,
@@ -103,6 +81,7 @@ impl<
             address_3: self.address_3,
             address_4: self.address_4,
             payload: self.payload,
+            fcf_flags: self.fcf_flags,
             _phantom: PhantomData,
         }
     }
@@ -116,6 +95,16 @@ impl<'a> DataFrameBuilderInner<'a, (), (), (), (), (), (), ()> {
             address_3: (),
             address_4: None,
             payload: None,
+            fcf_flags: FCFFlags {
+                to_ds: false,
+                from_ds: false,
+                more_fragments: false,
+                retry: false,
+                pwr_mgt: false,
+                more_data: false,
+                protected: false,
+                order: false,
+            },
             _phantom: PhantomData,
         }
     }
@@ -134,6 +123,30 @@ impl<'a> DataFrameBuilderInner<'a, (), (), (), (), (), (), ()> {
         self,
     ) -> DataFrameBuilderInner<'a, ToAndFromDS, (), (), (), (), (), ()> {
         self.change_type_state()
+    }
+    pub const fn more_fragments(mut self) -> Self {
+        self.fcf_flags.more_fragments = true;
+        self
+    }
+    pub const fn retry(mut self) -> Self {
+        self.fcf_flags.retry = true;
+        self
+    }
+    pub const fn power_management(mut self) -> Self {
+        self.fcf_flags.pwr_mgt = true;
+        self
+    }
+    pub const fn more_data(mut self) -> Self {
+        self.fcf_flags.more_data = true;
+        self
+    }
+    pub const fn protected(mut self) -> Self {
+        self.fcf_flags.protected = true;
+        self
+    }
+    pub const fn order(mut self) -> Self {
+        self.fcf_flags.order = true;
+        self
     }
 }
 impl<'a, DS> DataFrameBuilderInner<'a, DS, (), (), (), (), (), ()> {
@@ -154,34 +167,36 @@ impl<'a, DS> DataFrameBuilderInner<'a, DS, (), (), (), (), (), ()> {
         self.change_type_state()
     }
 }
-impl<DS, Category: HasPayload + DataFrameCategory>
-    DataFrameBuilderInner<'_, DS, Category, (), (), (), (), ()>
+impl<'a, DS, Category: HasPayload + DataFrameCategory>
+    DataFrameBuilderInner<'a, DS, Category, (), (), (), (), ()>
 {
-    pub const fn payload(
+    pub const fn payload<Payload: TryIntoCtx + 'a>(
         self,
-        payload: &[u8],
-    ) -> DataFrameBuilderInner<'_, DS, Category, &[u8], (), (), (), ()> {
+        payload: Payload,
+    ) -> DataFrameBuilderInner<'a, DS, Category, Payload, (), (), (), ()> {
         DataFrameBuilderInner {
             address_1: (),
             address_2: (),
             address_3: (),
             address_4: None,
-            payload: Some(DataFramePayload::Single(payload)),
+            payload: Some(payload),
+            fcf_flags: self.fcf_flags,
             _phantom: PhantomData,
         }
     }
 }
-impl<DS> DataFrameBuilderInner<'_, DS, QoS, (), (), (), (), ()> {
-    pub const fn payload_amsdu(
+impl<'a, DS> DataFrameBuilderInner<'a, DS, QoS, (), (), (), (), ()> {
+    pub const fn payload_amsdu<SubFrames>(
         self,
-        payload: AMSDUPayload<'_>,
-    ) -> DataFrameBuilderInner<'_, DS, QoS, AMSDUPayload<'_>, (), (), (), ()> {
+        sub_frames: SubFrames,
+    ) -> DataFrameBuilderInner<'a, DS, QoS, AMSDUPayload<SubFrames>, (), (), (), ()> {
         DataFrameBuilderInner {
             address_1: (),
             address_2: (),
             address_3: (),
             address_4: None,
-            payload: Some(DataFramePayload::AMSDU(payload)),
+            payload: Some(AMSDUPayload { sub_frames }),
+            fcf_flags: self.fcf_flags,
             _phantom: PhantomData,
         }
     }
@@ -208,6 +223,7 @@ impl<'a, DS, Category, PayloadType: Copy, Address2: Copy, Address3: Copy, Addres
             address_3: self.address_3,
             address_4: self.address_4,
             payload: self.payload,
+            fcf_flags: self.fcf_flags,
             _phantom: PhantomData,
         }
     }
@@ -234,6 +250,7 @@ impl<'a, DS, Category, PayloadType: Copy, Address1: Copy, Address3: Copy, Addres
             address_3: self.address_3,
             address_4: self.address_4,
             payload: self.payload,
+            fcf_flags: self.fcf_flags,
             _phantom: PhantomData,
         }
     }
@@ -241,7 +258,7 @@ impl<'a, DS, Category, PayloadType: Copy, Address1: Copy, Address3: Copy, Addres
 impl<
         'a,
         Category: DataFrameCategory,
-        PayloadType,
+        PayloadType: Copy,
         Address1: Copy,
         Address2: Copy,
         Address3: Copy,
@@ -259,7 +276,7 @@ impl<
 {
     pub const fn destination_address(
         self,
-        desination_address: MACAddress,
+        destination_address: MACAddress,
     ) -> DataFrameBuilderInner<
         'a,
         NeitherToNorFromDS,
@@ -271,11 +288,12 @@ impl<
         (),
     > {
         DataFrameBuilderInner {
-            address_1: desination_address,
+            address_1: destination_address,
             address_2: self.address_2,
             address_3: self.address_3,
             address_4: self.address_4,
             payload: self.payload,
+            fcf_flags: self.fcf_flags,
             _phantom: PhantomData,
         }
     }
@@ -298,6 +316,7 @@ impl<
             address_3: self.address_3,
             address_4: self.address_4,
             payload: self.payload,
+            fcf_flags: self.fcf_flags,
             _phantom: PhantomData,
         }
     }
@@ -320,6 +339,7 @@ impl<
             address_3: self.address_3,
             address_4: self.address_4,
             payload: self.payload,
+            fcf_flags: self.fcf_flags,
             _phantom: PhantomData,
         }
     }
@@ -327,7 +347,7 @@ impl<
 impl<
         'a,
         Category: DataFrameCategory,
-        PayloadType,
+        PayloadType: Copy,
         Address1: Copy,
         Address2: Copy,
         Address3: Copy,
@@ -335,7 +355,7 @@ impl<
 {
     pub const fn destination_address(
         self,
-        desination_address: MACAddress,
+        destination_address: MACAddress,
     ) -> DataFrameBuilderInner<
         'a,
         NeitherToNorFromDS,
@@ -347,11 +367,12 @@ impl<
         (),
     > {
         DataFrameBuilderInner {
-            address_1: desination_address,
+            address_1: destination_address,
             address_2: self.address_2,
             address_3: self.address_3,
             address_4: self.address_4,
             payload: self.payload,
+            fcf_flags: self.fcf_flags,
             _phantom: PhantomData,
         }
     }
@@ -370,6 +391,7 @@ impl<'a, Category: DataFrameCategory, Address1: Copy, Address2: Copy, Address3: 
             address_3: source_address,
             address_4: self.address_4,
             payload: self.payload,
+            fcf_flags: self.fcf_flags,
             _phantom: PhantomData,
         }
     }
@@ -384,24 +406,7 @@ impl<'a, Category: DataFrameCategory, Address1: Copy, Address2: Copy, Address3: 
             address_3: self.address_3,
             address_4: self.address_4,
             payload: self.payload,
-            _phantom: PhantomData,
-        }
-    }
-}
-impl<'a, Category: DataFrameCategory, Address1: Copy, Address2: Copy, Address3: Copy>
-    DataFrameBuilderInner<'a, FromDS, Category, AMSDUPayload<'a>, Address1, Address2, Address3, ()>
-{
-    pub const fn bssid(
-        self,
-        bssid: MACAddress,
-    ) -> DataFrameBuilderInner<'a, FromDS, Category, &'a [u8], Address1, MACAddress, MACAddress, ()>
-    {
-        DataFrameBuilderInner {
-            address_1: self.address_1,
-            address_2: bssid,
-            address_3: bssid,
-            address_4: self.address_4,
-            payload: self.payload,
+            fcf_flags: self.fcf_flags,
             _phantom: PhantomData,
         }
     }
@@ -409,7 +414,50 @@ impl<'a, Category: DataFrameCategory, Address1: Copy, Address2: Copy, Address3: 
 impl<
         'a,
         Category: DataFrameCategory,
-        PayloadType,
+        Payload: Copy,
+        Address1: Copy,
+        Address2: Copy,
+        Address3: Copy,
+    >
+    DataFrameBuilderInner<
+        'a,
+        FromDS,
+        Category,
+        AMSDUPayload<Payload>,
+        Address1,
+        Address2,
+        Address3,
+        (),
+    >
+{
+    pub const fn bssid(
+        self,
+        bssid: MACAddress,
+    ) -> DataFrameBuilderInner<
+        'a,
+        FromDS,
+        Category,
+        AMSDUPayload<Payload>,
+        Address1,
+        MACAddress,
+        MACAddress,
+        (),
+    > {
+        DataFrameBuilderInner {
+            address_1: self.address_1,
+            address_2: bssid,
+            address_3: bssid,
+            address_4: self.address_4,
+            payload: self.payload,
+            fcf_flags: self.fcf_flags,
+            _phantom: PhantomData,
+        }
+    }
+}
+impl<
+        'a,
+        Category: DataFrameCategory,
+        PayloadType: Copy,
         Address1: Copy,
         Address2: Copy,
         Address3: Copy,
@@ -434,6 +482,7 @@ impl<
             address_3: self.address_3,
             address_4: self.address_4,
             payload: self.payload,
+            fcf_flags: self.fcf_flags,
             _phantom: PhantomData,
         }
     }
@@ -441,17 +490,18 @@ impl<
 impl<'a, Category: DataFrameCategory, Address1: Copy, Address2: Copy, Address3: Copy>
     DataFrameBuilderInner<'a, ToDS, Category, &'a [u8], Address1, Address2, Address3, ()>
 {
-    pub const fn desination_address(
+    pub const fn destination_address(
         self,
-        desination_address: MACAddress,
+        destination_address: MACAddress,
     ) -> DataFrameBuilderInner<'a, ToDS, Category, &'a [u8], Address1, Address2, MACAddress, ()>
     {
         DataFrameBuilderInner {
             address_1: self.address_1,
             address_2: self.address_2,
-            address_3: desination_address,
+            address_3: destination_address,
             address_4: self.address_4,
             payload: self.payload,
+            fcf_flags: self.fcf_flags,
             _phantom: PhantomData,
         }
     }
@@ -466,12 +516,29 @@ impl<'a, Category: DataFrameCategory, Address1: Copy, Address2: Copy, Address3: 
             address_3: self.address_3,
             address_4: self.address_4,
             payload: self.payload,
+            fcf_flags: self.fcf_flags,
             _phantom: PhantomData,
         }
     }
 }
-impl<'a, Category: DataFrameCategory, Address1: Copy, Address2: Copy, Address3: Copy>
-    DataFrameBuilderInner<'a, ToDS, Category, AMSDUPayload<'a>, Address1, Address2, Address3, ()>
+impl<
+        'a,
+        Category: DataFrameCategory,
+        Payload: Copy,
+        Address1: Copy,
+        Address2: Copy,
+        Address3: Copy,
+    >
+    DataFrameBuilderInner<
+        'a,
+        ToDS,
+        Category,
+        AMSDUPayload<Payload>,
+        Address1,
+        Address2,
+        Address3,
+        (),
+    >
 {
     pub const fn bssid(
         self,
@@ -480,7 +547,7 @@ impl<'a, Category: DataFrameCategory, Address1: Copy, Address2: Copy, Address3: 
         'a,
         ToDS,
         Category,
-        AMSDUPayload<'a>,
+        AMSDUPayload<Payload>,
         MACAddress,
         Address2,
         MACAddress,
@@ -492,6 +559,7 @@ impl<'a, Category: DataFrameCategory, Address1: Copy, Address2: Copy, Address3: 
             address_3: bssid,
             address_4: self.address_4,
             payload: self.payload,
+            fcf_flags: self.fcf_flags,
             _phantom: PhantomData,
         }
     }
@@ -515,9 +583,9 @@ impl<
         Address4,
     >
 {
-    pub const fn desination_address(
+    pub const fn destination_address(
         self,
-        desination_address: MACAddress,
+        destination_address: MACAddress,
     ) -> DataFrameBuilderInner<
         'a,
         ToAndFromDS,
@@ -531,9 +599,10 @@ impl<
         DataFrameBuilderInner {
             address_1: self.address_1,
             address_2: self.address_2,
-            address_3: desination_address,
+            address_3: destination_address,
             address_4: self.address_4,
             payload: self.payload,
+            fcf_flags: self.fcf_flags,
             _phantom: PhantomData,
         }
     }
@@ -556,6 +625,7 @@ impl<
             address_3: self.address_3,
             address_4: Some(source_address),
             payload: self.payload,
+            fcf_flags: self.fcf_flags,
             _phantom: PhantomData,
         }
     }
@@ -563,6 +633,7 @@ impl<
 impl<
         'a,
         Category: DataFrameCategory,
+        Payload: Copy,
         Address1: Copy,
         Address2: Copy,
         Address3: Copy,
@@ -572,7 +643,7 @@ impl<
         'a,
         ToAndFromDS,
         Category,
-        AMSDUPayload<'a>,
+        AMSDUPayload<Payload>,
         Address1,
         Address2,
         Address3,
@@ -586,7 +657,7 @@ impl<
         'a,
         ToAndFromDS,
         Category,
-        AMSDUPayload<'a>,
+        AMSDUPayload<Payload>,
         Address1,
         Address2,
         MACAddress,
@@ -598,31 +669,23 @@ impl<
             address_3: bssid,
             address_4: Some(bssid),
             payload: self.payload,
+            fcf_flags: self.fcf_flags,
             _phantom: PhantomData,
         }
     }
 }
-impl<'a, DS: DSField, Category: DataFrameCategory, PayloadType: Payload>
-    DataFrameBuilderInner<'a, DS, Category, PayloadType, MACAddress, MACAddress, MACAddress, ()>
+impl<'a, DS: DSField, Category: DataFrameCategory, PayloadType: Copy>
+    DataFrameBuilderInner<'a, DS, Category, PayloadType, MACAddress, MACAddress, MACAddress, MACAddress>
 {
     #[inline]
-    pub const fn build(self) -> DataFrame<'a> {
+    pub const fn build(self) -> DataFrame<PayloadType> {
         let header = DataFrameHeader {
             subtype: DataFrameSubtype::from_representation(Category::UPPER_TWO_BITS << 2),
             address_1: self.address_1,
             address_2: self.address_2,
             address_3: self.address_3,
-            address_4: None,
-            fcf_flags: FCFFlags {
-                from_ds: DS::FROM_DS,
-                to_ds: DS::TO_DS,
-                more_fragments: false,
-                retry: false,
-                pwr_mgt: false,
-                more_data: false,
-                protected: false,
-                htc_plus_order: PayloadType::IS_AMSDU,
-            },
+            address_4: self.address_4,
+            fcf_flags: self.fcf_flags,
             duration: 0,
             frag_seq_info: FragSeqInfo {
                 fragment_number: 0,
@@ -631,7 +694,7 @@ impl<'a, DS: DSField, Category: DataFrameCategory, PayloadType: Payload>
             qos: None,
             ht_control: None,
         };
-        DataFrame {
+        DataFrame::<PayloadType> {
             header,
             payload: self.payload,
         }
@@ -641,7 +704,14 @@ pub type DataFrameBuilder<'a> = DataFrameBuilderInner<'a, (), (), (), (), (), ()
 
 #[test]
 fn test() {
+    use mac_parser::ZERO;
+    use crate::frames::data_frame::amsdu::AMSDUSubframe;
     let _data_frame = DataFrameBuilder::new()
-        .neither_to_nor_from_ds()
-        .category_qos();
+        .to_and_from_ds()
+        .category_qos()
+        .payload_amsdu::<&[AMSDUSubframe<&[u8]>]>(&[])
+        .receiver_address(ZERO)
+        .transmitter_address(ZERO)
+        .bssid(ZERO)
+        .build();
 }

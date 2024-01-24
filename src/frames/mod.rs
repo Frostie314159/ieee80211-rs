@@ -8,17 +8,20 @@ use crate::{
     tlvs::{TLVReadIterator, IEEE80211TLV},
 };
 
-use self::{data_frame::DataFrame, mgmt_frame::ManagementFrame};
+use self::{
+    data_frame::{DataFrame, DataFrameReadPayload},
+    mgmt_frame::ManagementFrame,
+};
 
 pub mod data_frame;
 pub mod mgmt_frame;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Frame<'a, TLVIterator = TLVReadIterator<'a>> {
+pub enum Frame<'a, TLVIterator = TLVReadIterator<'a>, DataFramePayload = DataFrameReadPayload<'a>> {
     Management(ManagementFrame<'a, TLVIterator>),
-    Data(DataFrame<'a>),
+    Data(DataFrame<DataFramePayload>),
 }
-impl<TLVIterator> Frame<'_, TLVIterator> {
+impl<TLVIterator, DataFramePayload> Frame<'_, TLVIterator, DataFramePayload> {
     pub const fn get_fcf(&self) -> FrameControlField {
         match self {
             Self::Management(management_frame) => management_frame.get_fcf(),
@@ -26,7 +29,7 @@ impl<TLVIterator> Frame<'_, TLVIterator> {
         }
     }
 }
-impl<'a> Frame<'a, TLVReadIterator<'a>> {
+impl<'a> Frame<'a> {
     pub const fn length_in_bytes(&self, fcs_at_end: bool) -> usize {
         2 + // Type/Subtype and Flags
         match self {
@@ -40,8 +43,11 @@ impl<'a> Frame<'a, TLVReadIterator<'a>> {
         }
     }
 }
-impl<'a, TLVIterator: Iterator<Item = IEEE80211TLV<'a>> + Clone> MeasureWith<bool>
-    for Frame<'a, TLVIterator>
+impl<
+        'a,
+        TLVIterator: IntoIterator<Item = IEEE80211TLV<'a>> + Clone,
+        DataFramePayload: MeasureWith<()>,
+    > MeasureWith<bool> for Frame<'a, TLVIterator, DataFramePayload>
 {
     fn measure_with(&self, fcs_at_end: &bool) -> usize {
         2 + match self {
@@ -59,7 +65,11 @@ impl<'a> TryFromCtx<'a, bool> for Frame<'a, TLVReadIterator<'a>> {
             FrameControlField::from_representation(from.gread_with(&mut offset, Endian::Little)?);
 
         // This prevents subsequent parsers from reading the FCS.
-        let body_slice = if fcs_at_end { from.pread_with::<&[u8]>(0, from.len() - 4)? } else { from };
+        let body_slice = if fcs_at_end {
+            from.pread_with::<&[u8]>(0, from.len() - 4)?
+        } else {
+            from
+        };
         let frame = match fcf.frame_type {
             FrameType::Management(subtype) => {
                 Self::Management(body_slice.gread_with(&mut offset, (subtype, fcf.flags))?)
@@ -87,7 +97,7 @@ impl<'a> TryFromCtx<'a, bool> for Frame<'a, TLVReadIterator<'a>> {
         }
     }
 }
-impl<'a, TLVIterator: Iterator<Item = IEEE80211TLV<'a>>> TryIntoCtx<bool>
+impl<'a, TLVIterator: IntoIterator<Item = IEEE80211TLV<'a>>> TryIntoCtx<bool>
     for Frame<'a, TLVIterator>
 {
     type Error = scroll::Error;

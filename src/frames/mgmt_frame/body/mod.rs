@@ -14,14 +14,18 @@ pub mod action;
 pub mod beacon;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// This is the body of a management frame.
+/// The rest of the frame can be found in [crate::frames::ManagementFrame].
 pub enum ManagementFrameBody<'a, TLVIterator = TLVReadIterator<'a>> {
     Action(ActionFrameBody<'a>),
     ActionNoAck(ActionFrameBody<'a>),
-    Beacon(BeaconFrameBody<'a, TLVIterator>),
+    Beacon(BeaconFrameBody<TLVIterator>),
     ATIM,
 }
 impl<TLVIterator> ManagementFrameBody<'_, TLVIterator> {
-    pub const fn get_sub_type(&self) -> ManagementFrameSubtype {
+    /// This returns the subtype of the body.
+    /// It's mostly for internal use, but since it might be useful it's `pub`.
+    pub const fn get_subtype(&self) -> ManagementFrameSubtype {
         match self {
             Self::Action(_) => ManagementFrameSubtype::Action,
             Self::ActionNoAck(_) => ManagementFrameSubtype::ActionNoAck,
@@ -31,6 +35,7 @@ impl<TLVIterator> ManagementFrameBody<'_, TLVIterator> {
     }
 }
 impl ManagementFrameBody<'_> {
+    /// The total length in bytes.
     pub const fn length_in_bytes(&self) -> usize {
         match self {
             Self::Action(action) | Self::ActionNoAck(action) => action.length_in_bytes(),
@@ -39,7 +44,7 @@ impl ManagementFrameBody<'_> {
         }
     }
 }
-impl<'a, TLVIterator: Iterator<Item = IEEE80211TLV<'a>> + Clone> MeasureWith<()>
+impl<'a, TLVIterator: IntoIterator<Item = IEEE80211TLV<'a>> + Clone> MeasureWith<()>
     for ManagementFrameBody<'a, TLVIterator>
 {
     fn measure_with(&self, ctx: &()) -> usize {
@@ -74,7 +79,7 @@ impl<'a> TryFromCtx<'a, ManagementFrameSubtype> for ManagementFrameBody<'a, TLVR
         ))
     }
 }
-impl<'a, TLVIterator: Iterator<Item = IEEE80211TLV<'a>>> TryIntoCtx
+impl<'a, TLVIterator: IntoIterator<Item = IEEE80211TLV<'a>>> TryIntoCtx
     for ManagementFrameBody<'a, TLVIterator>
 {
     type Error = scroll::Error;

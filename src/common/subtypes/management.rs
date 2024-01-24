@@ -2,6 +2,7 @@ use macro_bits::serializable_enum;
 
 serializable_enum! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+    /// The subtype of a management frame.
     pub enum ManagementFrameSubtype: u8 {
         AssociationRequest => 0b0000,
         AssociationResponse => 0b0001,

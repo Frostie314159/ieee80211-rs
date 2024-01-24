@@ -104,12 +104,14 @@ impl<RateIterator: Iterator<Item = EncodedRate> + Clone + ExactSizeIterator> Try
                 },
                 0,
             ),
-            Self::DSSSParameterSet(payload) => buf.pwrite( TypedIEEE80211TLV {
-                tlv_type: TLVType::SupportedRates,
-                payload,
-                _phantom: PhantomData,
-            },
-            0,),
+            Self::DSSSParameterSet(payload) => buf.pwrite(
+                TypedIEEE80211TLV {
+                    tlv_type: TLVType::SupportedRates,
+                    payload,
+                    _phantom: PhantomData,
+                },
+                0,
+            ),
             Self::ExtendedSupportedRates(payload) => buf.pwrite(
                 TypedIEEE80211TLV {
                     tlv_type: TLVType::ExtendedSupportedRates,

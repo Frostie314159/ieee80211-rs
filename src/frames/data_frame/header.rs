@@ -262,7 +262,7 @@ impl TryFromCtx<'_, (DataFrameSubtype, FCFFlags)> for DataFrameHeader {
         } else {
             None
         };
-        let ht_control = if fcf_flags.htc_plus_order {
+        let ht_control = if fcf_flags.order {
             Some(from.gread(&mut offset)?)
         } else {
             None

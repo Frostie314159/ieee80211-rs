@@ -38,7 +38,7 @@ impl TryFromCtx<'_, FCFFlags> for ManagementFrameHeader {
         let bssid = from.gread(&mut offset)?;
         let frag_seq_info =
             FragSeqInfo::from_representation(from.gread_with(&mut offset, Endian::Little)?);
-        let ht_control = if fcf_flags.htc_plus_order {
+        let ht_control = if fcf_flags.order {
             Some(from.gread(&mut offset)?)
         } else {
             None

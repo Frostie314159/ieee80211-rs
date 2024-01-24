@@ -22,7 +22,7 @@ impl<TLVIterator> ManagementFrame<'_, TLVIterator> {
     pub const fn get_fcf(&self) -> FrameControlField {
         FrameControlField {
             version: 0,
-            frame_type: FrameType::Management(self.body.get_sub_type()),
+            frame_type: FrameType::Management(self.body.get_subtype()),
             flags: self.header.fcf_flags,
         }
     }
@@ -32,7 +32,7 @@ impl<'a> ManagementFrame<'a, TLVReadIterator<'a>> {
         self.header.length_in_bytes() + self.body.length_in_bytes()
     }
 }
-impl<'a, TLVIterator: Iterator<Item = IEEE80211TLV<'a>> + Clone> MeasureWith<()>
+impl<'a, TLVIterator: IntoIterator<Item = IEEE80211TLV<'a>> + Clone> MeasureWith<()>
     for ManagementFrame<'a, TLVIterator>
 {
     fn measure_with(&self, ctx: &()) -> usize {
@@ -55,7 +55,7 @@ impl<'a> TryFromCtx<'a, (ManagementFrameSubtype, FCFFlags)>
         Ok((Self { header, body }, offset))
     }
 }
-impl<'a, TLVIterator: Iterator<Item = IEEE80211TLV<'a>>> TryIntoCtx
+impl<'a, TLVIterator: IntoIterator<Item = IEEE80211TLV<'a>>> TryIntoCtx
     for ManagementFrame<'a, TLVIterator>
 {
     type Error = scroll::Error;

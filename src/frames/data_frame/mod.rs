@@ -1,4 +1,3 @@
-use either::Either;
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
     Pread, Pwrite,
@@ -6,50 +5,67 @@ use scroll::{
 
 use crate::common::{subtypes::DataFrameSubtype, FCFFlags};
 
-use self::{
-    amsdu::{AMSDUPayload, AMSDUSubframeIterator},
-    header::DataFrameHeader,
-};
+use self::{amsdu::AMSDUSubframeIterator, header::DataFrameHeader};
 
 pub mod amsdu;
 pub mod builder;
 pub mod header;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum DataFramePayload<'a> {
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+/// This is the payload of a data frame.
+/// The payload can be either one chunk or multiple aggregate MSDU subframes.
+pub enum DataFrameReadPayload<'a> {
     Single(&'a [u8]),
-    AMSDU(AMSDUPayload<'a>),
+    AMSDU(AMSDUSubframeIterator<'a>),
 }
-impl DataFramePayload<'_> {
+impl DataFrameReadPayload<'_> {
+    /// The total length in bytes.
     pub const fn length_in_bytes(&self) -> usize {
         match self {
-            Self::Single(slice) => slice.len(),
-            Self::AMSDU(amsdu_payload) => amsdu_payload.length_in_bytes(),
+            Self::Single(bytes) => bytes.len(),
+            Self::AMSDU(amsdu_sub_frame_iter) => amsdu_sub_frame_iter.length_in_bytes(),
         }
     }
 }
-impl TryIntoCtx for DataFramePayload<'_> {
+impl MeasureWith<()> for DataFrameReadPayload<'_> {
+    fn measure_with(&self, _ctx: &()) -> usize {
+        self.length_in_bytes()
+    }
+}
+impl<'a> TryFromCtx<'a, bool> for DataFrameReadPayload<'a> {
+    type Error = scroll::Error;
+    fn try_from_ctx(from: &'a [u8], is_amsdu: bool) -> Result<(Self, usize), Self::Error> {
+        Ok((
+            if is_amsdu {
+                Self::Single(from)
+            } else {
+                Self::AMSDU(AMSDUSubframeIterator::from_bytes(from))
+            },
+            from.len(),
+        ))
+    }
+}
+impl TryIntoCtx for DataFrameReadPayload<'_> {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         match self {
-            DataFramePayload::Single(slice) => buf.pwrite(slice, 0),
-            DataFramePayload::AMSDU(amsdu_payload) => {
-                let mut offset = 0;
-                for amsdu_sub_frame in amsdu_payload.sub_frames {
-                    buf.gwrite(*amsdu_sub_frame, &mut offset)?;
-                }
-                Ok(offset)
-            }
+            Self::Single(data) => buf.pwrite(data, 0),
+            Self::AMSDU(data) => buf.pwrite(data.bytes.unwrap_or_default(), 0),
         }
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct DataFrame<'a> {
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+/// This is a data frame. The individual subtypes don't have there own seperate structs, since the only difference is the header.
+pub struct DataFrame<P> {
+    /// This is the header of the data frame.
     pub header: DataFrameHeader,
-    payload: Option<DataFramePayload<'a>>,
+    /// This is the payload of the data frame.
+    /// It will be set to [None] for all null function frames.
+    pub payload: Option<P>,
 }
-impl DataFrame<'_> {
+impl DataFrame<DataFrameReadPayload<'_>> {
+    /// The total length in bytes.
     pub const fn length_in_bytes(&self) -> usize {
         self.header.length_in_bytes()
             + if let Some(payload) = self.payload {
@@ -58,24 +74,18 @@ impl DataFrame<'_> {
                 0
             }
     }
-    pub fn payload<'a>(&'a self) -> Option<Either<&'a [u8], AMSDUSubframeIterator<'a>>> {
-        if let Some(DataFramePayload::Single(payload)) = self.payload {
-            Some(if self.header.is_amsdu() {
-                Either::Right(AMSDUSubframeIterator::from_bytes(payload))
+}
+impl<Payload: MeasureWith<()>> MeasureWith<()> for DataFrame<Payload> {
+    fn measure_with(&self, ctx: &()) -> usize {
+        self.header.length_in_bytes()
+            + if let Some(payload) = self.payload.as_ref() {
+                payload.measure_with(ctx)
             } else {
-                Either::Left(payload)
-            })
-        } else {
-            None
-        }
+                0
+            }
     }
 }
-impl MeasureWith<()> for DataFrame<'_> {
-    fn measure_with(&self, _ctx: &()) -> usize {
-        self.length_in_bytes()
-    }
-}
-impl<'a> TryFromCtx<'a, (DataFrameSubtype, FCFFlags)> for DataFrame<'a> {
+impl<'a> TryFromCtx<'a, (DataFrameSubtype, FCFFlags)> for DataFrame<DataFrameReadPayload<'a>> {
     type Error = scroll::Error;
     fn try_from_ctx(
         from: &'a [u8],
@@ -86,14 +96,16 @@ impl<'a> TryFromCtx<'a, (DataFrameSubtype, FCFFlags)> for DataFrame<'a> {
         let header: DataFrameHeader = from.gread_with(&mut offset, (subtype, fcf_flags))?;
         let payload = if header.subtype.has_payload() {
             let len = from.len() - offset;
-            Some(DataFramePayload::Single(from.gread_with(&mut offset, len)?))
+            Some(DataFrameReadPayload::Single(
+                from.gread_with(&mut offset, len)?,
+            ))
         } else {
             None
         };
         Ok((Self { header, payload }, offset))
     }
 }
-impl TryIntoCtx for DataFrame<'_> {
+impl<Payload: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for DataFrame<Payload> {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         let mut offset = 0;
