@@ -13,7 +13,7 @@
 pub mod common;
 mod frames;
 /// This module contains the elements, which are found in the body of some frames.
-/// If an element only consists of one struct, like the [SSID](tlvs::SSIDTLV), they are re-exported, otherwise they get their own module. 
+/// If an element only consists of one struct, like the [SSID](tlvs::SSIDTLV), they are re-exported, otherwise they get their own module.
 pub mod tlvs;
 /// Used internally for builders.
 pub mod type_state;

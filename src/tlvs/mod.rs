@@ -12,8 +12,7 @@ use self::rates::{
     SupportedRatesTLV, SupportedRatesTLVReadRateIterator,
 };
 /// This module contains the elements, which are found in the body of some frames.
-/// If an element only consists of one struct, like the [ssid::SSIDTLV], they are re-exported, otherwise they get their own module. 
-
+/// If an element only consists of one struct, like the [ssid::SSIDTLV], they are re-exported, otherwise they get their own module.
 mod dsss_parameter_set;
 pub use dsss_parameter_set::DSSSParameterSet;
 pub mod rates;
