@@ -7,8 +7,11 @@ use crate::common::{subtypes::DataFrameSubtype, FCFFlags};
 
 use self::{amsdu::AMSDUSubframeIterator, header::DataFrameHeader};
 
+/// This contains types related to aggregate MSDUs.
 pub mod amsdu;
+/// This is a type state based data frame builder.
 pub mod builder;
+/// This contains the header.
 pub mod header;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

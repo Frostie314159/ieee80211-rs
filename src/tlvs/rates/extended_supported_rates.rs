@@ -12,7 +12,7 @@ bitfield! {
     pub struct EncodedExtendedRate: u8 {
         /// The value of the data rate.
         ///
-        /// The formular is `rate * 500` to get kbps. Use [EncodedRate::rate_in_kbps] to calculate this.
+        /// The formular is `rate * 500` to get kbps. Use [EncodedExtendedRate::rate_in_kbps] to calculate this.
         pub rate: u8 => bit!(0, 1, 2, 3, 4, 5, 6)
     }
 }
@@ -32,7 +32,7 @@ impl EncodedExtendedRate {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// TLV containing rates supported by the peer.
 ///
-/// The `supported_rates` field is an [Iterator] over [EncodedRate]. This allows passing rates, agnostic of the collection.
+/// The `supported_rates` field is an [Iterator] over [super::EncodedRate]. This allows passing rates, agnostic of the collection.
 /// When deserializing this struct, the Iterator is [ExtendedSupportedRatesTLVReadRateIterator].
 pub struct ExtendedSupportedRatesTLV<I> {
     pub supported_rates: I,

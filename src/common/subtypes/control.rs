@@ -2,6 +2,9 @@ use macro_bits::serializable_enum;
 
 serializable_enum! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+    /// This is the subtype of a control frame.
+    /// 
+    /// Currently unused.
     pub enum ControlFrameSubtype: u8 {
         ControlWrapper => 0b0111,
         BlockAckRequest => 0b1000,

@@ -10,7 +10,9 @@ use crate::{
 
 use self::{action::ActionFrameBody, beacon::BeaconFrameBody};
 
+/// This module contains structs related to action frames
 pub mod action;
+/// This module contains the body for the beacon frame.
 pub mod beacon;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

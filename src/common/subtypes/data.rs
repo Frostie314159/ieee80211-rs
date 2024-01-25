@@ -2,7 +2,7 @@ use macro_bits::serializable_enum;
 
 serializable_enum! {
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-    /// The sub type of the data frame.
+    /// The subtype of the data frame.
     pub enum DataFrameSubtype: u8 {
         #[default]
         Data => 0b0000,

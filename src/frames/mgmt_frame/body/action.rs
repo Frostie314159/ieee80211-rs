@@ -6,6 +6,7 @@ use scroll::{
 
 serializable_enum! {
     #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+    /// This enum contains the category code specified in the body of an [Action Frame](ActionFrameBody).
     pub enum CategoryCode: u8 {
         #[default]
         VendorSpecific => 127
@@ -13,10 +14,13 @@ serializable_enum! {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// This the body of an action frame.
 pub enum ActionFrameBody<'a> {
+    /// This is a vendor specific body.
     VendorSpecific { oui: [u8; 3], payload: &'a [u8] },
 }
 impl ActionFrameBody<'_> {
+    /// The total length in bytes.
     pub const fn length_in_bytes(&self) -> usize {
         1 + match self {
             Self::VendorSpecific { payload, .. } => 3 + payload.len(),

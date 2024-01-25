@@ -8,10 +8,11 @@ use crate::{
     tlvs::{TLVReadIterator, IEEE80211TLV},
 };
 
-use self::{body::ManagementFrameBody, header::ManagementFrameHeader};
+mod body;
+mod header;
 
-pub mod body;
-pub mod header;
+pub use body::*;
+pub use header::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ManagementFrame<'a, TLVIterator> {

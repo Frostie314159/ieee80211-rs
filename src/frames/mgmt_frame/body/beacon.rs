@@ -63,9 +63,7 @@ impl<'a, I: IntoIterator<Item = IEEE80211TLV<'a>> + Clone> BeaconFrameBody<I> {
         })
     }
 }
-impl<'a, I: IntoIterator<Item = IEEE80211TLV<'a>> + Clone> MeasureWith<()>
-    for BeaconFrameBody<I>
-{
+impl<'a, I: IntoIterator<Item = IEEE80211TLV<'a>> + Clone> MeasureWith<()> for BeaconFrameBody<I> {
     fn measure_with(&self, ctx: &()) -> usize {
         12 + self
             .tagged_payload
@@ -85,7 +83,9 @@ impl<'a> TryFromCtx<'a> for BeaconFrameBody<TLVReadIterator<'a>> {
         let capabilities_info = CapabilitiesInformation::from_representation(
             from.gread_with(&mut offset, Endian::Little)?,
         );
-        let tagged_payload = TLVReadIterator::new(&from[offset..]);
+        let tagged_payload_len = from.len() - offset;
+        let tagged_payload =
+            TLVReadIterator::new(from.gread_with(&mut offset, tagged_payload_len)?);
         Ok((
             Self {
                 timestamp,
@@ -97,9 +97,7 @@ impl<'a> TryFromCtx<'a> for BeaconFrameBody<TLVReadIterator<'a>> {
         ))
     }
 }
-impl<'a, I: IntoIterator<Item = IEEE80211TLV<'a>>> TryIntoCtx
-    for BeaconFrameBody<I>
-{
+impl<'a, I: IntoIterator<Item = IEEE80211TLV<'a>>> TryIntoCtx for BeaconFrameBody<I> {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         let mut offset = 0;

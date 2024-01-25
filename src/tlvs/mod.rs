@@ -7,18 +7,18 @@ use scroll::{
 };
 use tlv_rs::{raw_tlv::RawTLV, TLV};
 
-use self::{
-    dsss_parameter_set::DSSSParameterSet,
-    rates::{
-        EncodedRate, ExtendedSupportedRatesTLV, ExtendedSupportedRatesTLVReadRateIterator,
-        SupportedRatesTLV, SupportedRatesTLVReadRateIterator,
-    },
-    ssid::SSIDTLV,
+use self::rates::{
+    EncodedRate, ExtendedSupportedRatesTLV, ExtendedSupportedRatesTLVReadRateIterator,
+    SupportedRatesTLV, SupportedRatesTLVReadRateIterator,
 };
+/// This module contains the elements, which are found in the body of some frames.
+/// If an element only consists of one struct, like the [ssid::SSIDTLV], they are re-exported, otherwise they get their own module. 
 
-pub mod dsss_parameter_set;
+mod dsss_parameter_set;
+pub use dsss_parameter_set::DSSSParameterSet;
 pub mod rates;
-pub mod ssid;
+mod ssid;
+pub use ssid::SSIDTLV;
 
 serializable_enum! {
     #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
@@ -37,6 +37,7 @@ pub type RawIEEE80211TLV<'a> = RawTLV<'a, u8, u8>;
 type TypedIEEE80211TLV<Payload> = TLV<u8, u8, TLVType, Payload>;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// This enum contains all possible elements.
 pub enum IEEE80211TLV<
     'a,
     RateIterator = SupportedRatesTLVReadRateIterator<'a>,
@@ -64,6 +65,7 @@ impl<'a> TryFromCtx<'a> for IEEE80211TLV<'a> {
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         let (tlv, len) =
             <RawIEEE80211TLV<'a> as TryFromCtx<'a, Endian>>::try_from_ctx(from, Endian::Little)?;
+        let from = tlv.slice;
         Ok((
             match TLVType::from_representation(tlv.tlv_type) {
                 TLVType::SSID => Self::SSID(SSIDTLV::try_from_ctx(from, ()).map(|(tlv, _)| tlv)?),
@@ -125,6 +127,9 @@ impl<RateIterator: Iterator<Item = EncodedRate> + Clone + ExactSizeIterator> Try
     }
 }
 #[derive(Clone, Copy, Eq)]
+/// This is an iterator over the elements contained in the body of a frame.
+///
+/// It's short circuiting.
 pub struct TLVReadIterator<'a> {
     pub(crate) bytes: &'a [u8],
     pub(crate) offset: usize,

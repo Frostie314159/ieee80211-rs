@@ -675,7 +675,16 @@ impl<
     }
 }
 impl<'a, DS: DSField, Category: DataFrameCategory, PayloadType: Copy>
-    DataFrameBuilderInner<'a, DS, Category, PayloadType, MACAddress, MACAddress, MACAddress, MACAddress>
+    DataFrameBuilderInner<
+        'a,
+        DS,
+        Category,
+        PayloadType,
+        MACAddress,
+        MACAddress,
+        MACAddress,
+        MACAddress,
+    >
 {
     #[inline]
     pub const fn build(self) -> DataFrame<PayloadType> {
@@ -704,8 +713,8 @@ pub type DataFrameBuilder<'a> = DataFrameBuilderInner<'a, (), (), (), (), (), ()
 
 #[test]
 fn test() {
-    use mac_parser::ZERO;
     use crate::frames::data_frame::amsdu::AMSDUSubframe;
+    use mac_parser::ZERO;
     let _data_frame = DataFrameBuilder::new()
         .to_and_from_ds()
         .category_qos()

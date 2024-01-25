@@ -111,7 +111,7 @@ impl<'a> Iterator for AMSDUSubframeIterator<'a> {
     }
 }
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-/// This can be used for writing an aggregate MSDU. 
+/// This can be used for writing an aggregate MSDU.
 /// The generic paramter can be any type, which implements [IntoIterator].
 /// It can only be written.
 pub struct AMSDUPayload<Frames> {
@@ -129,8 +129,8 @@ impl<'a> AMSDUPayload<&'a [AMSDUSubframe<&'a [u8]>]> {
         size
     }
 }
-impl<'a, Frames: IntoIterator<Item = &'a Payload> + Clone, Payload: MeasureWith<()> + 'a> MeasureWith<()>
-    for AMSDUPayload<Frames>
+impl<'a, Frames: IntoIterator<Item = &'a Payload> + Clone, Payload: MeasureWith<()> + 'a>
+    MeasureWith<()> for AMSDUPayload<Frames>
 {
     fn measure_with(&self, _ctx: &()) -> usize {
         self.sub_frames

@@ -4,8 +4,10 @@ use macro_bits::{bit, bitfield};
 
 use self::subtypes::{ControlFrameSubtype, DataFrameSubtype, ManagementFrameSubtype};
 
+/// This modules contains the enum for the individual subtypes.
 pub mod subtypes;
 
+/// This is one **T**ime **U**nit, which equalls 1024µs.
 pub const TU: Duration = Duration::from_micros(1024);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -72,6 +74,7 @@ bitfield! {
 }
 bitfield! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+    /// This is the frame control field, which is at the beginning of every frame.
     pub struct FrameControlField: u16 {
         pub version: u8 => bit!(0,1),
         pub frame_type: FrameType => bit!(2,3,4,5,6,7),
@@ -80,6 +83,7 @@ bitfield! {
 }
 bitfield! {
     #[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq)]
+    /// This is information about the sequence number and the potential fragment number.
     pub struct FragSeqInfo: u16 {
         pub fragment_number: u8 => bit!(0,1,2,3),
         pub sequence_number: u16 => bit!(4,5,6,7,8,9,10,11,12,13,14,15)
