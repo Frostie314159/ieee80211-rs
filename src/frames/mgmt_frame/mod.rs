@@ -6,6 +6,7 @@ use scroll::{
 use crate::{
     common::{subtypes::ManagementFrameSubtype, FCFFlags, FrameControlField, FrameType},
     tlvs::{TLVReadIterator, IEEE80211TLV},
+    DataFrameReadPayload, IEEE80211Frame, ToFrame,
 };
 
 mod body;
@@ -19,7 +20,7 @@ pub struct ManagementFrame<'a, TLVIterator> {
     pub header: ManagementFrameHeader,
     pub body: ManagementFrameBody<'a, TLVIterator>,
 }
-impl<TLVIterator> ManagementFrame<'_, TLVIterator> {
+impl<'a, TLVIterator> ManagementFrame<'a, TLVIterator> {
     pub const fn get_fcf(&self) -> FrameControlField {
         FrameControlField {
             version: 0,
@@ -66,5 +67,12 @@ impl<'a, TLVIterator: IntoIterator<Item = IEEE80211TLV<'a>>> TryIntoCtx
         buf.gwrite(self.header, &mut offset)?;
         buf.gwrite(self.body, &mut offset)?;
         Ok(offset)
+    }
+}
+impl<'a, TLVIterator: 'a> ToFrame<'a, TLVIterator, DataFrameReadPayload<'a>>
+    for ManagementFrame<'a, TLVIterator>
+{
+    fn to_frame(self) -> IEEE80211Frame<'a, TLVIterator, DataFrameReadPayload<'a>> {
+        IEEE80211Frame::Management(self)
     }
 }

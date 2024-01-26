@@ -4,7 +4,9 @@ use scroll::{
     Pwrite,
 };
 
-use super::RateReadIterator;
+use crate::tlvs::{ToTLV, IEEE80211TLV};
+
+use super::{RateReadIterator, SupportedRatesTLVReadRateIterator};
 
 bitfield! {
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
@@ -73,6 +75,11 @@ impl<I: IntoIterator<Item = EncodedExtendedRate>> TryIntoCtx for ExtendedSupport
             buf.gwrite(supported_rate.to_representation(), &mut offset)?;
         }
         Ok(offset)
+    }
+}
+impl<'a, I> ToTLV<'a, SupportedRatesTLVReadRateIterator<'a>, I> for ExtendedSupportedRatesTLV<I> {
+    fn to_tlv(self) -> IEEE80211TLV<'a, SupportedRatesTLVReadRateIterator<'a>, I> {
+        IEEE80211TLV::ExtendedSupportedRates(self)
     }
 }
 

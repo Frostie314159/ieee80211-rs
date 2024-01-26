@@ -3,7 +3,11 @@ use scroll::{
     Pread, Pwrite,
 };
 
-use crate::common::{subtypes::DataFrameSubtype, FCFFlags};
+use crate::{
+    common::{subtypes::DataFrameSubtype, FCFFlags},
+    tlvs::TLVReadIterator,
+    IEEE80211Frame, ToFrame,
+};
 
 use self::{amsdu::AMSDUSubframeIterator, header::DataFrameHeader};
 
@@ -118,5 +122,12 @@ impl<Payload: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for DataFrame<Payloa
             buf.gwrite(payload, &mut offset)?;
         }
         Ok(offset)
+    }
+}
+impl<'a, DataFramePayload: 'a> ToFrame<'a, TLVReadIterator<'a>, DataFramePayload>
+    for DataFrame<DataFramePayload>
+{
+    fn to_frame(self) -> IEEE80211Frame<'a, TLVReadIterator<'a>, DataFramePayload> {
+        IEEE80211Frame::Data(self)
     }
 }

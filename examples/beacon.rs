@@ -1,6 +1,7 @@
 use ieee80211::{
-    tlvs::{TLVReadIterator, IEEE80211TLV, SSIDTLV},
-    {beacon::BeaconFrameBody, IEEE80211Frame, ManagementFrame, ManagementFrameBody},
+    tlvs::{TLVReadIterator, ToTLV, SSIDTLV},
+    ToFrame,
+    beacon::BeaconFrameBody, IEEE80211Frame, ManagementFrame, ManagementFrameBody
 };
 use scroll::{ctx::MeasureWith, Pread, Pwrite};
 
@@ -47,7 +48,7 @@ fn main() {
         beacon.ssid()
     );
 
-    let ssid_tlv = IEEE80211TLV::SSID(SSIDTLV::new("OpenRF").unwrap());
+    let ssid_tlv = SSIDTLV::new("OpenRF").unwrap().to_tlv();
     let beacon = BeaconFrameBody {
         capabilities_info: beacon.capabilities_info,
         timestamp: beacon.timestamp,
@@ -57,11 +58,11 @@ fn main() {
     let management_frame = ManagementFrame {
         header: management_frame.header,
         body: ManagementFrameBody::Beacon(beacon),
-    };
-    let frame = IEEE80211Frame::Management(management_frame);
+    }
+    .to_frame();
 
-    let mut buf = vec![0x00u8; frame.measure_with(&false)];
-    buf.pwrite(frame, 0).unwrap();
+    let mut buf = vec![0x00u8; management_frame.measure_with(&false)];
+    buf.pwrite(management_frame, 0).unwrap();
 
     assert_eq!(buf, NEW_BYTES);
 }

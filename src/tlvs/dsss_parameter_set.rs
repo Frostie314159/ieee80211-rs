@@ -3,6 +3,8 @@ use scroll::{
     Pread, Pwrite,
 };
 
+use super::{ToTLV, IEEE80211TLV};
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// TLV containing the current channel of the sender.
 pub struct DSSSParameterSet {
@@ -33,5 +35,10 @@ impl TryIntoCtx for DSSSParameterSet {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         buf.pwrite(self.current_channel, 0)
+    }
+}
+impl<'a> ToTLV<'a> for DSSSParameterSet {
+    fn to_tlv(self) -> IEEE80211TLV<'a> {
+        IEEE80211TLV::DSSSParameterSet(self)
     }
 }

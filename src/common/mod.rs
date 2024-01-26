@@ -33,7 +33,7 @@ impl FrameType {
     /// Turns the frame type into it's representation.
     pub const fn to_representation(self) -> u8 {
         match self {
-            FrameType::Management(subtype) => 0b00 | (subtype.to_representation() << 2),
+            FrameType::Management(subtype) => subtype.to_representation() << 2,
             FrameType::Control(subtype) => 0b01 | (subtype.to_representation() << 2),
             FrameType::Data(subtype) => 0b10 | (subtype.to_representation() << 2),
             FrameType::Unknown(subtype) => 0b11 | (subtype << 2),

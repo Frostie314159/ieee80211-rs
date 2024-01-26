@@ -3,6 +3,8 @@ use scroll::{
     Pwrite,
 };
 
+use super::{ToTLV, IEEE80211TLV};
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// A SSID tlv.
 ///
@@ -67,5 +69,10 @@ impl TryIntoCtx for SSIDTLV<'_> {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         buf.pwrite(self.0, 0)
+    }
+}
+impl<'a> ToTLV<'a> for SSIDTLV<'a> {
+    fn to_tlv(self) -> IEEE80211TLV<'a> {
+        IEEE80211TLV::SSID(self)
     }
 }

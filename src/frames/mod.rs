@@ -104,8 +104,11 @@ impl<'a> TryFromCtx<'a, bool> for IEEE80211Frame<'a, TLVReadIterator<'a>> {
         }
     }
 }
-impl<'a, TLVIterator: IntoIterator<Item = IEEE80211TLV<'a>>> TryIntoCtx<bool>
-    for IEEE80211Frame<'a, TLVIterator>
+impl<
+        'a,
+        TLVIterator: IntoIterator<Item = IEEE80211TLV<'a>>,
+        DataFramePayload: TryIntoCtx<Error = scroll::Error>,
+    > TryIntoCtx<bool> for IEEE80211Frame<'a, TLVIterator, DataFramePayload>
 {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], fcs_at_end: bool) -> Result<usize, Self::Error> {
@@ -123,4 +126,7 @@ impl<'a, TLVIterator: IntoIterator<Item = IEEE80211TLV<'a>>> TryIntoCtx<bool>
 
         Ok(offset)
     }
+}
+pub trait ToFrame<'a, TLVIterator, DataFramePayload>: 'a {
+    fn to_frame(self) -> IEEE80211Frame<'a, TLVIterator, DataFramePayload>;
 }

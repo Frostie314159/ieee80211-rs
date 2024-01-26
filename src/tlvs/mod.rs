@@ -163,3 +163,12 @@ impl ExactSizeIterator for TLVReadIterator<'_> {
             .count()
     }
 }
+
+pub trait ToTLV<
+    'a,
+    RateIterator = SupportedRatesTLVReadRateIterator<'a>,
+    ExtendedRateIterator = ExtendedSupportedRatesTLVReadRateIterator<'a>,
+>
+{
+    fn to_tlv(self) -> IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>;
+}
