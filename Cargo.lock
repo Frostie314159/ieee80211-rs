@@ -267,7 +267,6 @@ version = "0.1.2"
 dependencies = [
  "crc32fast",
  "criterion",
- "either",
  "mac-parser",
  "macro-bits",
  "scroll",

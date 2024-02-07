@@ -687,7 +687,7 @@ impl<'a, DS: DSField, Category: DataFrameCategory, PayloadType: Copy>
     >
 {
     #[inline]
-    pub const fn build(self) -> DataFrame<PayloadType> {
+    pub const fn build(self) -> DataFrame<'a, PayloadType> {
         let header = DataFrameHeader {
             subtype: DataFrameSubtype::from_representation(Category::UPPER_TWO_BITS << 2),
             address_1: self.address_1,
@@ -703,9 +703,10 @@ impl<'a, DS: DSField, Category: DataFrameCategory, PayloadType: Copy>
             qos: None,
             ht_control: None,
         };
-        DataFrame::<PayloadType> {
+        DataFrame::<'a, PayloadType> {
             header,
             payload: self.payload,
+            _phantom: PhantomData,
         }
     }
 }

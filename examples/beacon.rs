@@ -1,7 +1,12 @@
+use std::iter::Empty;
+
 use ieee80211::{
-    tlvs::{TLVReadIterator, ToTLV, SSIDTLV},
-    ToFrame,
-    beacon::BeaconFrameBody, IEEE80211Frame, ManagementFrame, ManagementFrameBody
+    mgmt_frame::{
+        body::{beacon::BeaconFrameBody, ManagementFrameBody, ToManagementFrameBody},
+        ManagementFrame,
+    },
+    tlvs::{ToTLV, SSIDTLV},
+    IEEE80211Frame, ToFrame,
 };
 use scroll::{ctx::MeasureWith, Pread, Pwrite};
 
@@ -33,9 +38,7 @@ const NEW_BYTES: &[u8] = &[
 ];
 
 fn main() {
-    let frame = INITIAL_BYTES
-        .pread::<IEEE80211Frame<'_, TLVReadIterator>>(0)
-        .unwrap();
+    let frame = INITIAL_BYTES.pread(0).unwrap();
     let IEEE80211Frame::Management(management_frame) = frame else {
         panic!()
     };
@@ -47,17 +50,19 @@ fn main() {
         management_frame.header.bssid,
         beacon.ssid()
     );
-
-    let ssid_tlv = SSIDTLV::new("OpenRF").unwrap().to_tlv();
-    let beacon = BeaconFrameBody {
+    // The type annotations are necessary, since we only specified the ssid and not rates.
+    // If you specified supported rates and extended supported rates, these could be elided.
+    // This will probably be done by a proc macro in the future.
+    let beacon = BeaconFrameBody::<'_, Empty<_>, Empty<_>, _> {
         capabilities_info: beacon.capabilities_info,
         timestamp: beacon.timestamp,
         beacon_interval: beacon.beacon_interval,
-        tagged_payload: [ssid_tlv],
-    };
+        tagged_payload: [SSIDTLV::new("OpenRF").unwrap().to_tlv()],
+    }
+    .to_management_frame_body();
     let management_frame = ManagementFrame {
         header: management_frame.header,
-        body: ManagementFrameBody::Beacon(beacon),
+        body: beacon,
     }
     .to_frame();
 

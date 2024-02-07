@@ -1,3 +1,5 @@
+use core::iter::Empty;
+
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
     Endian, Pread, Pwrite,
@@ -5,14 +7,22 @@ use scroll::{
 
 use crate::{
     common::{FrameControlField, FrameType},
-    tlvs::{TLVReadIterator, IEEE80211TLV},
+    tlvs::{
+        rates::{
+            EncodedExtendedRate, EncodedRate, ExtendedSupportedRatesTLVReadRateIterator,
+            SupportedRatesTLVReadRateIterator,
+        },
+        TLVReadIterator, IEEE80211TLV,
+    },
 };
 
-mod data_frame;
-mod mgmt_frame;
+use self::{
+    data_frame::{DataFrame, DataFrameReadPayload},
+    mgmt_frame::ManagementFrame,
+};
 
-pub use data_frame::*;
-pub use mgmt_frame::*;
+pub mod data_frame;
+pub mod mgmt_frame;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 /// An IEEE 802.11 frame.
@@ -20,13 +30,36 @@ pub use mgmt_frame::*;
 /// The [TryIntoCtx] implementation for this takes a [bool] as `Ctx`, which specifies if the fcs is at the end.
 pub enum IEEE80211Frame<
     'a,
+    RateIterator = SupportedRatesTLVReadRateIterator<'a>,
+    ExtendedRateIterator = ExtendedSupportedRatesTLVReadRateIterator<'a>,
     TLVIterator = TLVReadIterator<'a>,
+    ActionFramePayload = &'a [u8],
     DataFramePayload = DataFrameReadPayload<'a>,
-> {
-    Management(ManagementFrame<'a, TLVIterator>),
-    Data(DataFrame<DataFramePayload>),
+> where
+    TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>>,
+{
+    Management(
+        ManagementFrame<'a, RateIterator, ExtendedRateIterator, TLVIterator, ActionFramePayload>,
+    ),
+    Data(DataFrame<'a, DataFramePayload>),
 }
-impl<TLVIterator, DataFramePayload> IEEE80211Frame<'_, TLVIterator, DataFramePayload> {
+impl<
+        'a,
+        RateIterator,
+        ExtendedRateIterator,
+        TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>>,
+        ActionFramePayload,
+        DataFramePayload,
+    >
+    IEEE80211Frame<
+        'a,
+        RateIterator,
+        ExtendedRateIterator,
+        TLVIterator,
+        ActionFramePayload,
+        DataFramePayload,
+    >
+{
     /// This returns the frame control field.
     pub const fn get_fcf(&self) -> FrameControlField {
         match self {
@@ -35,7 +68,7 @@ impl<TLVIterator, DataFramePayload> IEEE80211Frame<'_, TLVIterator, DataFramePay
         }
     }
 }
-impl<'a> IEEE80211Frame<'a> {
+impl IEEE80211Frame<'_> {
     /// Total length in bytes.
     pub const fn length_in_bytes(&self, fcs_at_end: bool) -> usize {
         2 + // Type/Subtype and Flags
@@ -52,9 +85,20 @@ impl<'a> IEEE80211Frame<'a> {
 }
 impl<
         'a,
-        TLVIterator: IntoIterator<Item = IEEE80211TLV<'a>> + Clone,
+        RateIterator: IntoIterator<Item = EncodedRate> + Clone,
+        ExtendedRateIterator: IntoIterator<Item = EncodedExtendedRate> + Clone,
+        TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>> + Clone,
+        ActionFramePayload: MeasureWith<()>,
         DataFramePayload: MeasureWith<()>,
-    > MeasureWith<bool> for IEEE80211Frame<'a, TLVIterator, DataFramePayload>
+    > MeasureWith<bool>
+    for IEEE80211Frame<
+        'a,
+        RateIterator,
+        ExtendedRateIterator,
+        TLVIterator,
+        ActionFramePayload,
+        DataFramePayload,
+    >
 {
     fn measure_with(&self, fcs_at_end: &bool) -> usize {
         2 + match self {
@@ -63,7 +107,7 @@ impl<
         } + if *fcs_at_end { 4 } else { 0 }
     }
 }
-impl<'a> TryFromCtx<'a, bool> for IEEE80211Frame<'a, TLVReadIterator<'a>> {
+impl<'a> TryFromCtx<'a, bool> for IEEE80211Frame<'a> {
     type Error = scroll::Error;
     fn try_from_ctx(from: &'a [u8], fcs_at_end: bool) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
@@ -93,7 +137,7 @@ impl<'a> TryFromCtx<'a, bool> for IEEE80211Frame<'a, TLVReadIterator<'a>> {
         };
         if fcs_at_end
             && crc32fast::hash(&from[..(from.len() - 4)])
-                != from.gread_with(&mut offset, Endian::Little)?
+                != from.gread_with::<u32>(&mut offset, Endian::Little)?
         {
             Err(scroll::Error::BadInput {
                 size: offset,
@@ -106,9 +150,20 @@ impl<'a> TryFromCtx<'a, bool> for IEEE80211Frame<'a, TLVReadIterator<'a>> {
 }
 impl<
         'a,
-        TLVIterator: IntoIterator<Item = IEEE80211TLV<'a>>,
+        RateIterator: IntoIterator<Item = EncodedRate> + Clone,
+        ExtendedRateIterator: IntoIterator<Item = EncodedExtendedRate> + Clone,
+        TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>> + Clone,
+        ActionFramePayload: TryIntoCtx<Error = scroll::Error>,
         DataFramePayload: TryIntoCtx<Error = scroll::Error>,
-    > TryIntoCtx<bool> for IEEE80211Frame<'a, TLVIterator, DataFramePayload>
+    > TryIntoCtx<bool>
+    for IEEE80211Frame<
+        'a,
+        RateIterator,
+        ExtendedRateIterator,
+        TLVIterator,
+        ActionFramePayload,
+        DataFramePayload,
+    >
 {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], fcs_at_end: bool) -> Result<usize, Self::Error> {
@@ -127,6 +182,25 @@ impl<
         Ok(offset)
     }
 }
-pub trait ToFrame<'a, TLVIterator, DataFramePayload>: 'a {
-    fn to_frame(self) -> IEEE80211Frame<'a, TLVIterator, DataFramePayload>;
+pub trait ToFrame<
+    'a,
+    RateIterator = Empty<EncodedRate>,
+    ExtendedRateIterator = Empty<EncodedExtendedRate>,
+    TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>> = Empty<
+        IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>,
+    >,
+    ActionFramePayload = &'a [u8],
+    DataFramePayload = DataFrameReadPayload<'a>,
+>: 'a
+{
+    fn to_frame(
+        self,
+    ) -> IEEE80211Frame<
+        'a,
+        RateIterator,
+        ExtendedRateIterator,
+        TLVIterator,
+        ActionFramePayload,
+        DataFramePayload,
+    >;
 }

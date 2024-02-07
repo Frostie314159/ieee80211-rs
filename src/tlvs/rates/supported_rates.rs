@@ -6,7 +6,7 @@ use scroll::{
 
 use crate::tlvs::{ToTLV, IEEE80211TLV};
 
-use super::RateReadIterator;
+use super::{rate_iter::RateIterator, EncodedExtendedRate};
 
 bitfield! {
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
@@ -43,10 +43,10 @@ impl EncodedRate {
 pub struct SupportedRatesTLV<I> {
     pub supported_rates: I,
 }
-impl<I: ExactSizeIterator> MeasureWith<()> for SupportedRatesTLV<I> {
+impl<I: IntoIterator<Item = EncodedRate> + Clone> MeasureWith<()> for SupportedRatesTLV<I> {
     fn measure_with(&self, _ctx: &()) -> usize {
         // Each rate is exactly one byte.
-        self.supported_rates.len()
+        self.supported_rates.clone().into_iter().count()
     }
 }
 impl<'a> TryFromCtx<'a> for SupportedRatesTLV<SupportedRatesTLVReadRateIterator<'a>> {
@@ -60,7 +60,7 @@ impl<'a> TryFromCtx<'a> for SupportedRatesTLV<SupportedRatesTLVReadRateIterator<
         } else {
             Ok((
                 SupportedRatesTLV {
-                    supported_rates: from.iter().copied().map(EncodedRate::from_representation),
+                    supported_rates: SupportedRatesTLVReadRateIterator::new(from),
                 },
                 from.len(),
             ))
@@ -80,10 +80,15 @@ impl<I: IntoIterator<Item = EncodedRate> + Clone> TryIntoCtx for SupportedRatesT
         Ok(offset)
     }
 }
-impl<'a, I> ToTLV<'a, I> for SupportedRatesTLV<I> {
-    fn to_tlv(self) -> IEEE80211TLV<'a, I> {
+impl<
+        'a,
+        RateIterator: IntoIterator<Item = EncodedRate> + Clone,
+        ExtendedRateIterator: IntoIterator<Item = EncodedExtendedRate> + Clone,
+    > ToTLV<'a, RateIterator, ExtendedRateIterator> for SupportedRatesTLV<RateIterator>
+{
+    fn to_tlv(self) -> IEEE80211TLV<'a, RateIterator, ExtendedRateIterator> {
         IEEE80211TLV::SupportedRates(self)
     }
 }
 /// The Iterator returned, when reading the [SupportedRatesTLV].
-pub type SupportedRatesTLVReadRateIterator<'a> = RateReadIterator<'a, EncodedRate>;
+pub type SupportedRatesTLVReadRateIterator<'a> = RateIterator<'a, EncodedRate>;

@@ -7,6 +7,10 @@ use self::subtypes::{ControlFrameSubtype, DataFrameSubtype, ManagementFrameSubty
 /// This modules contains the enum for the individual subtypes.
 pub mod subtypes;
 
+pub mod read_iterator;
+
+pub mod reason;
+
 /// This is one **T**ime **U**nit, which equalls 1024µs.
 pub const TU: Duration = Duration::from_micros(1024);
 
