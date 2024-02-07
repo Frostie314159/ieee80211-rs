@@ -30,9 +30,10 @@ pub enum ManagementFrameBody<
     'a,
     RateIterator = SupportedRatesTLVReadRateIterator<'a>,
     ExtendedRateIterator = ExtendedSupportedRatesTLVReadRateIterator<'a>,
-    TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>> = TLVReadIterator<'a>,
+    TLVIterator = TLVReadIterator<'a>,
     ActionFramePayload = &'a [u8],
-> 
+> where
+    TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>>,
 {
     Action(ActionFrameBody<ActionFramePayload>),
     ActionNoAck(ActionFrameBody<ActionFramePayload>),

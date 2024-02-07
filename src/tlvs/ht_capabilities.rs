@@ -234,10 +234,6 @@ pub struct HTCapabilitiesTLV {
 }
 impl HTCapabilitiesTLV {
     pub fn get_rx_mcs_iterator(&self) -> impl Iterator<Item = usize> + '_ {
-        (0..80)
-            .map(|index| {
-                check_bit!(self.supported_rx_mcs_set[index / 8], bit!(index % 8)).then(|| index)
-            })
-            .flatten()
+        (0..80).filter(|index| check_bit!(self.supported_rx_mcs_set[index / 8], bit!(index % 8)))
     }
 }

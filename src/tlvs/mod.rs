@@ -121,7 +121,7 @@ macro_rules! tlvs {
 
 tlvs! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    /// This enum contains all possible elements.   
+    /// This enum contains all possible elements.
     pub enum IEEE80211TLV<
         'a,
         RateIterator: IntoIterator<Item = EncodedRate>, Clone = SupportedRatesTLVReadRateIterator<'a>,
