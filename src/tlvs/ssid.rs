@@ -3,7 +3,10 @@ use scroll::{
     Pwrite,
 };
 
-use super::{ToTLV, IEEE80211TLV};
+use super::{
+    rates::{EncodedExtendedRate, EncodedRate},
+    ToTLV, IEEE80211TLV,
+};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// A SSID tlv.
@@ -71,8 +74,13 @@ impl TryIntoCtx for SSIDTLV<'_> {
         buf.pwrite(self.0, 0)
     }
 }
-impl<'a> ToTLV<'a> for SSIDTLV<'a> {
-    fn to_tlv(self) -> IEEE80211TLV<'a> {
+impl<
+        'a,
+        RateIterator: IntoIterator<Item = EncodedRate> + Clone,
+        ExtendedRateIterator: IntoIterator<Item = EncodedExtendedRate> + Clone,
+    > ToTLV<'a, RateIterator, ExtendedRateIterator> for SSIDTLV<'a>
+{
+    fn to_tlv(self) -> IEEE80211TLV<'a, RateIterator, ExtendedRateIterator> {
         IEEE80211TLV::SSID(self)
     }
 }

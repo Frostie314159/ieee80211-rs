@@ -3,7 +3,10 @@ use scroll::{
     Pread, Pwrite,
 };
 
-use super::{ToTLV, IEEE80211TLV};
+use super::{
+    rates::{EncodedExtendedRate, EncodedRate},
+    ToTLV, IEEE80211TLV,
+};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// TLV containing the current channel of the sender.
@@ -37,8 +40,13 @@ impl TryIntoCtx for DSSSParameterSet {
         buf.pwrite(self.current_channel, 0)
     }
 }
-impl<'a> ToTLV<'a> for DSSSParameterSet {
-    fn to_tlv(self) -> IEEE80211TLV<'a> {
+impl<
+        'a,
+        RateIterator: IntoIterator<Item = EncodedRate> + Clone,
+        ExtendedRateIterator: IntoIterator<Item = EncodedExtendedRate> + Clone,
+    > ToTLV<'a, RateIterator, ExtendedRateIterator> for DSSSParameterSet
+{
+    fn to_tlv(self) -> IEEE80211TLV<'a, RateIterator, ExtendedRateIterator> {
         IEEE80211TLV::DSSSParameterSet(self)
     }
 }

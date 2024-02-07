@@ -1,3 +1,5 @@
+use core::iter::Empty;
+
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
     Pread, Pwrite,
@@ -5,7 +7,13 @@ use scroll::{
 
 use crate::{
     common::subtypes::ManagementFrameSubtype,
-    tlvs::{TLVReadIterator, IEEE80211TLV},
+    tlvs::{
+        rates::{
+            EncodedExtendedRate, EncodedRate, ExtendedSupportedRatesTLVReadRateIterator,
+            SupportedRatesTLVReadRateIterator,
+        },
+        TLVReadIterator, IEEE80211TLV,
+    },
 };
 
 use self::{action::ActionFrameBody, beacon::BeaconFrameBody};
@@ -18,13 +26,31 @@ pub mod beacon;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 /// This is the body of a management frame.
 /// The rest of the frame can be found in [crate::frames::ManagementFrame].
-pub enum ManagementFrameBody<'a, TLVIterator = TLVReadIterator<'a>> {
-    Action(ActionFrameBody<'a>),
-    ActionNoAck(ActionFrameBody<'a>),
-    Beacon(BeaconFrameBody<TLVIterator>),
+pub enum ManagementFrameBody<
+    'a,
+    RateIterator = SupportedRatesTLVReadRateIterator<'a>,
+    ExtendedRateIterator = ExtendedSupportedRatesTLVReadRateIterator<'a>,
+    TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>> = TLVReadIterator<'a>,
+    ActionFramePayload = &'a [u8],
+> 
+{
+    Action(ActionFrameBody<ActionFramePayload>),
+    ActionNoAck(ActionFrameBody<ActionFramePayload>),
+    Beacon(BeaconFrameBody<'a, RateIterator, ExtendedRateIterator, TLVIterator>),
     ATIM,
+    Unknown {
+        sub_type: ManagementFrameSubtype,
+        body: &'a [u8],
+    },
 }
-impl<TLVIterator> ManagementFrameBody<'_, TLVIterator> {
+impl<
+        'a,
+        RateIterator,
+        ExtendedRateIterator,
+        TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>>,
+        ActionFramePayload,
+    > ManagementFrameBody<'a, RateIterator, ExtendedRateIterator, TLVIterator, ActionFramePayload>
+{
     /// This returns the subtype of the body.
     /// It's mostly for internal use, but since it might be useful it's `pub`.
     pub const fn get_subtype(&self) -> ManagementFrameSubtype {
@@ -33,6 +59,7 @@ impl<TLVIterator> ManagementFrameBody<'_, TLVIterator> {
             Self::ActionNoAck(_) => ManagementFrameSubtype::ActionNoAck,
             Self::Beacon(_) => ManagementFrameSubtype::Beacon,
             Self::ATIM => ManagementFrameSubtype::ATIM,
+            Self::Unknown { sub_type, .. } => *sub_type,
         }
     }
 }
@@ -43,21 +70,29 @@ impl ManagementFrameBody<'_> {
             Self::Action(action) | Self::ActionNoAck(action) => action.length_in_bytes(),
             Self::Beacon(beacon) => beacon.length_in_bytes(),
             Self::ATIM => 0,
+            Self::Unknown { body, .. } => body.len(),
         }
     }
 }
-impl<'a, TLVIterator: IntoIterator<Item = IEEE80211TLV<'a>> + Clone> MeasureWith<()>
-    for ManagementFrameBody<'a, TLVIterator>
+impl<
+        'a,
+        RateIterator: IntoIterator<Item = EncodedRate> + Clone,
+        ExtendedRateIterator: IntoIterator<Item = EncodedExtendedRate> + Clone,
+        TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>> + Clone,
+        ActionFramePayload: MeasureWith<()>,
+    > MeasureWith<()>
+    for ManagementFrameBody<'a, RateIterator, ExtendedRateIterator, TLVIterator, ActionFramePayload>
 {
     fn measure_with(&self, ctx: &()) -> usize {
         match self {
             Self::Action(action) | Self::ActionNoAck(action) => action.measure_with(ctx),
             Self::Beacon(beacon) => beacon.measure_with(ctx),
             Self::ATIM => 0,
+            Self::Unknown { body, .. } => body.len(),
         }
     }
 }
-impl<'a> TryFromCtx<'a, ManagementFrameSubtype> for ManagementFrameBody<'a, TLVReadIterator<'a>> {
+impl<'a> TryFromCtx<'a, ManagementFrameSubtype> for ManagementFrameBody<'a> {
     type Error = scroll::Error;
     fn try_from_ctx(
         from: &'a [u8],
@@ -81,8 +116,14 @@ impl<'a> TryFromCtx<'a, ManagementFrameSubtype> for ManagementFrameBody<'a, TLVR
         ))
     }
 }
-impl<'a, TLVIterator: IntoIterator<Item = IEEE80211TLV<'a>>> TryIntoCtx
-    for ManagementFrameBody<'a, TLVIterator>
+impl<
+        'a,
+        RateIterator: IntoIterator<Item = EncodedRate> + Clone,
+        ExtendedRateIterator: IntoIterator<Item = EncodedExtendedRate> + Clone,
+        TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>> + Clone,
+        ActionFramePayload: TryIntoCtx<Error = scroll::Error>,
+    > TryIntoCtx
+    for ManagementFrameBody<'a, RateIterator, ExtendedRateIterator, TLVIterator, ActionFramePayload>
 {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
@@ -92,6 +133,20 @@ impl<'a, TLVIterator: IntoIterator<Item = IEEE80211TLV<'a>>> TryIntoCtx
             }
             Self::Beacon(beacon_frame_body) => buf.pwrite(beacon_frame_body, 0),
             Self::ATIM => Ok(0),
+            Self::Unknown { body, .. } => buf.pwrite(body, 0),
         }
     }
+}
+pub trait ToManagementFrameBody<
+    'a,
+    RateIterator = Empty<EncodedRate>,
+    ExtendedRateIterator = Empty<EncodedExtendedRate>,
+    TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>> = Empty<
+        IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>,
+    >,
+>
+{
+    fn to_management_frame_body(
+        self,
+    ) -> ManagementFrameBody<'a, RateIterator, ExtendedRateIterator, TLVIterator>;
 }

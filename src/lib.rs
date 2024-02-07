@@ -8,6 +8,10 @@
 //! ## Parsing
 //! We internally rely on [scroll] for parsing, which is therefore re-exported.
 //! To get started see the `examples` folder.
+//! ## Docs
+//! Sometimes the explanation for fields seems like it was ripped strait from the standard, which is exactly what happened here.
+//! They maybe slightly altered though.
+//! If some doc comments remind you of [this](https://i2-prod.mirror.co.uk/incoming/article5875284.ece/ALTERNATES/s1200c/Stop-sign.jpg), then you're not alone.
 
 /// This is a collection of commonly used types.
 pub mod common;

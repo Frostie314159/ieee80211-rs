@@ -1,5 +1,4 @@
 mod rate_iter;
-pub use rate_iter::*;
 
 mod supported_rates;
 pub use supported_rates::*;

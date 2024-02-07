@@ -5,22 +5,49 @@ use scroll::{
 
 use crate::{
     common::{subtypes::ManagementFrameSubtype, FCFFlags, FrameControlField, FrameType},
-    tlvs::{TLVReadIterator, IEEE80211TLV},
-    DataFrameReadPayload, IEEE80211Frame, ToFrame,
+    data_frame::DataFrameReadPayload,
+    tlvs::{
+        rates::{
+            EncodedExtendedRate, EncodedRate, ExtendedSupportedRatesTLVReadRateIterator,
+            SupportedRatesTLVReadRateIterator,
+        },
+        TLVReadIterator, IEEE80211TLV,
+    },
+    IEEE80211Frame, ToFrame,
 };
 
-mod body;
-mod header;
+use self::{body::ManagementFrameBody, header::ManagementFrameHeader};
 
-pub use body::*;
-pub use header::*;
+pub mod body;
+pub mod header;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct ManagementFrame<'a, TLVIterator> {
+pub struct ManagementFrame<
+    'a,
+    RateIterator = SupportedRatesTLVReadRateIterator<'a>,
+    ExtendedRateIterator = ExtendedSupportedRatesTLVReadRateIterator<'a>,
+    TLVIterator = TLVReadIterator<'a>,
+    ActionFramePayload = &'a [u8],
+> where
+    TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>>,
+{
     pub header: ManagementFrameHeader,
-    pub body: ManagementFrameBody<'a, TLVIterator>,
+    pub body: ManagementFrameBody<
+        'a,
+        RateIterator,
+        ExtendedRateIterator,
+        TLVIterator,
+        ActionFramePayload,
+    >,
 }
-impl<'a, TLVIterator> ManagementFrame<'a, TLVIterator> {
+impl<
+        'a,
+        RateIterator,
+        ExtendedRateIterator,
+        TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>>,
+        ActionFramePayload,
+    > ManagementFrame<'a, RateIterator, ExtendedRateIterator, TLVIterator, ActionFramePayload>
+{
     pub const fn get_fcf(&self) -> FrameControlField {
         FrameControlField {
             version: 0,
@@ -29,21 +56,25 @@ impl<'a, TLVIterator> ManagementFrame<'a, TLVIterator> {
         }
     }
 }
-impl<'a> ManagementFrame<'a, TLVReadIterator<'a>> {
+impl ManagementFrame<'_> {
     pub const fn length_in_bytes(&self) -> usize {
         self.header.length_in_bytes() + self.body.length_in_bytes()
     }
 }
-impl<'a, TLVIterator: IntoIterator<Item = IEEE80211TLV<'a>> + Clone> MeasureWith<()>
-    for ManagementFrame<'a, TLVIterator>
+impl<
+        'a,
+        RateIterator: IntoIterator<Item = EncodedRate> + Clone,
+        ExtendedRateIterator: IntoIterator<Item = EncodedExtendedRate> + Clone,
+        TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>> + Clone,
+        ActionFramePayload: MeasureWith<()>,
+    > MeasureWith<()>
+    for ManagementFrame<'a, RateIterator, ExtendedRateIterator, TLVIterator, ActionFramePayload>
 {
     fn measure_with(&self, ctx: &()) -> usize {
         self.header.length_in_bytes() + self.body.measure_with(ctx)
     }
 }
-impl<'a> TryFromCtx<'a, (ManagementFrameSubtype, FCFFlags)>
-    for ManagementFrame<'a, TLVReadIterator<'a>>
-{
+impl<'a> TryFromCtx<'a, (ManagementFrameSubtype, FCFFlags)> for ManagementFrame<'a> {
     type Error = scroll::Error;
     fn try_from_ctx(
         from: &'a [u8],
@@ -57,8 +88,14 @@ impl<'a> TryFromCtx<'a, (ManagementFrameSubtype, FCFFlags)>
         Ok((Self { header, body }, offset))
     }
 }
-impl<'a, TLVIterator: IntoIterator<Item = IEEE80211TLV<'a>>> TryIntoCtx
-    for ManagementFrame<'a, TLVIterator>
+impl<
+        'a,
+        RateIterator: IntoIterator<Item = EncodedRate> + Clone,
+        ExtendedRateIterator: IntoIterator<Item = EncodedExtendedRate> + Clone,
+        TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>> + Clone,
+        ActionFramePayload: TryIntoCtx<Error = scroll::Error>,
+    > TryIntoCtx
+    for ManagementFrame<'a, RateIterator, ExtendedRateIterator, TLVIterator, ActionFramePayload>
 {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
@@ -69,10 +106,32 @@ impl<'a, TLVIterator: IntoIterator<Item = IEEE80211TLV<'a>>> TryIntoCtx
         Ok(offset)
     }
 }
-impl<'a, TLVIterator: 'a> ToFrame<'a, TLVIterator, DataFrameReadPayload<'a>>
-    for ManagementFrame<'a, TLVIterator>
+impl<
+        'a,
+        RateIterator: 'a,
+        ExtendedRateIterator: 'a,
+        TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>> + 'a,
+        ActionFramePayload: 'a,
+    >
+    ToFrame<
+        'a,
+        RateIterator,
+        ExtendedRateIterator,
+        TLVIterator,
+        ActionFramePayload,
+        DataFrameReadPayload<'a>,
+    > for ManagementFrame<'a, RateIterator, ExtendedRateIterator, TLVIterator, ActionFramePayload>
 {
-    fn to_frame(self) -> IEEE80211Frame<'a, TLVIterator, DataFrameReadPayload<'a>> {
+    fn to_frame(
+        self,
+    ) -> IEEE80211Frame<
+        'a,
+        RateIterator,
+        ExtendedRateIterator,
+        TLVIterator,
+        ActionFramePayload,
+        DataFrameReadPayload<'a>,
+    > {
         IEEE80211Frame::Management(self)
     }
 }

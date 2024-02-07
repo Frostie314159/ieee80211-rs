@@ -6,7 +6,7 @@ use scroll::{
 
 use crate::tlvs::{ToTLV, IEEE80211TLV};
 
-use super::{RateReadIterator, SupportedRatesTLVReadRateIterator};
+use super::{rate_iter::RateIterator, EncodedRate};
 
 bitfield! {
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
@@ -39,9 +39,11 @@ impl EncodedExtendedRate {
 pub struct ExtendedSupportedRatesTLV<I> {
     pub supported_rates: I,
 }
-impl<I: ExactSizeIterator> MeasureWith<()> for ExtendedSupportedRatesTLV<I> {
+impl<I: IntoIterator<Item = EncodedExtendedRate> + Clone> MeasureWith<()>
+    for ExtendedSupportedRatesTLV<I>
+{
     fn measure_with(&self, _ctx: &()) -> usize {
-        self.supported_rates.len()
+        self.supported_rates.clone().into_iter().count()
     }
 }
 impl<'a> TryFromCtx<'a>
@@ -57,10 +59,7 @@ impl<'a> TryFromCtx<'a>
         } else {
             Ok((
                 Self {
-                    supported_rates: from
-                        .iter()
-                        .copied()
-                        .map(EncodedExtendedRate::from_representation),
+                    supported_rates: ExtendedSupportedRatesTLVReadRateIterator::new(from),
                 },
                 from.len(),
             ))
@@ -77,11 +76,17 @@ impl<I: IntoIterator<Item = EncodedExtendedRate>> TryIntoCtx for ExtendedSupport
         Ok(offset)
     }
 }
-impl<'a, I> ToTLV<'a, SupportedRatesTLVReadRateIterator<'a>, I> for ExtendedSupportedRatesTLV<I> {
-    fn to_tlv(self) -> IEEE80211TLV<'a, SupportedRatesTLVReadRateIterator<'a>, I> {
+impl<
+        'a,
+        RateIterator: IntoIterator<Item = EncodedRate> + Clone,
+        ExtendedRateIterator: IntoIterator<Item = EncodedExtendedRate> + Clone,
+    > ToTLV<'a, RateIterator, ExtendedRateIterator>
+    for ExtendedSupportedRatesTLV<ExtendedRateIterator>
+{
+    fn to_tlv(self) -> IEEE80211TLV<'a, RateIterator, ExtendedRateIterator> {
         IEEE80211TLV::ExtendedSupportedRates(self)
     }
 }
 
 /// Iterator over the rates supported by the sender.
-pub type ExtendedSupportedRatesTLVReadRateIterator<'a> = RateReadIterator<'a, EncodedExtendedRate>;
+pub type ExtendedSupportedRatesTLVReadRateIterator<'a> = RateIterator<'a, EncodedExtendedRate>;
