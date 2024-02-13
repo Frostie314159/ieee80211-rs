@@ -7,12 +7,9 @@ use scroll::{
 
 use crate::{
     common::subtypes::ManagementFrameSubtype,
-    tlvs::{
-        rates::{
-            EncodedExtendedRate, EncodedRate, ExtendedSupportedRatesTLVReadRateIterator,
-            SupportedRatesTLVReadRateIterator,
-        },
-        TLVReadIterator, IEEE80211TLV,
+    elements::{
+        rates::{EncodedRate, RatesReadIterator},
+        IEEE80211Element, TLVReadIterator,
     },
 };
 
@@ -28,12 +25,12 @@ pub mod beacon;
 /// The rest of the frame can be found in [crate::frames::ManagementFrame].
 pub enum ManagementFrameBody<
     'a,
-    RateIterator = SupportedRatesTLVReadRateIterator<'a>,
-    ExtendedRateIterator = ExtendedSupportedRatesTLVReadRateIterator<'a>,
+    RateIterator = RatesReadIterator<'a>,
+    ExtendedRateIterator = RatesReadIterator<'a>,
     TLVIterator = TLVReadIterator<'a>,
     ActionFramePayload = &'a [u8],
 > where
-    TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>>,
+    TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>,
 {
     Action(ActionFrameBody<ActionFramePayload>),
     ActionNoAck(ActionFrameBody<ActionFramePayload>),
@@ -48,7 +45,7 @@ impl<
         'a,
         RateIterator,
         ExtendedRateIterator,
-        TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>>,
+        TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + 'a,
         ActionFramePayload,
     > ManagementFrameBody<'a, RateIterator, ExtendedRateIterator, TLVIterator, ActionFramePayload>
 {
@@ -78,8 +75,8 @@ impl ManagementFrameBody<'_> {
 impl<
         'a,
         RateIterator: IntoIterator<Item = EncodedRate> + Clone,
-        ExtendedRateIterator: IntoIterator<Item = EncodedExtendedRate> + Clone,
-        TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>> + Clone,
+        ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
+        TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone,
         ActionFramePayload: MeasureWith<()>,
     > MeasureWith<()>
     for ManagementFrameBody<'a, RateIterator, ExtendedRateIterator, TLVIterator, ActionFramePayload>
@@ -120,8 +117,8 @@ impl<'a> TryFromCtx<'a, ManagementFrameSubtype> for ManagementFrameBody<'a> {
 impl<
         'a,
         RateIterator: IntoIterator<Item = EncodedRate> + Clone,
-        ExtendedRateIterator: IntoIterator<Item = EncodedExtendedRate> + Clone,
-        TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>> + Clone,
+        ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
+        TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone,
         ActionFramePayload: TryIntoCtx<Error = scroll::Error>,
     > TryIntoCtx
     for ManagementFrameBody<'a, RateIterator, ExtendedRateIterator, TLVIterator, ActionFramePayload>
@@ -141,13 +138,11 @@ impl<
 pub trait ToManagementFrameBody<
     'a,
     RateIterator = Empty<EncodedRate>,
-    ExtendedRateIterator = Empty<EncodedExtendedRate>,
-    TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>> = Empty<
-        IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>,
+    ExtendedRateIterator = Empty<EncodedRate>,
+    TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> = Empty<
+        IEEE80211Element<'a, RateIterator, ExtendedRateIterator>,
     >,
 >
 {
-    fn to_management_frame_body(
-        self,
-    ) -> ManagementFrameBody<'a, RateIterator, ExtendedRateIterator, TLVIterator>;
+    fn to_management_frame_body(self) -> ManagementFrameBody<'a, RateIterator, ExtendedRateIterator, TLVIterator>;
 }

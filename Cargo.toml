@@ -9,7 +9,9 @@ description = "A parser for IEEE 802.11 frames."
 authors = ["Frostie314159"]
 
 [dependencies]
+const_soft_float = { version = "0.1.4", features = ["no_std"] }
 crc32fast = { version = "1.3.2", default-features = false }
+itertools = "0.12.1"
 mac-parser = "0.1.4"
 macro-bits = "0.1.4"
 scroll = { version = "0.12.0", default-features = false }
@@ -21,3 +23,7 @@ criterion = { version = "0.5.1", features = ["html_reports"] }
 [[bench]]
 name = "ieee80211"
 harness = false
+
+[features]
+std = []
+default = ["std"]

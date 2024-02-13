@@ -7,12 +7,9 @@ use scroll::{
 
 use crate::{
     common::{FrameControlField, FrameType},
-    tlvs::{
-        rates::{
-            EncodedExtendedRate, EncodedRate, ExtendedSupportedRatesTLVReadRateIterator,
-            SupportedRatesTLVReadRateIterator,
-        },
-        TLVReadIterator, IEEE80211TLV,
+    elements::{
+        rates::{EncodedRate, RatesReadIterator},
+        IEEE80211Element, TLVReadIterator,
     },
 };
 
@@ -30,13 +27,13 @@ pub mod mgmt_frame;
 /// The [TryIntoCtx] implementation for this takes a [bool] as `Ctx`, which specifies if the fcs is at the end.
 pub enum IEEE80211Frame<
     'a,
-    RateIterator = SupportedRatesTLVReadRateIterator<'a>,
-    ExtendedRateIterator = ExtendedSupportedRatesTLVReadRateIterator<'a>,
+    RateIterator = RatesReadIterator<'a>,
+    ExtendedRateIterator = RatesReadIterator<'a>,
     TLVIterator = TLVReadIterator<'a>,
     ActionFramePayload = &'a [u8],
     DataFramePayload = DataFrameReadPayload<'a>,
 > where
-    TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>>,
+    TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>,
 {
     Management(
         ManagementFrame<'a, RateIterator, ExtendedRateIterator, TLVIterator, ActionFramePayload>,
@@ -47,7 +44,7 @@ impl<
         'a,
         RateIterator,
         ExtendedRateIterator,
-        TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>>,
+        TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>,
         ActionFramePayload,
         DataFramePayload,
     >
@@ -86,8 +83,8 @@ impl IEEE80211Frame<'_> {
 impl<
         'a,
         RateIterator: IntoIterator<Item = EncodedRate> + Clone,
-        ExtendedRateIterator: IntoIterator<Item = EncodedExtendedRate> + Clone,
-        TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>> + Clone,
+        ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
+        TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone,
         ActionFramePayload: MeasureWith<()>,
         DataFramePayload: MeasureWith<()>,
     > MeasureWith<bool>
@@ -114,6 +111,13 @@ impl<'a> TryFromCtx<'a, bool> for IEEE80211Frame<'a> {
 
         let fcf =
             FrameControlField::from_representation(from.gread_with(&mut offset, Endian::Little)?);
+
+        if fcf.flags.protected {
+            return Err(scroll::Error::BadInput {
+                size: offset,
+                msg: "Protected frames aren't supported yet.",
+            });
+        }
 
         // This prevents subsequent parsers from reading the FCS.
         let body_slice = if fcs_at_end {
@@ -151,8 +155,8 @@ impl<'a> TryFromCtx<'a, bool> for IEEE80211Frame<'a> {
 impl<
         'a,
         RateIterator: IntoIterator<Item = EncodedRate> + Clone,
-        ExtendedRateIterator: IntoIterator<Item = EncodedExtendedRate> + Clone,
-        TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>> + Clone,
+        ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
+        TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone,
         ActionFramePayload: TryIntoCtx<Error = scroll::Error>,
         DataFramePayload: TryIntoCtx<Error = scroll::Error>,
     > TryIntoCtx<bool>
@@ -185,9 +189,9 @@ impl<
 pub trait ToFrame<
     'a,
     RateIterator = Empty<EncodedRate>,
-    ExtendedRateIterator = Empty<EncodedExtendedRate>,
-    TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>> = Empty<
-        IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>,
+    ExtendedRateIterator = Empty<EncodedRate>,
+    TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> = Empty<
+        IEEE80211Element<'a, RateIterator, ExtendedRateIterator>,
     >,
     ActionFramePayload = &'a [u8],
     DataFramePayload = DataFrameReadPayload<'a>,
@@ -195,12 +199,5 @@ pub trait ToFrame<
 {
     fn to_frame(
         self,
-    ) -> IEEE80211Frame<
-        'a,
-        RateIterator,
-        ExtendedRateIterator,
-        TLVIterator,
-        ActionFramePayload,
-        DataFramePayload,
-    >;
+    ) -> IEEE80211Frame<'a, RateIterator, ExtendedRateIterator, TLVIterator, ActionFramePayload, DataFramePayload>;
 }

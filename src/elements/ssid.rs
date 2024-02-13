@@ -3,26 +3,28 @@ use scroll::{
     Pwrite,
 };
 
-use super::{
-    rates::{EncodedExtendedRate, EncodedRate},
-    ToTLV, IEEE80211TLV,
-};
-
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// A SSID tlv.
 ///
 /// The SSID isn't public, since if we check the length at initialization, we won't have to do checks while serializing.
-pub struct SSIDTLV<'a>(&'a str);
-impl<'a> SSIDTLV<'a> {
-    /// Create a new SSID tlv.
+pub struct SSIDElement<'a>(&'a str);
+impl<'a> SSIDElement<'a> {
+    /// Create a new SSID element.
     ///
     /// This returns [None] if `ssid` is longer than 32 bytes.
-    pub const fn new(ssid: &'a str) -> Option<SSIDTLV<'a>> {
+    pub const fn new(ssid: &'a str) -> Option<SSIDElement<'a>> {
         if ssid.as_bytes().len() <= 32 {
             Some(Self(ssid))
         } else {
             None
         }
+    }
+
+    /// Create a new SSID element without asserting, that the length is no more than 32 bytes.
+    ///
+    /// If you are passing a literal directly use the .. macro, which does the assertion at compile time.
+    pub const fn new_unchecked(ssid: &'a str) -> SSIDElement<'a> {
+        Self(ssid)
     }
 
     /// Returns a refrence to the SSID.
@@ -50,12 +52,12 @@ impl<'a> SSIDTLV<'a> {
         self.0.len()
     }
 }
-impl MeasureWith<()> for SSIDTLV<'_> {
+impl MeasureWith<()> for SSIDElement<'_> {
     fn measure_with(&self, _ctx: &()) -> usize {
         self.length_in_bytes()
     }
 }
-impl<'a> TryFromCtx<'a> for SSIDTLV<'a> {
+impl<'a> TryFromCtx<'a> for SSIDElement<'a> {
     type Error = scroll::Error;
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         if from.len() > 32 {
@@ -65,22 +67,34 @@ impl<'a> TryFromCtx<'a> for SSIDTLV<'a> {
             });
         }
         <&'a str as TryFromCtx<'a, StrCtx>>::try_from_ctx(from, StrCtx::Length(from.len()))
-            .map(|(ssid, len)| (SSIDTLV(ssid), len))
+            .map(|(ssid, len)| (SSIDElement(ssid), len))
     }
 }
-impl TryIntoCtx for SSIDTLV<'_> {
+impl TryIntoCtx for SSIDElement<'_> {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         buf.pwrite(self.0, 0)
     }
 }
-impl<
-        'a,
-        RateIterator: IntoIterator<Item = EncodedRate> + Clone,
-        ExtendedRateIterator: IntoIterator<Item = EncodedExtendedRate> + Clone,
-    > ToTLV<'a, RateIterator, ExtendedRateIterator> for SSIDTLV<'a>
-{
-    fn to_tlv(self) -> IEEE80211TLV<'a, RateIterator, ExtendedRateIterator> {
-        IEEE80211TLV::SSID(self)
-    }
+#[macro_export]
+/// Generate an SSID element, while performing all validation at compile time.
+///
+/// ```
+/// use ieee80211::ssid;
+///
+/// let ssid_element = ssid!("OpenRF");
+/// assert_eq!(ssid_element.ssid(), "OpenRF");
+/// ```
+macro_rules! ssid {
+    ($ssid:literal) => {{
+        use ::ieee80211::elements::SSIDElement;
+        const RESULT: SSIDElement = {
+            assert!(
+                $ssid.as_bytes().len() <= 32,
+                "SSIDs must not exceed a length of more than 32 bytes."
+            );
+            SSIDElement::new_unchecked($ssid)
+        };
+        RESULT
+    }};
 }

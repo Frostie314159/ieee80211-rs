@@ -8,12 +8,9 @@ use scroll::{
 
 use crate::{
     common::TU,
-    tlvs::{
-        rates::{
-            EncodedExtendedRate, EncodedRate, ExtendedSupportedRatesTLVReadRateIterator,
-            SupportedRatesTLVReadRateIterator,
-        },
-        TLVReadIterator, IEEE80211TLV,
+    elements::{
+        rates::{EncodedRate, RatesReadIterator},
+        IEEE80211Element, TLVReadIterator,
     },
 };
 
@@ -43,23 +40,16 @@ bitfield! {
 /// When reading this struct the generic parameter is set to [TLVReadIterator].
 pub struct BeaconFrameBody<
     'a,
-    RateIterator = SupportedRatesTLVReadRateIterator<'a>,
-    ExtendedRateIterator = ExtendedSupportedRatesTLVReadRateIterator<'a>,
-    TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>> + 'a = TLVReadIterator<'a>
+    RateIterator = RatesReadIterator<'a>,
+    ExtendedRateIterator = RatesReadIterator<'a>,
+    TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + 'a = TLVReadIterator<'a>,
 > {
     pub timestamp: u64,
     pub beacon_interval: u16,
     pub capabilities_info: CapabilitiesInformation,
-    pub tagged_payload: TLVIterator
+    pub tagged_payload: TLVIterator,
 }
-impl<'a>
-    BeaconFrameBody<
-        'a,
-        SupportedRatesTLVReadRateIterator<'a>,
-        ExtendedSupportedRatesTLVReadRateIterator<'a>,
-        TLVReadIterator<'a>,
-    >
-{
+impl<'a> BeaconFrameBody<'a> {
     pub const fn length_in_bytes(&'a self) -> usize {
         8 + // Timestamp
         2 + // Beacon interval
@@ -73,8 +63,8 @@ impl<'a>
 impl<
         'a,
         RateIterator: IntoIterator<Item = EncodedRate> + Clone,
-        ExtendedRateIterator: IntoIterator<Item = EncodedExtendedRate> + Clone,
-        TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>> + Clone,
+        ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
+        TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone + 'a,
     > BeaconFrameBody<'a, RateIterator, ExtendedRateIterator, TLVIterator>
 {
     pub const fn beacon_interval_as_duration(&self) -> Duration {
@@ -84,7 +74,7 @@ impl<
     pub fn ssid(&'a self) -> Option<&'a str> {
         // SSID should be the first TLV.
         self.tagged_payload.clone().into_iter().find_map(|tlv| {
-            if let IEEE80211TLV::SSID(ssid_tlv) = tlv {
+            if let IEEE80211Element::SSID(ssid_tlv) = tlv {
                 Some(ssid_tlv.take_ssid())
             } else {
                 None
@@ -95,8 +85,8 @@ impl<
 impl<
         'a,
         RateIterator: IntoIterator<Item = EncodedRate> + Clone,
-        ExtendedRateIterator: IntoIterator<Item = EncodedExtendedRate> + Clone,
-        TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>> + Clone,
+        ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
+        TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone + 'a,
     > MeasureWith<()> for BeaconFrameBody<'a, RateIterator, ExtendedRateIterator, TLVIterator>
 {
     fn measure_with(&self, ctx: &()) -> usize {
@@ -108,14 +98,7 @@ impl<
             .sum::<usize>()
     }
 }
-impl<'a> TryFromCtx<'a>
-    for BeaconFrameBody<
-        'a,
-        SupportedRatesTLVReadRateIterator<'a>,
-        ExtendedSupportedRatesTLVReadRateIterator<'a>,
-        TLVReadIterator<'a>,
-    >
-{
+impl<'a> TryFromCtx<'a> for BeaconFrameBody<'a> {
     type Error = scroll::Error;
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
@@ -142,8 +125,8 @@ impl<'a> TryFromCtx<'a>
 impl<
         'a,
         RateIterator: IntoIterator<Item = EncodedRate> + Clone,
-        ExtendedRateIterator: IntoIterator<Item = EncodedExtendedRate> + Clone,
-        TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>>,
+        ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
+        TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + 'a,
     > TryIntoCtx for BeaconFrameBody<'a, RateIterator, ExtendedRateIterator, TLVIterator>
 {
     type Error = scroll::Error;
@@ -168,7 +151,7 @@ impl<
         'a,
         RateIterator,
         ExtendedRateIterator,
-        TLVIterator: IntoIterator<Item = IEEE80211TLV<'a, RateIterator, ExtendedRateIterator>>,
+        TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + 'a,
     > ToManagementFrameBody<'a, RateIterator, ExtendedRateIterator, TLVIterator>
     for BeaconFrameBody<'a, RateIterator, ExtendedRateIterator, TLVIterator>
 {

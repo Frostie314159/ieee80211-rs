@@ -1,12 +1,12 @@
 use std::iter::Empty;
 
 use ieee80211::{
+    elements::ToElement,
     mgmt_frame::{
         body::{beacon::BeaconFrameBody, ManagementFrameBody, ToManagementFrameBody},
         ManagementFrame,
     },
-    tlvs::{ToTLV, SSIDTLV},
-    IEEE80211Frame, ToFrame,
+    ssid, IEEE80211Frame, ToFrame,
 };
 use scroll::{ctx::MeasureWith, Pread, Pwrite};
 
@@ -57,7 +57,7 @@ fn main() {
         capabilities_info: beacon.capabilities_info,
         timestamp: beacon.timestamp,
         beacon_interval: beacon.beacon_interval,
-        tagged_payload: [SSIDTLV::new("OpenRF").unwrap().to_tlv()],
+        tagged_payload: [ssid!("OpenRF").to_element()],
     }
     .to_management_frame_body();
     let management_frame = ManagementFrame {

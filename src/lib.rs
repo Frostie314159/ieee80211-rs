@@ -1,4 +1,4 @@
-#![no_std]
+#![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
 //! # ieee80211-rs
 //! This is a library for reading and writing IEEE 802.11(aka. WiFi) frames.
@@ -15,12 +15,15 @@
 
 /// This is a collection of commonly used types.
 pub mod common;
-mod frames;
 /// This module contains the elements, which are found in the body of some frames.
-/// If an element only consists of one struct, like the [SSID](tlvs::SSIDTLV), they are re-exported, otherwise they get their own module.
-pub mod tlvs;
-/// Used internally for builders.
+/// If an element only consists of one struct, like the [SSID](elements::SSIDElement), they are re-exported, otherwise they get their own module.
+pub mod elements;
+mod frames;
+
+#[doc(hidden)]
 pub mod type_state;
 pub use frames::*;
 
+pub use const_soft_float;
+pub use macro_bits;
 pub use scroll;

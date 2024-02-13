@@ -1,4 +1,4 @@
-use core::marker::PhantomData;
+use core::{iter::Empty, marker::PhantomData};
 
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
@@ -7,10 +7,7 @@ use scroll::{
 
 use crate::{
     common::{subtypes::DataFrameSubtype, FCFFlags},
-    tlvs::{
-        rates::{ExtendedSupportedRatesTLVReadRateIterator, SupportedRatesTLVReadRateIterator},
-        TLVReadIterator,
-    },
+    elements::{rates::EncodedRate, IEEE80211Element},
     IEEE80211Frame, ToFrame,
 };
 
@@ -141,9 +138,9 @@ impl<Payload: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for DataFrame<'_, Pa
 impl<'a, DataFramePayload: 'a>
     ToFrame<
         'a,
-        SupportedRatesTLVReadRateIterator<'a>,
-        ExtendedSupportedRatesTLVReadRateIterator<'a>,
-        TLVReadIterator<'a>,
+        Empty<EncodedRate>,
+        Empty<EncodedRate>,
+        Empty<IEEE80211Element<'a, Empty<EncodedRate>, Empty<EncodedRate>>>,
         &'a [u8],
         DataFramePayload,
     > for DataFrame<'a, DataFramePayload>
@@ -152,9 +149,9 @@ impl<'a, DataFramePayload: 'a>
         self,
     ) -> IEEE80211Frame<
         'a,
-        SupportedRatesTLVReadRateIterator<'a>,
-        ExtendedSupportedRatesTLVReadRateIterator<'a>,
-        TLVReadIterator<'a>,
+        Empty<EncodedRate>,
+        Empty<EncodedRate>,
+        Empty<IEEE80211Element<'a, Empty<EncodedRate>, Empty<EncodedRate>>>,
         &'a [u8],
         DataFramePayload,
     > {

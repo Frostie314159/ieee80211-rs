@@ -1,13 +1,19 @@
-use macro_bits::{bit, bitfield, check_bit, serializable_enum};
+use macro_bits::{bit, bitfield, serializable_enum};
+use scroll::{
+    ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
+    Endian, Pread, Pwrite,
+};
+
+use super::SupportedMCSSet;
 
 serializable_enum! {
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
     /// Spatial multiplexing power save mode.
     pub enum SmPwSave: u8 {
-        #[default]
         Static => 0,
         Dynamic => 1,
         Reserved => 2,
+        #[default]
         Disabled => 3
     }
 }
@@ -101,26 +107,6 @@ bitfield! {
         pub reserved: u8 => bit!(5, 6, 7)
     }
 }
-bitfield! {
-    #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-    /// The MCS's supported by the transmitter.
-    ///
-    /// Condition | Tx MCS Set Defined | Tx Rx MCS Set Not Equal | Tx Maximum Number Spatial Streams Supported | Tx Unequal Modulation Supported
-    /// -- | -- | -- | -- | --
-    /// No Tx MCS set is defined | 0 | 0 | 0 | 0
-    /// The Tx MCS set is defined to be equal to the Rx MCS set | 1 | 0 | 0 | 0
-    /// The Tx MCS set may differ from the Rx MCS set | 1 | 1 | * | *
-    pub struct SupportedMCSSet: u64 {
-        /// The highest supported data rate.
-        pub rx_highest_supported_data_rate: u16 => bit!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9),
-        pub reserved: u8 => bit!(10, 11, 12, 13, 14, 15),
-        pub tx_mcs_set_defined: bool => bit!(16),
-        pub tx_rx_mcs_set_not_equal: bool => bit!(17),
-        pub tx_maximum_number_spatial_streams_supported: u8 => bit!(18, 19),
-        pub tx_unequal_modulation_supported: bool => bit!(20),
-        pub reserved_2: u16 => bit!(21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31)
-    }
-}
 serializable_enum! {
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
     /// Indicates the time required to switch from 20MHz to 40MHz operation.
@@ -187,53 +173,157 @@ bitfield! {
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
     /// Capabilities related to transmit beamforming.
     pub struct TransmitBeamformingCapabilities: u32 {
+        /// Indicates whether this STA can receive Transmit Beamforming steered frames using implicit feedback.
         pub implicit_transmit_beamforming_receiving_capable: bool => bit!(0),
+        /// Indicates whether this STA can receive staggered sounding frames.
         pub receive_staggered_sounding_capable: bool => bit!(1),
+        /// Indicates whether this STA can transmit staggered sounding frames.
         pub transmit_staggered_sounding_capable: bool => bit!(2),
+        /// Indicates whether this receiver can interpret null data PPDUs as sounding frames.
         pub receive_ndp_capable: bool => bit!(3),
+        /// Indicates whether this STA can transmit null data PPDUs as sounding frames.
         pub transmit_ndp_capable: bool => bit!(4),
+        /// Indicates whether this STA can apply implicit transmit beamforming.
         pub implicit_transmit_beamforming_capable: bool => bit!(5),
+        /// Indicates whether the STA can participate in a calibration procedure initiated by another STA
+        /// that is capable of generating an immediate response sounding PPDU and can provide a CSI report in response to a sounding PPDU.
         pub calibration: BeamformingCalibration => bit!(6, 7),
+        /// Indicates whether this STA can apply transmit beamforming using CSI explicit feedback in its transmission.
         pub explicit_csi_transmit_beamforming_capable: bool => bit!(8),
+        /// Indicates whether this STA can apply transmit beamforming
+        /// using noncompressed beamforming feedback matrix explicit feedback in its transmission.
         pub explicit_noncompressed_steering_capable: bool => bit!(9),
+        /// Indicates whether this STA can apply transmit beamforming
+        /// using compressed beamforming feedback matrix explicit feedback in its transmission.
         pub explicit_compressed_steering_capable: bool => bit!(10),
+        /// Indicates whether this receiver can return CSI explicit feedback.
         pub explicit_transmit_beamforming_csi_feedback: BeamformingFeedback => bit!(11, 12),
+        /// Indicates whether this receiver can return noncompressed beamforming feedback matrix explicit feedback.
         pub explicit_noncompressed_beamforming_feedback_capable: BeamformingFeedback => bit!(13, 14),
+        /// Indicates whether this receiver can return compressed beamforming feedback matrix explicit feedback.
         pub explicit_compressed_beamforming_feedback_capable: BeamformingFeedback => bit!(15, 16),
+        /// Indicates the minimal grouping used for explicit feedback reports.
         pub minimal_grouping: GroupingCapability => bit!(17, 18),
+        /// Indicates the maximum number of beamformer antennas the HT beamformee can support when CSI feedback is required.
         pub csi_number_of_beamformer_antennas_supported: u8 => bit!(19, 20),
+        /// Indicates the maximum number of beamformer antennas the HT beamformee can support
+        /// when noncompressed beamforming feedback matrix is required.
         pub noncompresssed_steering_number_of_beamformer_antennas_supported: u8 => bit!(21, 22),
+        /// Indicates the maximum number of beamformer antennas the HT beamformee can support
+        /// when compressed beamforming feedback matrix is required.
         pub compresssed_steering_number_of_beamformer_antennas_supported: u8 => bit!(23, 24),
+        /// Indicates the maximum number of rows of CSI explicit feedback from the HT beamformee
+        /// or calibration responder or transmit ASEL responder that an HT beamformer or calibration initiator
+        /// or transmit ASEL initiator can support when CSI feedback is required.
         pub csi_max_number_of_rows_beamformer_supported: u8 => bit!(25, 26),
+        /// Indicates the maximum number of space-time streams (columns of the MIMO channel matrix)
+        /// for which channel dimensions can be simultaneously estimated when receiving an NDP sounding PPDU
+        /// or the extension portion of the HT Long Training fields (HT-LTFs) in a staggered sounding PPDU.
         pub channel_estimation_capability: u8 => bit!(27, 28),
         pub reserved: u8 => bit!(29, 30, 31)
     }
 }
 bitfield! {
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+    /// The Antenna Selection capability of the STA.
     pub struct ASELCapability: u8 {
+        /// Indicates whether this STA supports ASEL.
         pub antenna_selection_capable: bool => bit!(0),
+        /// Indicates whether this STA supports transmit ASEL based on explicit CSI feedback.
         pub explicit_csi_feedback_based_transmit_asel_capable: bool => bit!(1),
+        /// Indicates whether this STA supports transmit ASEL based on antenna indices feedback.
         pub antenna_indices_feedback_based_transmit_asel_capable: bool => bit!(2),
+        /// Indicates whether this STA can compute CSI and provide CSI feedback in support of ASEL.
         pub explicit_csi_feedback_capable: bool => bit!(3),
+        /// Indicates whether this STA can compute an antenna indices selection and return an antenna indices selection in support of ASEL.
         pub antenna_indices_feedback_capable: bool => bit!(4),
+        /// Indicates whether this STA supports receive ASEL.
         pub receive_asel_capable: bool => bit!(5),
+        /// Indicates whether this STA can transmit sounding PPDUs for ASEL training on request.
         pub transmit_sounding_ppdus_capable: bool => bit!(6),
         pub reserved: bool => bit!(7)
     }
 }
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-pub struct HTCapabilitiesTLV {
+/// The [HTCapabilitiesElement] contains information about the HT capbilities of the STA.
+pub struct HTCapabilitiesElement {
     pub ht_capabilities_info: HTCapabilitiesInfo,
     pub ampdu_parameters: AMpduParameters,
-    pub supported_rx_mcs_set: [u8; 10],
     pub supported_mcs_set: SupportedMCSSet,
     pub extended_capabilities: HTExtendedCapabilities,
     pub transmit_beamforming_capabilities: TransmitBeamformingCapabilities,
-    pub asel_capabilities: ASELCapability,
+    pub asel_capability: ASELCapability,
 }
-impl HTCapabilitiesTLV {
-    pub fn get_rx_mcs_iterator(&self) -> impl Iterator<Item = usize> + '_ {
-        (0..80).filter(|index| check_bit!(self.supported_rx_mcs_set[index / 8], bit!(index % 8)))
+impl MeasureWith<()> for HTCapabilitiesElement {
+    fn measure_with(&self, _ctx: &()) -> usize {
+        26
+    }
+}
+impl TryFromCtx<'_> for HTCapabilitiesElement {
+    type Error = scroll::Error;
+    fn try_from_ctx(from: &[u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
+        let mut offset = 0;
+
+        let ht_capabilities_info =
+            HTCapabilitiesInfo::from_representation(from.gread_with(&mut offset, Endian::Little)?);
+        let ampdu_parameters =
+            AMpduParameters::from_representation(from.gread_with(&mut offset, Endian::Little)?);
+        let supported_mcs_set = from.gread(&mut offset)?;
+        let extended_capabilities = HTExtendedCapabilities::from_representation(
+            from.gread_with(&mut offset, Endian::Little)?,
+        );
+        let transmit_beamforming_capabilities =
+            TransmitBeamformingCapabilities::from_representation(
+                from.gread_with(&mut offset, Endian::Little)?,
+            );
+        let asel_capability =
+            ASELCapability::from_representation(from.gread_with(&mut offset, Endian::Little)?);
+
+        Ok((
+            Self {
+                ht_capabilities_info,
+                ampdu_parameters,
+                supported_mcs_set,
+                extended_capabilities,
+                transmit_beamforming_capabilities,
+                asel_capability,
+            },
+            offset,
+        ))
+    }
+}
+impl TryIntoCtx for HTCapabilitiesElement {
+    type Error = scroll::Error;
+    fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
+        let mut offset = 0;
+
+        buf.gwrite_with(
+            self.ht_capabilities_info.to_representation(),
+            &mut offset,
+            Endian::Little,
+        )?;
+        buf.gwrite_with(
+            self.ampdu_parameters.to_representation(),
+            &mut offset,
+            Endian::Little,
+        )?;
+        buf.gwrite(self.supported_mcs_set, &mut offset)?;
+        buf.gwrite_with(
+            self.extended_capabilities.to_representation(),
+            &mut offset,
+            Endian::Little,
+        )?;
+        buf.gwrite_with(
+            self.transmit_beamforming_capabilities.to_representation(),
+            &mut offset,
+            Endian::Little,
+        )?;
+        buf.gwrite_with(
+            self.asel_capability.to_representation(),
+            &mut offset,
+            Endian::Little,
+        )?;
+
+        Ok(offset)
     }
 }
