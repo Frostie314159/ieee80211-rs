@@ -20,6 +20,8 @@ pub use ssid::SSIDElement;
 mod bss_load;
 pub mod ht_cap_oper;
 pub use bss_load::*;
+mod ibss_parameter_set;
+pub use ibss_parameter_set::IBSSParameterSetElement;
 
 /// A raw TLV.
 pub type RawIEEE80211Element<'a> = RawTLV<'a, u8, u8>;
@@ -150,6 +152,7 @@ elements! {
         SSID: 0x00 => SSIDElement<'a>,
         SupportedRates: 0x01 => SupportedRatesElement<RateIterator>,
         DSSSParameterSet: 0x03 => DSSSParameterElement,
+        IBSSParameterSet: 0x06 => IBSSParameterSetElement,
         BSSLoad: 0x0b => BSSLoadElement,
         HTCapabilities: 0x2d => HTCapabilitiesElement,
         ExtendedSupportedRates: 0x32 => ExtendedSupportedRatesElement<ExtendedRateIterator>,
