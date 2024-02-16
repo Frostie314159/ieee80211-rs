@@ -5,14 +5,31 @@ use scroll::{
 
 use super::{EncodedRate, RatesReadIterator};
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Default, Hash)]
 /// An element containing rates supported by the peer.
 ///
 /// The `supported_rates` field is an [Iterator] over [super::EncodedRate]. This allows passing rates, agnostic of the collection.
 /// When deserializing this struct, the Iterator is [RatesReadIterator].
-pub struct ExtendedSupportedRatesElement<I> {
+pub struct ExtendedSupportedRatesElement<I>
+where
+    I: IntoIterator<Item = EncodedRate>,
+{
     pub supported_rates: I,
 }
+impl<LhsIterator, RhsIterator> PartialEq<ExtendedSupportedRatesElement<RhsIterator>>
+    for ExtendedSupportedRatesElement<LhsIterator>
+where
+    LhsIterator: IntoIterator<Item = EncodedRate> + Clone,
+    RhsIterator: IntoIterator<Item = EncodedRate> + Clone,
+{
+    fn eq(&self, other: &ExtendedSupportedRatesElement<RhsIterator>) -> bool {
+        self.supported_rates
+            .clone()
+            .into_iter()
+            .eq(other.supported_rates.clone())
+    }
+}
+impl<I> Eq for ExtendedSupportedRatesElement<I> where I: IntoIterator<Item = EncodedRate> + Clone {}
 impl<I: IntoIterator<Item = EncodedRate> + Clone> MeasureWith<()>
     for ExtendedSupportedRatesElement<I>
 {

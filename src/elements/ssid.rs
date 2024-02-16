@@ -22,7 +22,7 @@ impl<'a> SSIDElement<'a> {
 
     /// Create a new SSID element without asserting, that the length is no more than 32 bytes.
     ///
-    /// If you are passing a literal directly use the .. macro, which does the assertion at compile time.
+    /// If you are passing a literal directly use the [ssid] macro, which does the assertion at compile time.
     pub const fn new_unchecked(ssid: &'a str) -> SSIDElement<'a> {
         Self(ssid)
     }

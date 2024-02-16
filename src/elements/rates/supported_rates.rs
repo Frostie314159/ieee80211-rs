@@ -5,15 +5,32 @@ use scroll::{
 
 use super::{EncodedRate, RatesReadIterator};
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Default, Hash)]
 /// An element containing the rates supported by the AP.
 ///
 /// The `supported_rates` field is an [Iterator] over [EncodedRate]. This allows passing rates, agnostic of the collection.
 /// When deserializing this struct, the Iterator is [RatesReadIterator].
 /// There must be no more than 8 rates present, since anything after that gets truncated.
-pub struct SupportedRatesElement<I> {
+pub struct SupportedRatesElement<I>
+where
+    I: IntoIterator<Item = EncodedRate>,
+{
     pub supported_rates: I,
 }
+impl<LhsIterator, RhsIterator> PartialEq<SupportedRatesElement<RhsIterator>>
+    for SupportedRatesElement<LhsIterator>
+where
+    LhsIterator: IntoIterator<Item = EncodedRate> + Clone,
+    RhsIterator: IntoIterator<Item = EncodedRate> + Clone,
+{
+    fn eq(&self, other: &SupportedRatesElement<RhsIterator>) -> bool {
+        self.supported_rates
+            .clone()
+            .into_iter()
+            .eq(other.supported_rates.clone())
+    }
+}
+impl<I> Eq for SupportedRatesElement<I> where I: IntoIterator<Item = EncodedRate> + Clone {}
 impl<I: IntoIterator<Item = EncodedRate> + Clone> MeasureWith<()> for SupportedRatesElement<I> {
     fn measure_with(&self, _ctx: &()) -> usize {
         // Each rate is exactly one byte.
