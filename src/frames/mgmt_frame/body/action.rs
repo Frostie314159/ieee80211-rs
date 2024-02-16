@@ -1,8 +1,14 @@
+use core::iter::Empty;
+
 use macro_bits::serializable_enum;
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
     Pread, Pwrite,
 };
+
+use crate::elements::{rates::EncodedRate, IEEE80211Element};
+
+use super::{ManagementFrameBody, ToManagementFrameBody};
 
 serializable_enum! {
     #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
@@ -74,5 +80,26 @@ impl<P: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for ActionFrameBody<P> {
             }
         }
         Ok(offset)
+    }
+}
+impl<'a, ActionFramePayload>
+    ToManagementFrameBody<
+        'a,
+        Empty<EncodedRate>,
+        Empty<EncodedRate>,
+        Empty<IEEE80211Element<'a, Empty<EncodedRate>, Empty<EncodedRate>>>,
+        ActionFramePayload,
+    > for ActionFrameBody<ActionFramePayload>
+{
+    fn to_management_frame_body(
+        self,
+    ) -> ManagementFrameBody<
+        'a,
+        Empty<EncodedRate>,
+        Empty<EncodedRate>,
+        Empty<IEEE80211Element<'a, Empty<EncodedRate>, Empty<EncodedRate>>>,
+        ActionFramePayload,
+    > {
+        ManagementFrameBody::Action(self)
     }
 }

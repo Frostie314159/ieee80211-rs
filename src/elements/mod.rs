@@ -25,17 +25,17 @@ pub use bss_load::*;
 pub type RawIEEE80211Element<'a> = RawTLV<'a, u8, u8>;
 type TypedIEEE80211Element<Payload> = TLV<u8, u8, u8, Payload>;
 
-macro_rules! tlvs {
+macro_rules! elements {
     (
         $(
             #[$meta_var:meta]
         )*
-        pub enum $struct_name:ident <$lt:lifetime $(, $generic:ident: $($trait_bound:path),*  = $default:ty)*> {
+        pub enum $enum_name:ident <$lt:lifetime $(, $generic:ident: $($trait_bound:path),* = $default:ty)*> {
             $(
                 $(
                     #[$sub_meta_var:meta]
                 )*
-                $tlv_type_name:ident : $tlv_type_value:expr => $tlv_type:ty
+                $element_type_name:ident : $element_type_value:expr => $element_type:ty
             ),*
         }
     ) => {
@@ -44,7 +44,7 @@ macro_rules! tlvs {
             /// The type of an IEEE 802.11 Information Element.
             pub enum IEEE80211ElementID: u8{
                 $(
-                    $tlv_type_name => $tlv_type_value,
+                    $element_type_name => $element_type_value,
                 )*
                 #[default]
                 Reserved => 0xe3
@@ -53,36 +53,41 @@ macro_rules! tlvs {
         $(
             #[$meta_var]
         )*
-        pub enum $struct_name <$lt, $($generic = $default),*> {
+        pub enum $enum_name <$lt, $($generic = $default),*> 
+        where
+            $(
+                $generic: $($trait_bound + )*
+            ),*
+        {
             $(
                 $(
                     #[$sub_meta_var]
                 )*
-                $tlv_type_name($tlv_type),
+                $element_type_name($element_type),
             )*
             Unknown(RawIEEE80211Element<$lt>)
         }
-        impl<$lt $(, $generic: $($trait_bound + )*)*> $struct_name<$lt $(, $generic)*> {
-            pub const fn get_tlv_type(&self) -> IEEE80211ElementID {
+        impl<$lt $(, $generic: $($trait_bound + )*)*> $enum_name<$lt $(, $generic)*> {
+            pub const fn get_element_type(&self) -> IEEE80211ElementID {
                 match self {
                     $(
-                        Self::$tlv_type_name(_) => IEEE80211ElementID::$tlv_type_name,
+                        Self::$element_type_name(_) => IEEE80211ElementID::$element_type_name,
                     )*
                     Self::Unknown(raw_tlv) => IEEE80211ElementID::Unknown(raw_tlv.tlv_type)
                 }
             }
         }
-        impl<$lt $(, $generic: $($trait_bound + )*)*> ::scroll::ctx::MeasureWith<()> for $struct_name<$lt $(, $generic)*> {
+        impl<$lt $(, $generic: $($trait_bound + )*)*> ::scroll::ctx::MeasureWith<()> for $enum_name<$lt $(, $generic)*> {
             fn measure_with(&self, ctx: &()) -> usize {
                 2 + match self {
                     $(
-                        Self::$tlv_type_name(tlv) => tlv.measure_with(ctx),
+                        Self::$element_type_name(tlv) => tlv.measure_with(ctx),
                     )*
                     Self::Unknown(raw_tlv) => raw_tlv.slice.len()
                 }
             }
         }
-        impl<$lt> ::scroll::ctx::TryFromCtx<$lt> for $struct_name<$lt> {
+        impl<$lt> ::scroll::ctx::TryFromCtx<$lt> for $enum_name<$lt> {
             type Error = ::scroll::Error;
             fn try_from_ctx(from: &$lt [u8], _ctx: ()) -> Result<(Self, usize), ::scroll::Error> {
                 let (tlv, len) =
@@ -90,7 +95,7 @@ macro_rules! tlvs {
                 Ok((
                     match tlv.tlv_type {
                         $(
-                            $tlv_type_value => Self::$tlv_type_name(::scroll::ctx::TryFromCtx::try_from_ctx(tlv.slice, ()).map(|(tlv, _)| tlv)?),
+                            $element_type_value => Self::$element_type_name(::scroll::ctx::TryFromCtx::try_from_ctx(tlv.slice, ()).map(|(tlv, _)| tlv)?),
                         )*
                         _ => Self::Unknown(tlv)
                     },
@@ -98,13 +103,13 @@ macro_rules! tlvs {
                 ))
             }
         }
-        impl<$lt $(, $generic: $($trait_bound + )*)*> ::scroll::ctx::TryIntoCtx for $struct_name<$lt $(, $generic)*> {
+        impl<$lt $(, $generic: $($trait_bound + )*)*> ::scroll::ctx::TryIntoCtx for $enum_name<$lt $(, $generic)*> {
             type Error = ::scroll::Error;
             fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, ::scroll::Error> {
                 match self {
                     $(
-                        Self::$tlv_type_name(payload) => buf.pwrite(TypedIEEE80211Element {
-                            tlv_type: $tlv_type_value,
+                        Self::$element_type_name(payload) => buf.pwrite(TypedIEEE80211Element {
+                            tlv_type: $element_type_value,
                             payload,
                             _phantom: PhantomData
                         }, 0),
@@ -115,24 +120,24 @@ macro_rules! tlvs {
             }
         }
         pub trait ToElement<$lt $(, $generic: $($trait_bound + )* = $default)*> {
-            fn to_element(self) -> $struct_name<$lt $(, $generic)*>;
+            fn to_element(self) -> $enum_name<$lt $(, $generic)*>;
         }
         macro_rules! to_element_impl {
-            ($tlv_type_2:ty, $tlv_type_name_2:ident) => {
-                impl<$lt $(, $generic: $($trait_bound + )*)*> ToElement<$lt $(, $generic)*> for $tlv_type_2 {
-                    fn to_element(self) -> $struct_name<$lt $(, $generic)*> {
-                        $struct_name::$tlv_type_name_2(self)
+            ($element_type_2:ty, $element_type_name_2:ident) => {
+                impl<$lt $(, $generic: $($trait_bound + )*)*> ToElement<$lt $(, $generic)*> for $element_type_2 {
+                    fn to_element(self) -> $enum_name<$lt $(, $generic)*> {
+                        $enum_name::$element_type_name_2(self)
                     }
                 }
             };
         }
         $(
-            to_element_impl!($tlv_type, $tlv_type_name);
+            to_element_impl!($element_type, $element_type_name);
         )*
     };
 }
 
-tlvs! {
+elements! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     /// This enum contains all possible elements.
     /// For documentation on the individual elements please refer to the docs provided for their structs.
@@ -154,4 +159,4 @@ tlvs! {
 /// This is an iterator over the elements contained in the body of a frame.
 ///
 /// It's short circuiting.
-pub type TLVReadIterator<'a> = ReadIterator<'a, (), IEEE80211Element<'a>>;
+pub type ElementReadIterator<'a> = ReadIterator<'a, (), IEEE80211Element<'a>>;

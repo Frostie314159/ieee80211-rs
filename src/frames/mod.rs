@@ -9,7 +9,7 @@ use crate::{
     common::{FrameControlField, FrameType},
     elements::{
         rates::{EncodedRate, RatesReadIterator},
-        IEEE80211Element, TLVReadIterator,
+        ElementReadIterator, IEEE80211Element,
     },
 };
 
@@ -29,14 +29,23 @@ pub enum IEEE80211Frame<
     'a,
     RateIterator = RatesReadIterator<'a>,
     ExtendedRateIterator = RatesReadIterator<'a>,
-    TLVIterator = TLVReadIterator<'a>,
+    ElementIterator = ElementReadIterator<'a>,
     ActionFramePayload = &'a [u8],
     DataFramePayload = DataFrameReadPayload<'a>,
-> where
-    TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>,
+>
+where
+    RateIterator: IntoIterator<Item = EncodedRate> + Clone,
+    ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
+    ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>   
 {
     Management(
-        ManagementFrame<'a, RateIterator, ExtendedRateIterator, TLVIterator, ActionFramePayload>,
+        ManagementFrame<
+            'a,
+            RateIterator,
+            ExtendedRateIterator,
+            ElementIterator,
+            ActionFramePayload,
+        >,
     ),
     Data(DataFrame<'a, DataFramePayload>),
 }
@@ -44,7 +53,7 @@ impl<
         'a,
         RateIterator,
         ExtendedRateIterator,
-        TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>,
+        ElementIterator,
         ActionFramePayload,
         DataFramePayload,
     >
@@ -52,10 +61,14 @@ impl<
         'a,
         RateIterator,
         ExtendedRateIterator,
-        TLVIterator,
+        ElementIterator,
         ActionFramePayload,
         DataFramePayload,
     >
+    where
+        RateIterator: IntoIterator<Item = EncodedRate> + Clone,
+        ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
+        ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>   
 {
     /// This returns the frame control field.
     pub const fn get_fcf(&self) -> FrameControlField {
@@ -84,7 +97,7 @@ impl<
         'a,
         RateIterator: IntoIterator<Item = EncodedRate> + Clone,
         ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
-        TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone,
+        ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone + 'a,
         ActionFramePayload: MeasureWith<()>,
         DataFramePayload: MeasureWith<()>,
     > MeasureWith<bool>
@@ -92,7 +105,7 @@ impl<
         'a,
         RateIterator,
         ExtendedRateIterator,
-        TLVIterator,
+        ElementIterator,
         ActionFramePayload,
         DataFramePayload,
     >
@@ -156,7 +169,7 @@ impl<
         'a,
         RateIterator: IntoIterator<Item = EncodedRate> + Clone,
         ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
-        TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone,
+        ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone + 'a,
         ActionFramePayload: TryIntoCtx<Error = scroll::Error>,
         DataFramePayload: TryIntoCtx<Error = scroll::Error>,
     > TryIntoCtx<bool>
@@ -164,7 +177,7 @@ impl<
         'a,
         RateIterator,
         ExtendedRateIterator,
-        TLVIterator,
+        ElementIterator,
         ActionFramePayload,
         DataFramePayload,
     >
@@ -190,14 +203,18 @@ pub trait ToFrame<
     'a,
     RateIterator = Empty<EncodedRate>,
     ExtendedRateIterator = Empty<EncodedRate>,
-    TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> = Empty<
+    ElementIterator = Empty<
         IEEE80211Element<'a, RateIterator, ExtendedRateIterator>,
     >,
     ActionFramePayload = &'a [u8],
     DataFramePayload = DataFrameReadPayload<'a>,
 >: 'a
+where
+    RateIterator: IntoIterator<Item = EncodedRate> + Clone,
+    ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
+    ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>   
 {
     fn to_frame(
         self,
-    ) -> IEEE80211Frame<'a, RateIterator, ExtendedRateIterator, TLVIterator, ActionFramePayload, DataFramePayload>;
+    ) -> IEEE80211Frame<'a, RateIterator, ExtendedRateIterator, ElementIterator, ActionFramePayload, DataFramePayload>;
 }

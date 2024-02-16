@@ -10,7 +10,7 @@ use crate::{
     common::TU,
     elements::{
         rates::{EncodedRate, RatesReadIterator},
-        IEEE80211Element, TLVReadIterator,
+        ElementReadIterator, IEEE80211Element,
     },
 };
 
@@ -37,17 +37,21 @@ bitfield! {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 /// This is the body of a beacon frame.
 /// The generic parameter can be any type, which implements [IntoIterator<Item = IEEE80211TLV<'_>>](IntoIterator).
-/// When reading this struct the generic parameter is set to [TLVReadIterator].
+/// When reading this struct the generic parameter is set to [ElementReadIterator].
 pub struct BeaconFrameBody<
     'a,
     RateIterator = RatesReadIterator<'a>,
     ExtendedRateIterator = RatesReadIterator<'a>,
-    TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + 'a = TLVReadIterator<'a>,
-> {
+    ElementIterator = ElementReadIterator<'a>,
+> where
+    RateIterator: IntoIterator<Item = EncodedRate> + Clone,
+    ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
+    ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>,
+{
     pub timestamp: u64,
     pub beacon_interval: u16,
     pub capabilities_info: CapabilitiesInformation,
-    pub tagged_payload: TLVIterator,
+    pub tagged_payload: ElementIterator,
 }
 impl<'a> BeaconFrameBody<'a> {
     pub const fn length_in_bytes(&'a self) -> usize {
@@ -110,7 +114,7 @@ impl<'a> TryFromCtx<'a> for BeaconFrameBody<'a> {
         );
         let tagged_payload_len = from.len() - offset;
         let tagged_payload =
-            TLVReadIterator::new(from.gread_with(&mut offset, tagged_payload_len)?);
+            ElementReadIterator::new(from.gread_with(&mut offset, tagged_payload_len)?);
         Ok((
             Self {
                 timestamp,
@@ -147,13 +151,13 @@ impl<
         Ok(offset)
     }
 }
-impl<
-        'a,
-        RateIterator,
-        ExtendedRateIterator,
-        TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + 'a,
-    > ToManagementFrameBody<'a, RateIterator, ExtendedRateIterator, TLVIterator>
+impl<'a, RateIterator, ExtendedRateIterator, TLVIterator>
+    ToManagementFrameBody<'a, RateIterator, ExtendedRateIterator, TLVIterator>
     for BeaconFrameBody<'a, RateIterator, ExtendedRateIterator, TLVIterator>
+where
+    RateIterator: IntoIterator<Item = EncodedRate> + Clone,
+    ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
+    TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>,
 {
     fn to_management_frame_body(
         self,

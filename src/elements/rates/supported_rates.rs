@@ -6,7 +6,7 @@ use scroll::{
 use super::{EncodedRate, RatesReadIterator};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-/// TLV containing the rates supported by the AP.
+/// An element containing the rates supported by the AP.
 ///
 /// The `supported_rates` field is an [Iterator] over [EncodedRate]. This allows passing rates, agnostic of the collection.
 /// When deserializing this struct, the Iterator is [RatesReadIterator].
