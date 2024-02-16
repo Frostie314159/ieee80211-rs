@@ -13,7 +13,7 @@ use crate::{
     },
 };
 
-use self::{action::ActionFrameBody, beacon::BeaconFrameBody};
+use self::{action::ActionFrameBody, beacon::BeaconFrameBody, probe_request::ProbeRequestBody};
 
 /// This module contains structs related to action frames
 pub mod action;
@@ -36,7 +36,8 @@ pub enum ManagementFrameBody<
 {
     Action(ActionFrameBody<ActionFramePayload>),
     ActionNoAck(ActionFrameBody<ActionFramePayload>),
-    Beacon(BeaconFrameBody<'a, RateIterator, ExtendedRateIterator, TLVIterator>),
+    ProbeRequest(ProbeRequestBody<'a, RateIterator, ExtendedRateIterator, ElementIterator>),
+    Beacon(BeaconFrameBody<'a, RateIterator, ExtendedRateIterator, ElementIterator>),
     ATIM,
     Unknown {
         sub_type: ManagementFrameSubtype,
@@ -56,6 +57,7 @@ where
         match self {
             Self::Action(_) => ManagementFrameSubtype::Action,
             Self::ActionNoAck(_) => ManagementFrameSubtype::ActionNoAck,
+            Self::ProbeRequest(_) => ManagementFrameSubtype::ProbeRequest,
             Self::Beacon(_) => ManagementFrameSubtype::Beacon,
             Self::ATIM => ManagementFrameSubtype::ATIM,
             Self::Unknown { sub_type, .. } => *sub_type,
@@ -67,6 +69,7 @@ impl ManagementFrameBody<'_> {
     pub const fn length_in_bytes(&self) -> usize {
         match self {
             Self::Action(action) | Self::ActionNoAck(action) => action.length_in_bytes(),
+            Self::ProbeRequest(probe_request) => probe_request.length_in_bytes(),
             Self::Beacon(beacon) => beacon.length_in_bytes(),
             Self::ATIM => 0,
             Self::Unknown { body, .. } => body.len(),
@@ -92,6 +95,7 @@ impl<
         match self {
             Self::Action(action) | Self::ActionNoAck(action) => action.measure_with(ctx),
             Self::Beacon(beacon) => beacon.measure_with(ctx),
+            Self::ProbeRequest(probe_request) => probe_request.measure_with(ctx),
             Self::ATIM => 0,
             Self::Unknown { body, .. } => body.len(),
         }
@@ -108,6 +112,9 @@ impl<'a> TryFromCtx<'a, ManagementFrameSubtype> for ManagementFrameBody<'a> {
             match sub_type {
                 ManagementFrameSubtype::Action => Self::Action(from.gread(&mut offset)?),
                 ManagementFrameSubtype::ActionNoAck => Self::ActionNoAck(from.gread(&mut offset)?),
+                ManagementFrameSubtype::ProbeRequest => {
+                    Self::ProbeRequest(from.gread(&mut offset)?)
+                }
                 ManagementFrameSubtype::Beacon => Self::Beacon(from.gread(&mut offset)?),
                 ManagementFrameSubtype::ATIM => Self::ATIM,
                 _ => {
@@ -142,6 +149,7 @@ impl<
             Self::Action(action_frame_body) | Self::ActionNoAck(action_frame_body) => {
                 buf.pwrite(action_frame_body, 0)
             }
+            Self::ProbeRequest(probe_request) => buf.pwrite(probe_request, 0),
             Self::Beacon(beacon_frame_body) => buf.pwrite(beacon_frame_body, 0),
             Self::ATIM => Ok(0),
             Self::Unknown { body, .. } => buf.pwrite(body, 0),
