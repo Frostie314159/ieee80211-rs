@@ -9,6 +9,7 @@ use crate::common::read_iterator::ReadIterator;
 use self::{
     ht_cap_oper::{HTCapabilitiesElement, HTOperationElement},
     rates::{EncodedRate, ExtendedSupportedRatesElement, RatesReadIterator, SupportedRatesElement},
+    vendor_specific_element::VendorSpecificElement,
 };
 /// This module contains the elements, which are found in the body of some frames.
 /// If an element only consists of one struct, like the [ssid::SSIDTLV], they are re-exported, otherwise they get their own module.
@@ -22,6 +23,7 @@ pub mod ht_cap_oper;
 pub use bss_load::*;
 mod ibss_parameter_set;
 pub use ibss_parameter_set::IBSSParameterSetElement;
+mod vendor_specific_element;
 
 /// A raw TLV.
 pub type RawIEEE80211Element<'a> = RawTLV<'a, u8, u8>;
@@ -156,7 +158,8 @@ elements! {
         BSSLoad: 0x0b => BSSLoadElement,
         HTCapabilities: 0x2d => HTCapabilitiesElement,
         ExtendedSupportedRates: 0x32 => ExtendedSupportedRatesElement<ExtendedRateIterator>,
-        HTOperation: 0x3d => HTOperationElement
+        HTOperation: 0x3d => HTOperationElement,
+        VendorSpecific: 0xdd => VendorSpecificElement<'a>
     }
 }
 /// This is an iterator over the elements contained in the body of a frame.
