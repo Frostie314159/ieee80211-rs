@@ -1,4 +1,5 @@
-use macro_bits::{bit, bitfield, serializable_enum};
+use bitfield_struct::bitfield;
+use macro_bits::serializable_enum;
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
     Pread, Pwrite,
@@ -44,31 +45,41 @@ serializable_enum! {
     }
 }
 
-bitfield! {
-    #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-    /// Information about the operation of an HT-STA.
-    pub struct HTOperationInformation: u64 {
-        /// Offset of the secondary channel from the primary channel.
-        pub secondary_channel_offset: SecondaryChannelOffset => bit!(0, 1),
-        /// Indicates if channel widths other than 20MHz are allowed.
-        pub any_channel_width: bool => bit!(2),
-        /// Indicates wether the use of reduced interframe space is permitted within the BSS.
-        pub rifs_permitted: bool => bit!(3),
-        /// Indicates the protection requirements of HT transmissions.
-        pub ht_protection_mode: HTProtectionMode => bit!(8, 9),
-        /// Indicates if any HT-STAs, which are not HT-greenfield capable, are associated with the BSS.
-        pub nongreenfield_ht_sta_present: bool => bit!(10),
-        /// Indicates if the use of protection for non-HT STAs by overlapping BSS is determined to be desirable.
-        pub obss_non_ht_sta_present: bool => bit!(12),
-        /// Defines the channel center frequency for a 160 or 80+80MHz BSS bandwidth with NSS support less than Max VHT NSS.
-        pub channel_center_frequency_segment_2: u8 => bit!(13, 14, 15, 16, 17, 18, 19, 20),
-        /// Indicates wether the AP transmits an STBC beacon.
-        pub dual_beacon: bool => bit!(30),
-        /// Indicates if dual CTS protection is required.
-        pub dual_cts_protection: bool => bit!(31),
-        /// Indicates wether the beacon containing this element is a primary or an STBC beacon.
-        pub stbc_beacon: bool => bit!(32)
-    }
+#[bitfield(u64)]
+#[derive(PartialEq, Eq, Hash)]
+/// Information about the operation of an HT-STA.
+pub struct HTOperationInformation {
+    #[bits(2)]
+    /// Offset of the secondary channel from the primary channel.
+    pub secondary_channel_offset: SecondaryChannelOffset,
+    /// Indicates if channel widths other than 20MHz are allowed.
+    pub any_channel_width: bool,
+    /// Indicates wether the use of reduced interframe space is permitted within the BSS.
+    pub rifs_permitted: bool,
+    #[bits(4)]
+    __: u8,
+    #[bits(2)]
+    /// Indicates the protection requirements of HT transmissions.
+    pub ht_protection_mode: HTProtectionMode,
+    /// Indicates if any HT-STAs, which are not HT-greenfield capable, are associated with the BSS.
+    pub nongreenfield_ht_sta_present: bool,
+    __: bool,
+    /// Indicates if the use of protection for non-HT STAs by overlapping BSS is determined to be desirable.
+    pub obss_non_ht_sta_present: bool,
+    #[bits(8)]
+    /// Defines the channel center frequency for a 160 or 80+80MHz BSS bandwidth with NSS support less than Max VHT NSS.
+    pub channel_center_frequency_segment_2: u8,
+    #[bits(9)]
+    __: u16,
+    /// Indicates wether the AP transmits an STBC beacon.
+    pub dual_beacon: bool,
+    /// Indicates if dual CTS protection is required.
+    pub dual_cts_protection: bool,
+    /// Indicates wether the beacon containing this element is a primary or an STBC beacon.
+    pub stbc_beacon: bool,
+
+    #[bits(31)]
+    __: u64
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
@@ -94,9 +105,8 @@ impl TryFromCtx<'_> for HTOperationElement {
         let primary_channel = from.gread(&mut offset)?;
         let mut ht_operation_information = [0u8; 8];
         ht_operation_information[..5].copy_from_slice(from.gread_with(&mut offset, 5)?);
-        let ht_operation_information = HTOperationInformation::from_representation(
-            u64::from_le_bytes(ht_operation_information),
-        );
+        let ht_operation_information =
+            HTOperationInformation::from_bits(u64::from_le_bytes(ht_operation_information));
         let basic_ht_mcs_set = from.gread(&mut offset)?;
 
         Ok((
@@ -116,10 +126,7 @@ impl TryIntoCtx for HTOperationElement {
 
         buf.gwrite(self.primary_channel, &mut offset)?;
         buf.gwrite(
-            &self
-                .ht_operation_information
-                .to_representation()
-                .to_be_bytes()[..5],
+            &self.ht_operation_information.into_bits().to_be_bytes()[..5],
             &mut offset,
         )?;
         buf.gwrite(self.basic_ht_mcs_set, &mut offset)?;

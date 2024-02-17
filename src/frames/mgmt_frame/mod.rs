@@ -26,11 +26,10 @@ pub struct ManagementFrame<
     ExtendedRateIterator = RatesReadIterator<'a>,
     ElementIterator = ElementReadIterator<'a>,
     ActionFramePayload = &'a [u8],
->
-where
+> where
     RateIterator: IntoIterator<Item = EncodedRate> + Clone,
     ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
-    ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>   
+    ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>,
 {
     pub header: ManagementFrameHeader,
     pub body: ManagementFrameBody<
@@ -41,24 +40,17 @@ where
         ActionFramePayload,
     >,
 }
-impl<
-        'a,
-        RateIterator,
-        ExtendedRateIterator,
-        ElementIterator,
-        ActionFramePayload,
-    > ManagementFrame<'a, RateIterator, ExtendedRateIterator, ElementIterator, ActionFramePayload>
-    where
-        RateIterator: IntoIterator<Item = EncodedRate> + Clone,
-        ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
-        ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>   
+impl<'a, RateIterator, ExtendedRateIterator, ElementIterator, ActionFramePayload>
+    ManagementFrame<'a, RateIterator, ExtendedRateIterator, ElementIterator, ActionFramePayload>
+where
+    RateIterator: IntoIterator<Item = EncodedRate> + Clone,
+    ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
+    ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>,
 {
     pub const fn get_fcf(&self) -> FrameControlField {
-        FrameControlField {
-            version: 0,
-            frame_type: FrameType::Management(self.body.get_subtype()),
-            flags: self.header.fcf_flags,
-        }
+        FrameControlField::new()
+            .with_frame_type(FrameType::Management(self.body.get_subtype()))
+            .with_flags(self.header.fcf_flags)
     }
 }
 impl ManagementFrame<'_> {
@@ -111,13 +103,7 @@ impl<
         Ok(offset)
     }
 }
-impl<
-        'a,
-        RateIterator,
-        ExtendedRateIterator,
-        ElementIterator,
-        ActionFramePayload,
-    >
+impl<'a, RateIterator, ExtendedRateIterator, ElementIterator, ActionFramePayload>
     ToFrame<
         'a,
         RateIterator,
@@ -127,11 +113,12 @@ impl<
         DataFrameReadPayload<'a>,
     >
     for ManagementFrame<'a, RateIterator, ExtendedRateIterator, ElementIterator, ActionFramePayload>
-    where
-        RateIterator: IntoIterator<Item = EncodedRate> + Clone + 'a,
-        ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone + 'a,
-        ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + 'a,
-        ActionFramePayload: 'a
+where
+    RateIterator: IntoIterator<Item = EncodedRate> + Clone + 'a,
+    ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone + 'a,
+    ElementIterator:
+        IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + 'a,
+    ActionFramePayload: 'a,
 {
     fn to_frame(
         self,

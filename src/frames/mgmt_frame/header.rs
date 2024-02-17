@@ -4,7 +4,7 @@ use scroll::{
     Endian, Pread, Pwrite,
 };
 
-use crate::common::{FCFFlags, FragSeqInfo};
+use crate::common::{FCFFlags, SequenceControl};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// A management frame header.
@@ -15,7 +15,7 @@ pub struct ManagementFrameHeader {
     pub receiver_address: MACAddress,
     pub transmitter_address: MACAddress,
     pub bssid: MACAddress,
-    pub frag_seq_info: FragSeqInfo,
+    pub frag_seq_info: SequenceControl,
     pub ht_control: Option<[u8; 4]>,
 }
 impl ManagementFrameHeader {
@@ -37,8 +37,8 @@ impl TryFromCtx<'_, FCFFlags> for ManagementFrameHeader {
         let transmitter_address = from.gread(&mut offset)?;
         let bssid = from.gread(&mut offset)?;
         let frag_seq_info =
-            FragSeqInfo::from_representation(from.gread_with(&mut offset, Endian::Little)?);
-        let ht_control = if fcf_flags.order {
+            SequenceControl::from_bits(from.gread_with(&mut offset, Endian::Little)?);
+        let ht_control = if fcf_flags.order() {
             Some(from.gread(&mut offset)?)
         } else {
             None
@@ -66,11 +66,7 @@ impl TryIntoCtx for ManagementFrameHeader {
         buf.gwrite(self.receiver_address, &mut offset)?;
         buf.gwrite(self.transmitter_address, &mut offset)?;
         buf.gwrite(self.bssid, &mut offset)?;
-        buf.gwrite_with(
-            self.frag_seq_info.to_representation(),
-            &mut offset,
-            Endian::Little,
-        )?;
+        buf.gwrite_with(self.frag_seq_info.into_bits(), &mut offset, Endian::Little)?;
         if let Some(ht_control) = self.ht_control {
             buf.gwrite(ht_control, &mut offset)?;
         }

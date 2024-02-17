@@ -55,9 +55,8 @@ impl TryFromCtx<'_> for SupportedMCSSet {
         let supported_rx_mcs_set = from.gread(&mut offset)?;
         let mut supported_rx_mcs_set_flags = [0u8; 8];
         supported_rx_mcs_set_flags[..6].copy_from_slice(from.gread_with(&mut offset, 6)?);
-        let supported_rx_mcs_set_flags = SupportedMCSSetFlags::from_representation(
-            u64::from_le_bytes(supported_rx_mcs_set_flags),
-        );
+        let supported_rx_mcs_set_flags =
+            SupportedMCSSetFlags::from_bits(u64::from_le_bytes(supported_rx_mcs_set_flags));
 
         Ok((
             Self {
@@ -75,10 +74,7 @@ impl TryIntoCtx for SupportedMCSSet {
 
         buf.gwrite(self.supported_rx_mcs_set, &mut offset)?;
         buf.gwrite(
-            &self
-                .supported_rx_mcs_set_flags
-                .to_representation()
-                .to_le_bytes()[..6],
+            &self.supported_rx_mcs_set_flags.into_bits().to_le_bytes()[..6],
             &mut offset,
         )?;
 

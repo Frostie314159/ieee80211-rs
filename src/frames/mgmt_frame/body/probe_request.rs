@@ -38,7 +38,8 @@ impl<'a, RateIterator, ExtendedRateIterator, ElementIterator>
 where
     RateIterator: IntoIterator<Item = EncodedRate> + Clone,
     ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
-    ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone,
+    ElementIterator:
+        IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone,
 {
     /// Extract the SSID from the tlvs.
     pub fn ssid(&self) -> Option<&str> {
@@ -57,7 +58,8 @@ impl<'a, RateIterator, ExtendedRateIterator, ElementIterator> MeasureWith<()>
 where
     RateIterator: IntoIterator<Item = EncodedRate> + Clone,
     ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
-    ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone,
+    ElementIterator:
+        IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone,
 {
     fn measure_with(&self, ctx: &()) -> usize {
         self.tagged_payload

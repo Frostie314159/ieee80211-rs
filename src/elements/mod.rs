@@ -57,7 +57,7 @@ macro_rules! elements {
         $(
             #[$meta_var]
         )*
-        pub enum $enum_name <$lt, $($generic = $default),*> 
+        pub enum $enum_name <$lt, $($generic = $default),*>
         where
             $(
                 $generic: $($trait_bound + )*

@@ -62,7 +62,7 @@ impl<I: IntoIterator<Item = EncodedRate> + Clone> TryIntoCtx for SupportedRatesE
 
         // No more than 8 data rates.
         for rate in self.supported_rates.into_iter().take(8) {
-            buf.gwrite(rate.to_representation(), &mut offset)?;
+            buf.gwrite(rate.0, &mut offset)?;
         }
 
         Ok(offset)

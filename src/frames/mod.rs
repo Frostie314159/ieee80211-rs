@@ -32,11 +32,10 @@ pub enum IEEE80211Frame<
     ElementIterator = ElementReadIterator<'a>,
     ActionFramePayload = &'a [u8],
     DataFramePayload = DataFrameReadPayload<'a>,
->
-where
+> where
     RateIterator: IntoIterator<Item = EncodedRate> + Clone,
     ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
-    ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>   
+    ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>,
 {
     Management(
         ManagementFrame<
@@ -65,10 +64,10 @@ impl<
         ActionFramePayload,
         DataFramePayload,
     >
-    where
-        RateIterator: IntoIterator<Item = EncodedRate> + Clone,
-        ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
-        ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>   
+where
+    RateIterator: IntoIterator<Item = EncodedRate> + Clone,
+    ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
+    ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>,
 {
     /// This returns the frame control field.
     pub const fn get_fcf(&self) -> FrameControlField {
@@ -122,10 +121,9 @@ impl<'a> TryFromCtx<'a, bool> for IEEE80211Frame<'a> {
     fn try_from_ctx(from: &'a [u8], fcs_at_end: bool) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
 
-        let fcf =
-            FrameControlField::from_representation(from.gread_with(&mut offset, Endian::Little)?);
+        let fcf = FrameControlField::from_bits(from.gread_with(&mut offset, Endian::Little)?);
 
-        if fcf.flags.protected {
+        if fcf.flags().protected() {
             return Err(scroll::Error::BadInput {
                 size: offset,
                 msg: "Protected frames aren't supported yet.",
@@ -138,12 +136,12 @@ impl<'a> TryFromCtx<'a, bool> for IEEE80211Frame<'a> {
         } else {
             from
         };
-        let frame = match fcf.frame_type {
+        let frame = match fcf.frame_type() {
             FrameType::Management(subtype) => {
-                Self::Management(body_slice.gread_with(&mut offset, (subtype, fcf.flags))?)
+                Self::Management(body_slice.gread_with(&mut offset, (subtype, fcf.flags()))?)
             }
             FrameType::Data(subtype) => {
-                Self::Data(body_slice.gread_with(&mut offset, (subtype, fcf.flags))?)
+                Self::Data(body_slice.gread_with(&mut offset, (subtype, fcf.flags()))?)
             }
             _ => {
                 return Err(scroll::Error::BadInput {
@@ -186,7 +184,7 @@ impl<
     fn try_into_ctx(self, buf: &mut [u8], fcs_at_end: bool) -> Result<usize, Self::Error> {
         let mut offset = 0;
 
-        buf.gwrite(self.get_fcf().to_representation(), &mut offset)?;
+        buf.gwrite(self.get_fcf().into_bits(), &mut offset)?;
 
         match self {
             Self::Management(management_frame) => buf.gwrite(management_frame, &mut offset)?,
@@ -203,18 +201,22 @@ pub trait ToFrame<
     'a,
     RateIterator = Empty<EncodedRate>,
     ExtendedRateIterator = Empty<EncodedRate>,
-    ElementIterator = Empty<
-        IEEE80211Element<'a, RateIterator, ExtendedRateIterator>,
-    >,
+    ElementIterator = Empty<IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>,
     ActionFramePayload = &'a [u8],
     DataFramePayload = DataFrameReadPayload<'a>,
->: 'a
-where
+>: 'a where
     RateIterator: IntoIterator<Item = EncodedRate> + Clone,
     ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
-    ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>   
+    ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>,
 {
     fn to_frame(
         self,
-    ) -> IEEE80211Frame<'a, RateIterator, ExtendedRateIterator, ElementIterator, ActionFramePayload, DataFramePayload>;
+    ) -> IEEE80211Frame<
+        'a,
+        RateIterator,
+        ExtendedRateIterator,
+        ElementIterator,
+        ActionFramePayload,
+        DataFramePayload,
+    >;
 }

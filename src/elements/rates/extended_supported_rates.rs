@@ -60,7 +60,7 @@ impl<I: IntoIterator<Item = EncodedRate>> TryIntoCtx for ExtendedSupportedRatesE
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         let mut offset = 0;
         for supported_rate in self.supported_rates {
-            buf.gwrite(supported_rate.to_representation(), &mut offset)?;
+            buf.gwrite(supported_rate.0, &mut offset)?;
         }
         Ok(offset)
     }

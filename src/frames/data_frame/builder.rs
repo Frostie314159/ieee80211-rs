@@ -3,7 +3,7 @@ use mac_parser::MACAddress;
 use scroll::ctx::TryIntoCtx;
 
 use crate::{
-    common::{subtypes::DataFrameSubtype, FCFFlags, FragSeqInfo},
+    common::{subtypes::DataFrameSubtype, FCFFlags, SequenceControl},
     type_state::*,
 };
 
@@ -95,16 +95,7 @@ impl<'a> DataFrameBuilderInner<'a, (), (), (), (), (), (), ()> {
             address_3: (),
             address_4: None,
             payload: None,
-            fcf_flags: FCFFlags {
-                to_ds: false,
-                from_ds: false,
-                more_fragments: false,
-                retry: false,
-                pwr_mgt: false,
-                more_data: false,
-                protected: false,
-                order: false,
-            },
+            fcf_flags: FCFFlags::new(),
             _phantom: PhantomData,
         }
     }
@@ -125,27 +116,27 @@ impl<'a> DataFrameBuilderInner<'a, (), (), (), (), (), (), ()> {
         self.change_type_state()
     }
     pub const fn more_fragments(mut self) -> Self {
-        self.fcf_flags.more_fragments = true;
+        self.fcf_flags = self.fcf_flags.with_more_fragments(true);
         self
     }
     pub const fn retry(mut self) -> Self {
-        self.fcf_flags.retry = true;
+        self.fcf_flags = self.fcf_flags.with_retry(true);
         self
     }
     pub const fn power_management(mut self) -> Self {
-        self.fcf_flags.pwr_mgt = true;
+        self.fcf_flags = self.fcf_flags.with_pwr_mgmt(true);
         self
     }
     pub const fn more_data(mut self) -> Self {
-        self.fcf_flags.more_data = true;
+        self.fcf_flags = self.fcf_flags.with_more_data(true);
         self
     }
     pub const fn protected(mut self) -> Self {
-        self.fcf_flags.protected = true;
+        self.fcf_flags = self.fcf_flags.with_protected(true);
         self
     }
     pub const fn order(mut self) -> Self {
-        self.fcf_flags.order = true;
+        self.fcf_flags = self.fcf_flags.with_order(true);
         self
     }
 }
@@ -689,17 +680,14 @@ impl<'a, DS: DSField, Category: DataFrameCategory, PayloadType: Copy>
     #[inline]
     pub const fn build(self) -> DataFrame<'a, PayloadType> {
         let header = DataFrameHeader {
-            subtype: DataFrameSubtype::from_representation(Category::UPPER_TWO_BITS << 2),
+            subtype: DataFrameSubtype::from_bits(Category::UPPER_TWO_BITS << 2),
             address_1: self.address_1,
             address_2: self.address_2,
             address_3: self.address_3,
             address_4: self.address_4,
             fcf_flags: self.fcf_flags,
             duration: 0,
-            frag_seq_info: FragSeqInfo {
-                fragment_number: 0,
-                sequence_number: 0,
-            },
+            frag_seq_info: SequenceControl::new(),
             qos: None,
             ht_control: None,
         };

@@ -109,9 +109,8 @@ impl<'a> TryFromCtx<'a> for BeaconFrameBody<'a> {
 
         let timestamp = from.gread_with(&mut offset, Endian::Little)?;
         let beacon_interval = from.gread_with(&mut offset, Endian::Little)?;
-        let capabilities_info = CapabilitiesInformation::from_representation(
-            from.gread_with(&mut offset, Endian::Little)?,
-        );
+        let capabilities_info =
+            CapabilitiesInformation::from_bits(from.gread_with(&mut offset, Endian::Little)?);
         let tagged_payload_len = from.len() - offset;
         let tagged_payload =
             ElementReadIterator::new(from.gread_with(&mut offset, tagged_payload_len)?);
@@ -140,7 +139,7 @@ impl<
         buf.gwrite_with(self.timestamp, &mut offset, Endian::Little)?;
         buf.gwrite_with(self.beacon_interval, &mut offset, Endian::Little)?;
         buf.gwrite_with(
-            self.capabilities_info.to_representation(),
+            self.capabilities_info.into_bits(),
             &mut offset,
             Endian::Little,
         )?;

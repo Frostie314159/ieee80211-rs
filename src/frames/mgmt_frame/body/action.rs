@@ -45,7 +45,7 @@ impl<'a> TryFromCtx<'a> for ActionFrameBody<&'a [u8]> {
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
 
-        let category_code = CategoryCode::from_representation(from.gread(&mut offset)?);
+        let category_code = CategoryCode::from_bits(from.gread(&mut offset)?);
         Ok((
             match category_code {
                 CategoryCode::VendorSpecific => {
@@ -56,7 +56,7 @@ impl<'a> TryFromCtx<'a> for ActionFrameBody<&'a [u8]> {
                 }
                 _ => {
                     return Err(scroll::Error::BadInput {
-                        size: category_code.to_representation() as usize,
+                        size: category_code.into_bits() as usize,
                         msg: "Category code not yet implented.",
                     })
                 }
@@ -71,10 +71,7 @@ impl<P: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for ActionFrameBody<P> {
         let mut offset = 0;
         match self {
             Self::VendorSpecific { oui, payload } => {
-                data.gwrite(
-                    CategoryCode::VendorSpecific.to_representation(),
-                    &mut offset,
-                )?;
+                data.gwrite(CategoryCode::VendorSpecific.into_bits(), &mut offset)?;
                 data.gwrite(oui, &mut offset)?;
                 data.gwrite(payload, &mut offset)?;
             }

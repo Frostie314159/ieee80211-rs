@@ -6,7 +6,7 @@ use scroll::{
 };
 
 use crate::common::{
-    subtypes::DataFrameSubtype, FCFFlags, FragSeqInfo, FrameControlField, FrameType,
+    subtypes::DataFrameSubtype, FCFFlags, FrameControlField, FrameType, SequenceControl,
 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
@@ -30,7 +30,7 @@ pub struct DataFrameHeader {
     /// Third address.
     pub address_3: MACAddress,
     /// Sequence control
-    pub frag_seq_info: FragSeqInfo,
+    pub frag_seq_info: SequenceControl,
     /// Potentially fourth address.
     pub address_4: Option<MACAddress>,
     pub qos: Option<[u8; 2]>,
@@ -39,11 +39,9 @@ pub struct DataFrameHeader {
 impl DataFrameHeader {
     /// Generate the [FrameControlField] from the header.
     pub const fn get_fcf(&self) -> FrameControlField {
-        FrameControlField {
-            version: 0,
-            frame_type: FrameType::Data(self.subtype),
-            flags: self.fcf_flags,
-        }
+        FrameControlField::new()
+            .with_frame_type(FrameType::Data(self.subtype))
+            .with_flags(self.fcf_flags)
     }
     /// The total length in bytes of the header.
     ///
@@ -145,7 +143,7 @@ impl DataFrameHeader {
     /// No | * | * | One
     /// \* | * | No | Three
     pub const fn destination_address(&self) -> Option<&MACAddress> {
-        if !self.fcf_flags.to_ds {
+        if !self.fcf_flags.to_ds() {
             Some(&self.address_1)
         } else if !self.is_amsdu() {
             Some(&self.address_3)
@@ -157,7 +155,7 @@ impl DataFrameHeader {
     ///
     /// The mapping is the same as [`Self::destination_address()`].
     pub fn destination_address_mut(&mut self) -> Option<&mut MACAddress> {
-        if !self.fcf_flags.to_ds {
+        if !self.fcf_flags.to_ds() {
             Some(&mut self.address_1)
         } else if !self.is_amsdu() {
             Some(&mut self.address_3)
@@ -175,11 +173,11 @@ impl DataFrameHeader {
     /// No | Yes | No | Three
     /// Yes | Yes | No | Four
     pub const fn source_address(&self) -> Option<&MACAddress> {
-        if !self.fcf_flags.from_ds {
+        if !self.fcf_flags.from_ds() {
             Some(&self.address_2)
-        } else if !self.fcf_flags.to_ds && self.fcf_flags.from_ds && !self.is_amsdu() {
+        } else if !self.fcf_flags.to_ds() && self.fcf_flags.from_ds() && !self.is_amsdu() {
             Some(&self.address_3)
-        } else if self.fcf_flags.to_ds && self.fcf_flags.from_ds && !self.is_amsdu() {
+        } else if self.fcf_flags.to_ds() && self.fcf_flags.from_ds() && !self.is_amsdu() {
             self.address_4.as_ref()
         } else {
             None
@@ -189,11 +187,11 @@ impl DataFrameHeader {
     ///
     /// The mapping is the same as [`Self::source_address()`].
     pub fn source_address_mut(&mut self) -> Option<&mut MACAddress> {
-        if !self.fcf_flags.from_ds {
+        if !self.fcf_flags.from_ds() {
             Some(&mut self.address_2)
-        } else if !self.fcf_flags.to_ds && self.fcf_flags.from_ds && !self.is_amsdu() {
+        } else if !self.fcf_flags.to_ds() && self.fcf_flags.from_ds() && !self.is_amsdu() {
             Some(&mut self.address_3)
-        } else if self.fcf_flags.to_ds && self.fcf_flags.from_ds && !self.is_amsdu() {
+        } else if self.fcf_flags.to_ds() && self.fcf_flags.from_ds() && !self.is_amsdu() {
             self.address_4.as_mut()
         } else {
             None
@@ -209,11 +207,11 @@ impl DataFrameHeader {
     /// \* | Yes | * | Two
     /// Yes | * | * | One
     pub const fn bssid(&self) -> Option<&MACAddress> {
-        if !self.fcf_flags.to_ds && !self.fcf_flags.from_ds {
+        if !self.fcf_flags.to_ds() && !self.fcf_flags.from_ds() {
             Some(&self.address_3)
-        } else if self.fcf_flags.from_ds {
+        } else if self.fcf_flags.from_ds() {
             Some(&self.address_2)
-        } else if self.fcf_flags.to_ds {
+        } else if self.fcf_flags.to_ds() {
             Some(&self.address_1)
         } else {
             None
@@ -223,11 +221,11 @@ impl DataFrameHeader {
     ///
     /// The mapping is the same as [`Self::bssid()`].
     pub fn bssid_mut(&mut self) -> Option<&mut MACAddress> {
-        if (!self.fcf_flags.to_ds && !self.fcf_flags.from_ds) || self.is_amsdu() {
+        if (!self.fcf_flags.to_ds() && !self.fcf_flags.from_ds()) || self.is_amsdu() {
             Some(&mut self.address_3)
-        } else if self.fcf_flags.from_ds {
+        } else if self.fcf_flags.from_ds() {
             Some(&mut self.address_2)
-        } else if self.fcf_flags.to_ds {
+        } else if self.fcf_flags.to_ds() {
             Some(&mut self.address_1)
         } else {
             None
@@ -251,8 +249,8 @@ impl TryFromCtx<'_, (DataFrameSubtype, FCFFlags)> for DataFrameHeader {
         let address_1 = from.gread(&mut offset)?;
         let address_2 = from.gread(&mut offset)?;
         let address_3 = from.gread(&mut offset)?;
-        let frag_seq_info = FragSeqInfo::from_representation(from.gread(&mut offset)?);
-        let address_4 = if fcf_flags.to_ds && fcf_flags.from_ds {
+        let frag_seq_info = SequenceControl::from_bits(from.gread(&mut offset)?);
+        let address_4 = if fcf_flags.to_ds() && fcf_flags.from_ds() {
             Some(from.gread(&mut offset)?)
         } else {
             None
@@ -262,7 +260,7 @@ impl TryFromCtx<'_, (DataFrameSubtype, FCFFlags)> for DataFrameHeader {
         } else {
             None
         };
-        let ht_control = if fcf_flags.order {
+        let ht_control = if fcf_flags.order() {
             Some(from.gread(&mut offset)?)
         } else {
             None
@@ -294,11 +292,7 @@ impl TryIntoCtx for DataFrameHeader {
         buf.gwrite(self.address_1, &mut offset)?;
         buf.gwrite(self.address_2, &mut offset)?;
         buf.gwrite(self.address_3, &mut offset)?;
-        buf.gwrite_with(
-            self.frag_seq_info.to_representation(),
-            &mut offset,
-            Endian::Little,
-        )?;
+        buf.gwrite_with(self.frag_seq_info.into_bits(), &mut offset, Endian::Little)?;
         if let Some(address_4) = self.address_4 {
             buf.gwrite(address_4, &mut offset)?;
         }
