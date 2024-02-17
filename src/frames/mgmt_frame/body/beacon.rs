@@ -90,7 +90,7 @@ impl<
         'a,
         RateIterator: IntoIterator<Item = EncodedRate> + Clone,
         ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
-        TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone + 'a,
+        TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone,
     > MeasureWith<()> for BeaconFrameBody<'a, RateIterator, ExtendedRateIterator, TLVIterator>
 {
     fn measure_with(&self, ctx: &()) -> usize {
@@ -150,17 +150,18 @@ impl<
         Ok(offset)
     }
 }
-impl<'a, RateIterator, ExtendedRateIterator, TLVIterator>
-    ToManagementFrameBody<'a, RateIterator, ExtendedRateIterator, TLVIterator>
-    for BeaconFrameBody<'a, RateIterator, ExtendedRateIterator, TLVIterator>
+impl<'a, RateIterator, ExtendedRateIterator, ElementIterator>
+    ToManagementFrameBody<'a, RateIterator, ExtendedRateIterator, ElementIterator>
+    for BeaconFrameBody<'a, RateIterator, ExtendedRateIterator, ElementIterator>
 where
     RateIterator: IntoIterator<Item = EncodedRate> + Clone,
     ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
-    TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>,
+    ElementIterator:
+        IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone,
 {
     fn to_management_frame_body(
         self,
-    ) -> ManagementFrameBody<'a, RateIterator, ExtendedRateIterator, TLVIterator> {
+    ) -> ManagementFrameBody<'a, RateIterator, ExtendedRateIterator, ElementIterator> {
         ManagementFrameBody::Beacon(self)
     }
 }

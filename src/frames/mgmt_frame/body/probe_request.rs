@@ -106,7 +106,8 @@ impl<'a, RateIterator, ExtendedRateIterator, ElementIterator>
 where
     RateIterator: IntoIterator<Item = EncodedRate> + Clone,
     ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
-    ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>,
+    ElementIterator:
+        IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone,
 {
     fn to_management_frame_body(
         self,

@@ -3,7 +3,9 @@ use core::time::Duration;
 use bitfield_struct::bitfield;
 use macro_bits::bit;
 
-use self::subtypes::{ControlFrameSubtype, DataFrameSubtype, ManagementFrameSubtype};
+use crate::mgmt_frame::body::ManagementFrameSubtype;
+
+use self::subtypes::{ControlFrameSubtype, DataFrameSubtype};
 
 /// This modules contains the enum for the individual subtypes.
 pub mod subtypes;

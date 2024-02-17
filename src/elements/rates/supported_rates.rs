@@ -76,15 +76,15 @@ impl<I: IntoIterator<Item = EncodedRate> + Clone> TryIntoCtx for SupportedRatesE
 /// use ieee80211::{rate, elements::rates::EncodedRate};
 ///
 /// let normal_rate = rate!(1.5); // 1.5Mbit/s
-/// assert_eq!(normal_rate, EncodedRate {
-///     rate: 3,
-///     is_b: false
-/// });
+/// assert_eq!(normal_rate, EncodedRate::new()
+///     .with_rate(3)
+///     .with_is_b(false)
+/// );
 /// let b_rate = rate!(1.5 B); // 1.5Mbit/s IEEE 802.11b
-/// assert_eq!(b_rate, EncodedRate {
-///     rate: 3,
-///     is_b: true
-/// });
+/// assert_eq!(b_rate, EncodedRate::new()
+///     .with_rate(3)
+///     .with_is_b(true)
+/// );
 /// ```
 macro_rules! rate {
     ($rate:literal) => {

@@ -79,7 +79,7 @@ pub struct HTOperationInformation {
     pub stbc_beacon: bool,
 
     #[bits(31)]
-    __: u64
+    __: u64,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]

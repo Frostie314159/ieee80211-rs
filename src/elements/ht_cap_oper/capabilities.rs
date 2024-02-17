@@ -239,7 +239,7 @@ pub struct ASELCapability {
     pub receive_asel_capable: bool,
     /// Indicates whether this STA can transmit sounding PPDUs for ASEL training on request.
     pub transmit_sounding_ppdus_capable: bool,
-    pub reserved: bool
+    pub reserved: bool,
 }
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// The [HTCapabilitiesElement] contains information about the HT capbilities of the STA.

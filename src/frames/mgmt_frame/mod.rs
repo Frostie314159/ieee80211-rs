@@ -4,7 +4,7 @@ use scroll::{
 };
 
 use crate::{
-    common::{subtypes::ManagementFrameSubtype, FCFFlags, FrameControlField, FrameType},
+    common::{FCFFlags, FrameControlField, FrameType},
     data_frame::DataFrameReadPayload,
     elements::{
         rates::{EncodedRate, RatesReadIterator},
@@ -13,7 +13,10 @@ use crate::{
     IEEE80211Frame, ToFrame,
 };
 
-use self::{body::ManagementFrameBody, header::ManagementFrameHeader};
+use self::{
+    body::{ManagementFrameBody, ManagementFrameSubtype},
+    header::ManagementFrameHeader,
+};
 
 pub mod body;
 pub mod header;
@@ -29,7 +32,9 @@ pub struct ManagementFrame<
 > where
     RateIterator: IntoIterator<Item = EncodedRate> + Clone,
     ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
-    ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>,
+    ElementIterator:
+        IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone,
+    ActionFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
 {
     pub header: ManagementFrameHeader,
     pub body: ManagementFrameBody<
@@ -45,7 +50,9 @@ impl<'a, RateIterator, ExtendedRateIterator, ElementIterator, ActionFramePayload
 where
     RateIterator: IntoIterator<Item = EncodedRate> + Clone,
     ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
-    ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>,
+    ElementIterator:
+        IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone,
+    ActionFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
 {
     pub const fn get_fcf(&self) -> FrameControlField {
         FrameControlField::new()
@@ -60,10 +67,10 @@ impl ManagementFrame<'_> {
 }
 impl<
         'a,
-        RateIterator: IntoIterator<Item = EncodedRate> + Clone,
-        ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
+        RateIterator: IntoIterator<Item = EncodedRate> + Clone + 'a,
+        ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone + 'a,
         ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone + 'a,
-        ActionFramePayload: MeasureWith<()>,
+        ActionFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()> + 'a,
     > MeasureWith<()>
     for ManagementFrame<'a, RateIterator, ExtendedRateIterator, ElementIterator, ActionFramePayload>
 {
@@ -87,10 +94,10 @@ impl<'a> TryFromCtx<'a, (ManagementFrameSubtype, FCFFlags)> for ManagementFrame<
 }
 impl<
         'a,
-        RateIterator: IntoIterator<Item = EncodedRate> + Clone,
-        ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
+        RateIterator: IntoIterator<Item = EncodedRate> + Clone + 'a,
+        ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone + 'a,
         ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone + 'a,
-        ActionFramePayload: TryIntoCtx<Error = scroll::Error>,
+        ActionFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()> + 'a,
     > TryIntoCtx
     for ManagementFrame<'a, RateIterator, ExtendedRateIterator, ElementIterator, ActionFramePayload>
 {
@@ -117,8 +124,8 @@ where
     RateIterator: IntoIterator<Item = EncodedRate> + Clone + 'a,
     ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone + 'a,
     ElementIterator:
-        IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + 'a,
-    ActionFramePayload: 'a,
+        IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone + 'a,
+    ActionFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()> + 'a,
 {
     fn to_frame(
         self,

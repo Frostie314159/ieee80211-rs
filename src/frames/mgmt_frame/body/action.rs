@@ -79,7 +79,7 @@ impl<P: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for ActionFrameBody<P> {
         Ok(offset)
     }
 }
-impl<'a, ActionFramePayload>
+impl<'a, ActionFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>>
     ToManagementFrameBody<
         'a,
         Empty<EncodedRate>,

@@ -17,10 +17,10 @@ pub struct EncodedRate {
     /// The value of the data rate.
     ///
     /// The formular is `rate * 500` to get kbps. Use [EncodedRate::rate_in_kbps] to calculate this.
-    rate: u8,
+    pub rate: u8,
 
     /// Is the data rate IEEE 802.11b.
-    is_b: bool,
+    pub is_b: bool,
 }
 
 impl EncodedRate {
