@@ -9,7 +9,7 @@ use crate::common::read_iterator::ReadIterator;
 /// This module contains the elements, which are found in the body of some frames.
 /// If an element only consists of one struct, like the [ssid::SSIDTLV], they are re-exported, otherwise they get their own module.
 mod dsss_parameter_set;
-pub use dsss_parameter_set::DSSSParameterElement;
+pub use dsss_parameter_set::DSSSParameterSetElement;
 pub mod rates;
 mod ssid;
 pub use ssid::SSIDElement;
@@ -20,6 +20,7 @@ mod ibss_parameter_set;
 pub use ibss_parameter_set::IBSSParameterSetElement;
 
 use self::types::ElementTypeRepr;
+pub mod rsn;
 pub mod types;
 mod vendor_specific_element;
 
@@ -57,9 +58,9 @@ impl ElementID {
 }
 
 /// A trait representing shared behaviour between elements.
-pub trait Element<'a>: Sized + MeasureWith<()> + TryIntoCtx<Error = scroll::Error> {
+pub trait Element: Sized + MeasureWith<()> + TryIntoCtx<Error = scroll::Error> {
     const ELEMENT_ID: ElementID;
-    type ReadType: TryFromCtx<'a, Error = scroll::Error>;
+    type ReadType<'a>: TryFromCtx<'a, Error = scroll::Error>;
 }
 
 /// A raw extension element containing just a slice.
@@ -148,8 +149,8 @@ impl<'a> Elements<'a> {
     }
     pub fn filter_element<ElementType: ElementTypeRepr>(
         raw_tlv: RawTLV<'a, u8, u8>,
-    ) -> Option<<<ElementType as ElementTypeRepr>::ElementType<'a> as Element<'a>>::ReadType> {
-        match <<ElementType as ElementTypeRepr>::ElementType<'a> as Element<'a>>::ELEMENT_ID {
+    ) -> Option<<<ElementType as ElementTypeRepr>::ElementType<'a> as Element>::ReadType<'a>> {
+        match <<ElementType as ElementTypeRepr>::ElementType<'a> as Element>::ELEMENT_ID {
             ElementID::Id(id) if id == raw_tlv.tlv_type => Some(raw_tlv.slice),
             ElementID::ExtId(ext_id) if raw_tlv.tlv_type == 0xff => {
                 let ext_element = raw_tlv.slice.pread::<RawIEEE80211ExtElement>(0).ok()?;
@@ -165,7 +166,7 @@ impl<'a> Elements<'a> {
     }
     pub fn get_first_element<ElementType: ElementTypeRepr>(
         &'a self,
-    ) -> Option<<<ElementType as ElementTypeRepr>::ElementType<'a> as Element<'a>>::ReadType> {
+    ) -> Option<<<ElementType as ElementTypeRepr>::ElementType<'a> as Element>::ReadType<'a>> {
         self.raw_element_iterator()
             .find_map(Self::filter_element::<ElementType>)
     }
@@ -173,7 +174,7 @@ impl<'a> Elements<'a> {
     pub fn get_elements<ElementType: ElementTypeRepr + 'a>(
         &'a self,
     ) -> impl Iterator<
-        Item = <<ElementType as ElementTypeRepr>::ElementType<'a> as Element<'a>>::ReadType,
+        Item = <<ElementType as ElementTypeRepr>::ElementType<'a> as Element>::ReadType<'a>,
     > + 'a {
         self.raw_element_iterator()
             .filter_map(Self::filter_element::<ElementType>)
