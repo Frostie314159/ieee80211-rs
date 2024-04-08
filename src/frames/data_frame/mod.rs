@@ -1,4 +1,4 @@
-use core::{iter::Empty, marker::PhantomData};
+use core::marker::PhantomData;
 
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
@@ -6,8 +6,7 @@ use scroll::{
 };
 
 use crate::{
-    common::{subtypes::DataFrameSubtype, FCFFlags},
-    elements::{rates::EncodedRate, IEEE80211Element},
+    common::{subtypes::DataFrameSubtype, Empty, FCFFlags},
     IEEE80211Frame, ToFrame,
 };
 
@@ -135,26 +134,10 @@ impl<Payload: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for DataFrame<'_, Pa
         Ok(offset)
     }
 }
-impl<'a, DataFramePayload: 'a>
-    ToFrame<
-        'a,
-        Empty<EncodedRate>,
-        Empty<EncodedRate>,
-        Empty<IEEE80211Element<'a, Empty<EncodedRate>, Empty<EncodedRate>>>,
-        &'a [u8],
-        DataFramePayload,
-    > for DataFrame<'a, DataFramePayload>
+impl<'a, DataFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()> + 'a>
+    ToFrame<'a, Empty, Empty, DataFramePayload> for DataFrame<'a, DataFramePayload>
 {
-    fn to_frame(
-        self,
-    ) -> IEEE80211Frame<
-        'a,
-        Empty<EncodedRate>,
-        Empty<EncodedRate>,
-        Empty<IEEE80211Element<'a, Empty<EncodedRate>, Empty<EncodedRate>>>,
-        &'a [u8],
-        DataFramePayload,
-    > {
+    fn to_frame(self) -> IEEE80211Frame<'a, Empty, Empty, DataFramePayload> {
         IEEE80211Frame::Data(self)
     }
 }

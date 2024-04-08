@@ -4,7 +4,7 @@ use scroll::ctx::TryFromCtx;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct ReadIterator<'a, Ctx, Type> {
-    pub(crate) bytes: Option<&'a [u8]>,
+    pub bytes: Option<&'a [u8]>,
     _phantom: PhantomData<(Ctx, Type)>,
 }
 impl<'a, Ctx, Type> ReadIterator<'a, Ctx, Type> {

@@ -1,5 +1,3 @@
-use core::iter::Empty;
-
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
     Endian, Pread, Pwrite,
@@ -7,10 +5,7 @@ use scroll::{
 
 use crate::{
     common::{FrameControlField, FrameType},
-    elements::{
-        rates::{EncodedRate, RatesReadIterator},
-        ElementReadIterator, IEEE80211Element,
-    },
+    elements::Elements,
 };
 
 use self::{
@@ -27,51 +22,23 @@ pub mod mgmt_frame;
 /// The [TryIntoCtx] implementation for this takes a [bool] as `Ctx`, which specifies if the fcs is at the end.
 pub enum IEEE80211Frame<
     'a,
-    RateIterator = RatesReadIterator<'a>,
-    ExtendedRateIterator = RatesReadIterator<'a>,
-    ElementIterator = ElementReadIterator<'a>,
+    ElementContainer = Elements<'a>,
     ActionFramePayload = &'a [u8],
     DataFramePayload = DataFrameReadPayload<'a>,
 > where
-    RateIterator: IntoIterator<Item = EncodedRate> + Clone,
-    ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
-    ElementIterator:
-        IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone,
+    ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
     ActionFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
+    DataFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
 {
-    Management(
-        ManagementFrame<
-            'a,
-            RateIterator,
-            ExtendedRateIterator,
-            ElementIterator,
-            ActionFramePayload,
-        >,
-    ),
+    Management(ManagementFrame<'a, ElementContainer, ActionFramePayload>),
     Data(DataFrame<'a, DataFramePayload>),
 }
 impl<
         'a,
-        RateIterator,
-        ExtendedRateIterator,
-        ElementIterator,
-        ActionFramePayload,
-        DataFramePayload,
-    >
-    IEEE80211Frame<
-        'a,
-        RateIterator,
-        ExtendedRateIterator,
-        ElementIterator,
-        ActionFramePayload,
-        DataFramePayload,
-    >
-where
-    RateIterator: IntoIterator<Item = EncodedRate> + Clone,
-    ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
-    ElementIterator:
-        IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone,
-    ActionFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
+        ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
+        ActionFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
+        DataFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
+    > IEEE80211Frame<'a, ElementContainer, ActionFramePayload, DataFramePayload>
 {
     /// This returns the frame control field.
     pub const fn get_fcf(&self) -> FrameControlField {
@@ -98,20 +65,11 @@ impl IEEE80211Frame<'_> {
 }
 impl<
         'a,
-        RateIterator: IntoIterator<Item = EncodedRate> + Clone + 'a,
-        ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone + 'a,
-        ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone + 'a,
-        ActionFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()> + 'a,
-        DataFramePayload: MeasureWith<()>,
+        ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
+        ActionFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
+        DataFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
     > MeasureWith<bool>
-    for IEEE80211Frame<
-        'a,
-        RateIterator,
-        ExtendedRateIterator,
-        ElementIterator,
-        ActionFramePayload,
-        DataFramePayload,
-    >
+    for IEEE80211Frame<'a, ElementContainer, ActionFramePayload, DataFramePayload>
 {
     fn measure_with(&self, fcs_at_end: &bool) -> usize {
         2 + match self {
@@ -169,20 +127,11 @@ impl<'a> TryFromCtx<'a, bool> for IEEE80211Frame<'a> {
 }
 impl<
         'a,
-        RateIterator: IntoIterator<Item = EncodedRate> + Clone + 'a,
-        ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone + 'a,
-        ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone + 'a,
-        ActionFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()> + 'a,
-        DataFramePayload: TryIntoCtx<Error = scroll::Error>,
+        ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
+        ActionFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
+        DataFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
     > TryIntoCtx<bool>
-    for IEEE80211Frame<
-        'a,
-        RateIterator,
-        ExtendedRateIterator,
-        ElementIterator,
-        ActionFramePayload,
-        DataFramePayload,
-    >
+    for IEEE80211Frame<'a, ElementContainer, ActionFramePayload, DataFramePayload>
 {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], fcs_at_end: bool) -> Result<usize, Self::Error> {
@@ -203,26 +152,11 @@ impl<
 }
 pub trait ToFrame<
     'a,
-    RateIterator = Empty<EncodedRate>,
-    ExtendedRateIterator = Empty<EncodedRate>,
-    ElementIterator = Empty<IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>,
-    ActionFramePayload = &'a [u8],
-    DataFramePayload = DataFrameReadPayload<'a>,
->: 'a where
-    RateIterator: IntoIterator<Item = EncodedRate> + Clone + 'a,
-    ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone + 'a,
-    ElementIterator:
-        IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone + 'a,
-    ActionFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()> + 'a,
+    ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
+    ActionFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
+    DataFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
+>: 'a
 {
-    fn to_frame(
-        self,
-    ) -> IEEE80211Frame<
-        'a,
-        RateIterator,
-        ExtendedRateIterator,
-        ElementIterator,
-        ActionFramePayload,
-        DataFramePayload,
-    >;
+    fn to_frame(self)
+        -> IEEE80211Frame<'a, ElementContainer, ActionFramePayload, DataFramePayload>;
 }

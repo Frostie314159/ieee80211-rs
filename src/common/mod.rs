@@ -2,6 +2,7 @@ use core::time::Duration;
 
 use bitfield_struct::bitfield;
 use macro_bits::bit;
+use scroll::ctx::{MeasureWith, TryFromCtx, TryIntoCtx};
 
 use crate::mgmt_frame::body::ManagementFrameSubtype;
 
@@ -16,6 +17,8 @@ pub mod reason;
 
 /// This is one **T**ime **U**nit, which equalls 1024µs.
 pub const TU: Duration = Duration::from_micros(1024);
+
+pub const IEEE_OUI: [u8; 3] = [0x00, 0x0f, 0xac];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 /// The frame type of an IEEE 802.11 frame.
@@ -98,4 +101,25 @@ pub struct SequenceControl {
     pub fragment_number: u8,
     #[bits(12)]
     pub sequence_number: u16,
+}
+
+/// An empty type, used for filling empty generics.
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
+pub struct Empty;
+impl<'a> TryFromCtx<'a> for Empty {
+    type Error = scroll::Error;
+    fn try_from_ctx(_: &'a [u8], _: ()) -> Result<(Self, usize), Self::Error> {
+        Ok((Self, 0))
+    }
+}
+impl MeasureWith<()> for Empty {
+    fn measure_with(&self, _: &()) -> usize {
+        0
+    }
+}
+impl TryIntoCtx for Empty {
+    type Error = scroll::Error;
+    fn try_into_ctx(self, _: &mut [u8], _: ()) -> Result<usize, Self::Error> {
+        Ok(0)
+    }
 }

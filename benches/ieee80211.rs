@@ -1,5 +1,13 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use ieee80211::IEEE80211Frame;
+use ieee80211::{
+    elements::element_chain::{ChainElement, ElementChainEnd},
+    mgmt_frame::{
+        body::{beacon::BeaconFrameBody, ToManagementFrameBody},
+        header::ManagementFrameHeader,
+        ManagementFrame,
+    },
+    ssid, supported_rates, IEEE80211Frame, ToFrame,
+};
 use scroll::{Pread, Pwrite};
 
 macro_rules! gen_benchmark {
@@ -24,6 +32,22 @@ macro_rules! gen_benchmark {
 gen_benchmark!(qos_data);
 gen_benchmark!(beacon);
 gen_benchmark!(action_vendor);
-criterion_group!(benches, beacon, action_vendor, qos_data);
+pub fn element_chain(criterion: &mut Criterion) {
+    let frame = ManagementFrame {
+        header: ManagementFrameHeader::default(),
+        body: BeaconFrameBody {
+            body: ElementChainEnd::new(ssid!("OpenRF")).append(supported_rates![1]),
+            ..Default::default()
+        }
+        .to_management_frame_body(),
+    }.to_frame();
+    let mut buf = [0x00; 0xff];
+    criterion.bench_function("element_chain_write", |b| {
+        b.iter(|| {
+            let _ = buf.pwrite(black_box(frame), 0).unwrap();
+        })
+    });
+}
+criterion_group!(benches, beacon, action_vendor, qos_data, element_chain);
 
 criterion_main!(benches);

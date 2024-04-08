@@ -1,16 +1,11 @@
-use core::{fmt::Debug, marker::PhantomData};
-
-use macro_bits::serializable_enum;
-use scroll::{Endian, Pwrite};
+use scroll::{
+    ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
+    Endian, Pread, Pwrite,
+};
 use tlv_rs::{raw_tlv::RawTLV, TLV};
 
 use crate::common::read_iterator::ReadIterator;
 
-use self::{
-    ht_cap_oper::{HTCapabilitiesElement, HTOperationElement},
-    rates::{EncodedRate, ExtendedSupportedRatesElement, RatesReadIterator, SupportedRatesElement},
-    vendor_specific_element::VendorSpecificElement,
-};
 /// This module contains the elements, which are found in the body of some frames.
 /// If an element only consists of one struct, like the [ssid::SSIDTLV], they are re-exported, otherwise they get their own module.
 mod dsss_parameter_set;
@@ -23,146 +18,175 @@ pub mod ht_cap_oper;
 pub use bss_load::*;
 mod ibss_parameter_set;
 pub use ibss_parameter_set::IBSSParameterSetElement;
+
+use self::types::ElementTypeRepr;
+pub mod types;
 mod vendor_specific_element;
+
+pub mod element_chain;
 
 /// A raw TLV.
 pub type RawIEEE80211Element<'a> = RawTLV<'a, u8, u8>;
 type TypedIEEE80211Element<Payload> = TLV<u8, u8, u8, Payload>;
 
-macro_rules! elements {
-    (
-        $(
-            #[$meta_var:meta]
-        )*
-        pub enum $enum_name:ident <$lt:lifetime $(, $generic:ident: $($trait_bound:path),* = $default:ty)*> {
-            $(
-                $(
-                    #[$sub_meta_var:meta]
-                )*
-                $element_type_name:ident : $element_type_value:expr => $element_type:ty
-            ),*
-        }
-    ) => {
-        serializable_enum! {
-            #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-            /// The type of an IEEE 802.11 Information Element.
-            pub enum IEEE80211ElementID: u8{
-                $(
-                    $element_type_name => $element_type_value,
-                )*
-                #[default]
-                Reserved => 0xe3
-            }
-        }
-        $(
-            #[$meta_var]
-        )*
-        pub enum $enum_name <$lt, $($generic = $default),*>
-        where
-            $(
-                $generic: $($trait_bound + )*
-            ),*
-        {
-            $(
-                $(
-                    #[$sub_meta_var]
-                )*
-                $element_type_name($element_type),
-            )*
-            Unknown(RawIEEE80211Element<$lt>)
-        }
-        impl<$lt $(, $generic: $($trait_bound + )*)*> $enum_name<$lt $(, $generic)*> {
-            pub const fn get_element_type(&self) -> IEEE80211ElementID {
-                match self {
-                    $(
-                        Self::$element_type_name(_) => IEEE80211ElementID::$element_type_name,
-                    )*
-                    Self::Unknown(raw_tlv) => IEEE80211ElementID::Unknown(raw_tlv.tlv_type)
-                }
-            }
-        }
-        impl<$lt $(, $generic: $($trait_bound + )*)*> ::scroll::ctx::MeasureWith<()> for $enum_name<$lt $(, $generic)*> {
-            fn measure_with(&self, ctx: &()) -> usize {
-                2 + match self {
-                    $(
-                        Self::$element_type_name(tlv) => tlv.measure_with(ctx),
-                    )*
-                    Self::Unknown(raw_tlv) => raw_tlv.slice.len()
-                }
-            }
-        }
-        impl<$lt> ::scroll::ctx::TryFromCtx<$lt> for $enum_name<$lt> {
-            type Error = ::scroll::Error;
-            fn try_from_ctx(from: &$lt [u8], _ctx: ()) -> Result<(Self, usize), ::scroll::Error> {
-                let (tlv, len) =
-                    <RawIEEE80211Element<'a> as ::scroll::ctx::TryFromCtx<'a, Endian>>::try_from_ctx(from, Endian::Little)?;
-                Ok((
-                    match tlv.tlv_type {
-                        $(
-                            $element_type_value => Self::$element_type_name(::scroll::ctx::TryFromCtx::try_from_ctx(tlv.slice, ()).map(|(tlv, _)| tlv)?),
-                        )*
-                        _ => Self::Unknown(tlv)
-                    },
-                    len
-                ))
-            }
-        }
-        impl<$lt $(, $generic: $($trait_bound + )*)*> ::scroll::ctx::TryIntoCtx for $enum_name<$lt $(, $generic)*> {
-            type Error = ::scroll::Error;
-            fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, ::scroll::Error> {
-                match self {
-                    $(
-                        Self::$element_type_name(payload) => buf.pwrite(TypedIEEE80211Element {
-                            tlv_type: $element_type_value,
-                            payload,
-                            _phantom: PhantomData
-                        }, 0),
-                    )*
-                    Self::Unknown(payload) => buf.pwrite(payload, 0)
-                }
-
-            }
-        }
-        pub trait ToElement<$lt $(, $generic: $($trait_bound + )* = $default)*> {
-            fn to_element(self) -> $enum_name<$lt $(, $generic)*>;
-        }
-        macro_rules! to_element_impl {
-            ($element_type_2:ty, $element_type_name_2:ident) => {
-                impl<$lt $(, $generic: $($trait_bound + )*)*> ToElement<$lt $(, $generic)*> for $element_type_2 {
-                    fn to_element(self) -> $enum_name<$lt $(, $generic)*> {
-                        $enum_name::$element_type_name_2(self)
-                    }
-                }
-            };
-        }
-        $(
-            to_element_impl!($element_type, $element_type_name);
-        )*
-    };
+/// An element identifier.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ElementID {
+    /// A normal ID.
+    Id(u8),
+    /// An extension ID.
+    /// This implies, that the normal ID is 255.
+    ExtId(u8),
 }
-
-elements! {
-    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    /// This enum contains all possible elements.
-    /// For documentation on the individual elements please refer to the docs provided for their structs.
-    /// They are ordered by their ID.
-    pub enum IEEE80211Element<
-        'a,
-        RateIterator: IntoIterator<Item = EncodedRate>, Clone = RatesReadIterator<'a>,
-        ExtendedRateIterator: IntoIterator<Item = EncodedRate>, Clone = RatesReadIterator<'a>
-    > {
-        SSID: 0x00 => SSIDElement<'a>,
-        SupportedRates: 0x01 => SupportedRatesElement<RateIterator>,
-        DSSSParameterSet: 0x03 => DSSSParameterElement,
-        IBSSParameterSet: 0x06 => IBSSParameterSetElement,
-        BSSLoad: 0x0b => BSSLoadElement,
-        HTCapabilities: 0x2d => HTCapabilitiesElement,
-        ExtendedSupportedRates: 0x32 => ExtendedSupportedRatesElement<ExtendedRateIterator>,
-        HTOperation: 0x3d => HTOperationElement,
-        VendorSpecific: 0xdd => VendorSpecificElement<'a>
+impl ElementID {
+    pub const fn is_ext(&self) -> bool {
+        matches!(self, Self::ExtId(_))
+    }
+    pub const fn id(&self) -> u8 {
+        match self {
+            Self::Id(id) => *id,
+            Self::ExtId(_) => 0xff,
+        }
+    }
+    pub const fn ext_id(&self) -> Option<u8> {
+        match self {
+            Self::Id(_) => None,
+            Self::ExtId(ext_id) => Some(*ext_id),
+        }
     }
 }
-/// This is an iterator over the elements contained in the body of a frame.
+
+/// A trait representing shared behaviour between elements.
+pub trait Element<'a>: Sized + MeasureWith<()> + TryIntoCtx<Error = scroll::Error> {
+    const ELEMENT_ID: ElementID;
+    type ReadType: TryFromCtx<'a, Error = scroll::Error>;
+}
+
+/// A raw extension element containing just a slice.
 ///
-/// It's short circuiting.
-pub type ElementReadIterator<'a> = ReadIterator<'a, (), IEEE80211Element<'a>>;
+/// This is mostly for internal use, while reading.
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
+pub struct RawIEEE80211ExtElement<'a> {
+    pub ext_id: u8,
+    pub slice: &'a [u8],
+}
+impl<'a> TryFromCtx<'a> for RawIEEE80211ExtElement<'a> {
+    type Error = scroll::Error;
+    fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
+        let mut offset = 0;
+
+        let ext_id = from.gread(&mut offset)?;
+        let slice = &from[offset..];
+
+        Ok((Self { ext_id, slice }, offset))
+    }
+}
+impl MeasureWith<()> for RawIEEE80211ExtElement<'_> {
+    fn measure_with(&self, _ctx: &()) -> usize {
+        self.slice.len() + 1
+    }
+}
+impl TryIntoCtx for RawIEEE80211ExtElement<'_> {
+    type Error = scroll::Error;
+    fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
+        let mut offset = 0;
+        buf.gwrite(self.ext_id, &mut offset)?;
+        buf.gwrite(self.slice, &mut offset)?;
+
+        Ok(offset)
+    }
+}
+
+/// A typed extension element.
+///
+/// This is mainly used for writing.
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
+pub struct TypedIEEE80211ExtElement<Payload> {
+    pub ext_id: u8,
+    pub payload: Payload,
+}
+impl<'a, Payload: TryFromCtx<'a, Error = scroll::Error> + 'a> TryFromCtx<'a>
+    for TypedIEEE80211ExtElement<Payload>
+{
+    type Error = scroll::Error;
+    fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
+        let mut offset = 0;
+
+        let ext_id = from.gread(&mut offset)?;
+        let payload = from.gread(&mut offset)?;
+
+        Ok((Self { ext_id, payload }, offset))
+    }
+}
+impl<Payload: MeasureWith<()>> MeasureWith<()> for TypedIEEE80211ExtElement<Payload> {
+    fn measure_with(&self, ctx: &()) -> usize {
+        self.payload.measure_with(ctx) + 1
+    }
+}
+impl<Payload: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for TypedIEEE80211ExtElement<Payload> {
+    type Error = scroll::Error;
+    fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
+        let mut offset = 0;
+
+        buf.gwrite(self.ext_id, &mut offset)?;
+        buf.gwrite(self.payload, &mut offset)?;
+
+        Ok(offset)
+    }
+}
+
+/// A container, which contains the elements of a frame.
+///
+/// It can be used to extract different elements from the body of a frame.
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
+pub struct Elements<'a> {
+    pub bytes: &'a [u8],
+}
+impl<'a> Elements<'a> {
+    pub fn raw_element_iterator(&self) -> ReadIterator<'a, Endian, RawIEEE80211Element> {
+        ReadIterator::<Endian, RawIEEE80211Element<'a>>::new(self.bytes)
+    }
+    pub fn filter_element<ElementType: ElementTypeRepr>(
+        raw_tlv: RawTLV<'a, u8, u8>,
+    ) -> Option<<<ElementType as ElementTypeRepr>::ElementType<'a> as Element<'a>>::ReadType> {
+        match <<ElementType as ElementTypeRepr>::ElementType<'a> as Element<'a>>::ELEMENT_ID {
+            ElementID::Id(id) if id == raw_tlv.tlv_type => Some(raw_tlv.slice),
+            ElementID::ExtId(ext_id) if raw_tlv.tlv_type == 0xff => {
+                let ext_element = raw_tlv.slice.pread::<RawIEEE80211ExtElement>(0).ok()?;
+                if ext_element.ext_id == ext_id {
+                    Some(ext_element.slice)
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+        .and_then(|slice| slice.pread(0).ok())
+    }
+    pub fn get_first_element<ElementType: ElementTypeRepr>(
+        &'a self,
+    ) -> Option<<<ElementType as ElementTypeRepr>::ElementType<'a> as Element<'a>>::ReadType> {
+        self.raw_element_iterator()
+            .find_map(Self::filter_element::<ElementType>)
+    }
+    /// This returns an [Iterator] over a specific type of element, which is specified over the generic parameter.
+    pub fn get_elements<ElementType: ElementTypeRepr + 'a>(
+        &'a self,
+    ) -> impl Iterator<
+        Item = <<ElementType as ElementTypeRepr>::ElementType<'a> as Element<'a>>::ReadType,
+    > + 'a {
+        self.raw_element_iterator()
+            .filter_map(Self::filter_element::<ElementType>)
+    }
+}
+impl TryIntoCtx for Elements<'_> {
+    type Error = scroll::Error;
+    fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
+        buf.pwrite(self.bytes, 0)
+    }
+}
+impl MeasureWith<()> for Elements<'_> {
+    fn measure_with(&self, _ctx: &()) -> usize {
+        self.bytes.len()
+    }
+}

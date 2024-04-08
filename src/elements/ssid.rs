@@ -3,6 +3,8 @@ use scroll::{
     Pwrite,
 };
 
+use super::{Element, ElementID};
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// A SSID tlv.
 ///
@@ -22,7 +24,7 @@ impl<'a> SSIDElement<'a> {
 
     /// Create a new SSID element without asserting, that the length is no more than 32 bytes.
     ///
-    /// If you are passing a literal directly use the [ssid] macro, which does the assertion at compile time.
+    /// If you are passing a literal directly use the [crate::ssid] macro, which does the assertion at compile time.
     pub const fn new_unchecked(ssid: &'a str) -> SSIDElement<'a> {
         Self(ssid)
     }
@@ -75,6 +77,10 @@ impl TryIntoCtx for SSIDElement<'_> {
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         buf.pwrite(self.0, 0)
     }
+}
+impl<'a> Element<'a> for SSIDElement<'a> {
+    const ELEMENT_ID: ElementID = ElementID::Id(0x00);
+    type ReadType = Self;
 }
 #[macro_export]
 /// Generate an SSID element, while performing all validation at compile time.

@@ -5,6 +5,8 @@ use scroll::{
     Endian, Pread, Pwrite,
 };
 
+use crate::elements::{Element, ElementID};
+
 use super::SupportedMCSSet;
 
 serializable_enum! {
@@ -321,4 +323,8 @@ impl TryIntoCtx for HTCapabilitiesElement {
 
         Ok(offset)
     }
+}
+impl<'a> Element<'a> for HTCapabilitiesElement {
+    const ELEMENT_ID: ElementID = ElementID::Id(0x2d);
+    type ReadType = Self;
 }

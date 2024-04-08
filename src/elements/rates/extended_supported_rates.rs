@@ -3,6 +3,8 @@ use scroll::{
     Pwrite,
 };
 
+use crate::elements::{Element, ElementID};
+
 use super::{EncodedRate, RatesReadIterator};
 
 #[derive(Clone, Copy, Debug, Default, Hash)]
@@ -64,6 +66,12 @@ impl<I: IntoIterator<Item = EncodedRate>> TryIntoCtx for ExtendedSupportedRatesE
         }
         Ok(offset)
     }
+}
+impl<'a, I: IntoIterator<Item = EncodedRate> + Clone> Element<'a>
+    for ExtendedSupportedRatesElement<I>
+{
+    const ELEMENT_ID: ElementID = ElementID::Id(0x32);
+    type ReadType = ExtendedSupportedRatesElement<RatesReadIterator<'a>>;
 }
 
 #[macro_export]

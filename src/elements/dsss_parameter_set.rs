@@ -3,6 +3,8 @@ use scroll::{
     Pread, Pwrite,
 };
 
+use super::{Element, ElementID};
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// The DSSS Parameter Set element contains information to allow channel number identification for STAs.
 pub struct DSSSParameterElement {
@@ -34,4 +36,9 @@ impl TryIntoCtx for DSSSParameterElement {
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         buf.pwrite(self.current_channel, 0)
     }
+}
+
+impl<'a> Element<'a> for DSSSParameterElement {
+    const ELEMENT_ID: ElementID = ElementID::Id(0x03);
+    type ReadType = Self;
 }

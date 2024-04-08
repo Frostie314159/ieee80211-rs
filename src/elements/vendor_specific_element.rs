@@ -3,6 +3,8 @@ use scroll::{
     Pread, Pwrite,
 };
 
+use super::{Element, ElementID};
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// The vendor specific element carries information, which is not defined in IEEE 802.11, but rather by individual vendors.
 pub struct VendorSpecificElement<'a> {
@@ -38,4 +40,8 @@ impl TryIntoCtx for VendorSpecificElement<'_> {
 
         Ok(offset)
     }
+}
+impl<'a> Element<'a> for VendorSpecificElement<'a> {
+    const ELEMENT_ID: ElementID = ElementID::Id(0xdd);
+    type ReadType = Self;
 }

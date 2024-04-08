@@ -7,11 +7,8 @@ use scroll::{
 };
 
 use crate::{
-    common::TU,
-    elements::{
-        rates::{EncodedRate, RatesReadIterator},
-        ElementReadIterator, IEEE80211Element,
-    },
+    common::{Empty, TU},
+    elements::{types::SSID, Elements},
 };
 
 use super::{ManagementFrameBody, ToManagementFrameBody};
@@ -34,75 +31,42 @@ bitfield! {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 /// This is the body of a beacon frame.
 /// The generic parameter can be any type, which implements [IntoIterator<Item = IEEE80211TLV<'_>>](IntoIterator).
 /// When reading this struct the generic parameter is set to [ElementReadIterator].
-pub struct BeaconFrameBody<
-    'a,
-    RateIterator = RatesReadIterator<'a>,
-    ExtendedRateIterator = RatesReadIterator<'a>,
-    ElementIterator = ElementReadIterator<'a>,
-> where
-    RateIterator: IntoIterator<Item = EncodedRate> + Clone,
-    ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
-    ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>,
-{
+pub struct BeaconFrameBody<ElementContainer> {
     pub timestamp: u64,
     pub beacon_interval: u16,
     pub capabilities_info: CapabilitiesInformation,
-    pub tagged_payload: ElementIterator,
+    pub body: ElementContainer,
 }
-impl<'a> BeaconFrameBody<'a> {
+impl<'a> BeaconFrameBody<Elements<'a>> {
     pub const fn length_in_bytes(&'a self) -> usize {
         8 + // Timestamp
         2 + // Beacon interval
         2 + // Capabilities information
-        match self.tagged_payload.bytes {
-            Some(bytes) => bytes.len(),
-            None => 0
-        }
+        self.body.bytes.len()
     }
 }
-impl<
-        'a,
-        RateIterator: IntoIterator<Item = EncodedRate> + Clone,
-        ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
-        TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone + 'a,
-    > BeaconFrameBody<'a, RateIterator, ExtendedRateIterator, TLVIterator>
-{
+impl<'a> BeaconFrameBody<Elements<'a>> {
     pub const fn beacon_interval_as_duration(&self) -> Duration {
         Duration::from_micros(self.beacon_interval as u64 * TU.as_micros() as u64)
     }
     /// Extract the SSID from the tlvs.
     pub fn ssid(&'a self) -> Option<&'a str> {
         // SSID should be the first TLV.
-        self.tagged_payload.clone().into_iter().find_map(|tlv| {
-            if let IEEE80211Element::SSID(ssid_tlv) = tlv {
-                Some(ssid_tlv.take_ssid())
-            } else {
-                None
-            }
-        })
+        self.body
+            .get_first_element::<SSID>()
+            .map(|ssid| ssid.take_ssid())
     }
 }
-impl<
-        'a,
-        RateIterator: IntoIterator<Item = EncodedRate> + Clone,
-        ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
-        TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone,
-    > MeasureWith<()> for BeaconFrameBody<'a, RateIterator, ExtendedRateIterator, TLVIterator>
-{
+impl<ElementContainer: MeasureWith<()>> MeasureWith<()> for BeaconFrameBody<ElementContainer> {
     fn measure_with(&self, ctx: &()) -> usize {
-        12 + self
-            .tagged_payload
-            .clone()
-            .into_iter()
-            .map(|tlv| tlv.measure_with(ctx))
-            .sum::<usize>()
+        12 + self.body.measure_with(ctx)
     }
 }
-impl<'a> TryFromCtx<'a> for BeaconFrameBody<'a> {
+impl<'a> TryFromCtx<'a> for BeaconFrameBody<Elements<'a>> {
     type Error = scroll::Error;
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
@@ -111,26 +75,23 @@ impl<'a> TryFromCtx<'a> for BeaconFrameBody<'a> {
         let beacon_interval = from.gread_with(&mut offset, Endian::Little)?;
         let capabilities_info =
             CapabilitiesInformation::from_bits(from.gread_with(&mut offset, Endian::Little)?);
-        let tagged_payload_len = from.len() - offset;
-        let tagged_payload =
-            ElementReadIterator::new(from.gread_with(&mut offset, tagged_payload_len)?);
+
+        let body = Elements {
+            bytes: &from[offset..],
+        };
         Ok((
             Self {
                 timestamp,
                 beacon_interval,
                 capabilities_info,
-                tagged_payload,
+                body,
             },
             offset,
         ))
     }
 }
-impl<
-        'a,
-        RateIterator: IntoIterator<Item = EncodedRate> + Clone,
-        ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
-        TLVIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + 'a,
-    > TryIntoCtx for BeaconFrameBody<'a, RateIterator, ExtendedRateIterator, TLVIterator>
+impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
+    for BeaconFrameBody<ElementContainer>
 {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
@@ -143,25 +104,15 @@ impl<
             &mut offset,
             Endian::Little,
         )?;
-        for tlv in self.tagged_payload {
-            buf.gwrite(tlv, &mut offset)?;
-        }
+        buf.gwrite(self.body, &mut offset)?;
 
         Ok(offset)
     }
 }
-impl<'a, RateIterator, ExtendedRateIterator, ElementIterator>
-    ToManagementFrameBody<'a, RateIterator, ExtendedRateIterator, ElementIterator>
-    for BeaconFrameBody<'a, RateIterator, ExtendedRateIterator, ElementIterator>
-where
-    RateIterator: IntoIterator<Item = EncodedRate> + Clone,
-    ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
-    ElementIterator:
-        IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone,
+impl<'a, ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>>
+    ToManagementFrameBody<'a, ElementContainer, Empty> for BeaconFrameBody<ElementContainer>
 {
-    fn to_management_frame_body(
-        self,
-    ) -> ManagementFrameBody<'a, RateIterator, ExtendedRateIterator, ElementIterator> {
+    fn to_management_frame_body(self) -> ManagementFrameBody<'a, ElementContainer, Empty> {
         ManagementFrameBody::Beacon(self)
     }
 }

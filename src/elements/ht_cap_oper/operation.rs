@@ -5,6 +5,8 @@ use scroll::{
     Pread, Pwrite,
 };
 
+use crate::elements::{Element, ElementID};
+
 use super::SupportedMCSSet;
 
 serializable_enum! {
@@ -133,4 +135,8 @@ impl TryIntoCtx for HTOperationElement {
 
         Ok(offset)
     }
+}
+impl<'a> Element<'a> for HTOperationElement {
+    const ELEMENT_ID: ElementID = ElementID::Id(0x3d);
+    type ReadType = Self;
 }

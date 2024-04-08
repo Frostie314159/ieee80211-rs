@@ -1,7 +1,5 @@
-use std::iter::Empty;
-
 use ieee80211::{
-    elements::ToElement,
+    elements::element_chain::ElementChainEnd,
     mgmt_frame::{
         body::{beacon::BeaconFrameBody, ManagementFrameBody, ToManagementFrameBody},
         ManagementFrame,
@@ -50,14 +48,12 @@ fn main() {
         management_frame.header.bssid,
         beacon.ssid()
     );
-    // The type annotations are necessary, since we only specified the ssid and not rates.
-    // If you specified supported rates and extended supported rates, these could be elided.
-    // This will probably be done by a proc macro in the future.
-    let beacon = BeaconFrameBody::<'_, Empty<_>, Empty<_>, _> {
+
+    let beacon = BeaconFrameBody {
         capabilities_info: beacon.capabilities_info,
         timestamp: beacon.timestamp,
         beacon_interval: beacon.beacon_interval,
-        tagged_payload: [ssid!("OpenRF").to_element()],
+        body: ElementChainEnd::new(ssid!("OpenRF")),
     }
     .to_management_frame_body();
     let management_frame = ManagementFrame {

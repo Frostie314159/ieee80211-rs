@@ -10,7 +10,7 @@ Hardware: Framework 13 with Intel i5 1240p
 |benchmark|time in ns|notes|
 -- | -- | --
 beacon_read | 40.2 | --
-beacon_write | 447.2 | This is skewed, since the iterator is lazy and parsing the tlvs everytime. Actual speeds are probably a tenth of that.
+beacon_write | 43.4 | This is using the element chain approach.
 action_vendor_read | 31.8 | --
 action_vendor_write | 26.3 | --
 qos_data_read | 20.5 | --

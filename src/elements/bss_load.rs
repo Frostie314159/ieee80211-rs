@@ -3,6 +3,8 @@ use scroll::{
     Endian, Pread, Pwrite,
 };
 
+use super::{Element, ElementID};
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 /// The BSS Load element contains information on the current STA population and traffic levels in the BSS.
 pub struct BSSLoadElement {
@@ -54,4 +56,9 @@ impl TryIntoCtx for BSSLoadElement {
 
         Ok(offset)
     }
+}
+
+impl<'a> Element<'a> for BSSLoadElement {
+    const ELEMENT_ID: ElementID = ElementID::Id(0x0b);
+    type ReadType = Self;
 }

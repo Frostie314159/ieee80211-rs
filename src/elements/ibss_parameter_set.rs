@@ -7,6 +7,8 @@ use scroll::{
 
 use crate::common::TU;
 
+use super::{Element, ElementID};
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
 /// The IBSS Parameter Set element contains the set of parameters necessary to support an IBSS.
 pub struct IBSSParameterSetElement {
@@ -47,4 +49,9 @@ impl TryIntoCtx for IBSSParameterSetElement {
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         buf.pwrite_with(self.atim_window, 0, Endian::Little)
     }
+}
+
+impl<'a> Element<'a> for IBSSParameterSetElement {
+    const ELEMENT_ID: ElementID = ElementID::Id(0x06);
+    type ReadType = Self;
 }

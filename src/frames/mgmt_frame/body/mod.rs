@@ -3,12 +3,12 @@ use scroll::{
     Pread, Pwrite,
 };
 
-use crate::elements::{
-    rates::{EncodedRate, RatesReadIterator},
-    ElementReadIterator, IEEE80211Element,
-};
+use crate::elements::Elements;
 
-use self::{action::ActionFrameBody, beacon::BeaconFrameBody, disassoc::DisassociationFrameBody, probe_request::ProbeRequestBody};
+use self::{
+    action::ActionFrameBody, beacon::BeaconFrameBody, disassoc::DisassociationFrameBody,
+    probe_request::ProbeRequestBody,
+};
 
 /// This module contains structs related to action frames
 pub mod action;
@@ -159,6 +159,21 @@ macro_rules! management_frame_bodies {
         {
             fn to_management_frame_body(self) -> $enum_name<$lt, $($enum_generic),*>;
         }
+        /* $(
+            ::ieee80211_proc_macros::generate_to_management_frame_body_impl! {
+                $body_name<$($($body_generics),*)?>,
+                [
+                    $(
+                        $enum_generic = $enum_generic_default
+                    ),*
+                ],
+                [
+                    $(
+                        $body_generics
+                    ),*
+                ]
+            }
+        )* */
     };
 }
 
@@ -168,15 +183,13 @@ management_frame_bodies! {
     /// The rest of the frame can be found in [crate::frames::ManagementFrame].
     pub enum ManagementFrameBody<
         'a,
-        RateIterator: IntoIterator<Item = EncodedRate>, Clone = RatesReadIterator<'a>,
-        ExtendedRateIterator: IntoIterator<Item = EncodedRate>, Clone = RatesReadIterator<'a>,
-        ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>, Clone = ElementReadIterator<'a>,
-        ActionFramePayload: MeasureWith<()>, TryIntoCtx<Error = scroll::Error> = &'a [u8]
+        ElementContainer: TryIntoCtx<Error = scroll::Error>, MeasureWith<()> = Elements<'a>,
+        ActionFramePayload: TryIntoCtx<Error = scroll::Error>, MeasureWith<()> = &'a [u8]
     > {
-        ProbeRequest: 0b0100 => ProbeRequestBody<'a, RateIterator, ExtendedRateIterator, ElementIterator>,
-        Beacon: 0b1000 => BeaconFrameBody<'a, RateIterator, ExtendedRateIterator, ElementIterator>,
+        ProbeRequest: 0b0100 => ProbeRequestBody<ElementContainer>,
+        Beacon: 0b1000 => BeaconFrameBody<ElementContainer>,
         ATIM: 0b1001,
-        Disassociation: 0b1010 => DisassociationFrameBody<'a, RateIterator, ExtendedRateIterator, ElementIterator>,
+        Disassociation: 0b1010 => DisassociationFrameBody<ElementContainer>,
         Action: 0b1101 => ActionFrameBody<ActionFramePayload>,
         ActionNoACK: 0b1110 => ActionFrameBody<ActionFramePayload>
     }

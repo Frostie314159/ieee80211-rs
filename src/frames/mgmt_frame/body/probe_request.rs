@@ -1,117 +1,60 @@
-use scroll::{
-    ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
-    Pwrite,
-};
+use scroll::ctx::{MeasureWith, TryFromCtx, TryIntoCtx};
 
-use crate::elements::{
-    rates::{EncodedRate, RatesReadIterator},
-    ElementReadIterator, IEEE80211Element,
+use crate::{
+    common::Empty,
+    elements::{types::SSID, Elements, SSIDElement},
 };
 
 use super::{ManagementFrameBody, ToManagementFrameBody};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// The body of a probe request.
-pub struct ProbeRequestBody<
-    'a,
-    RateIterator = RatesReadIterator<'a>,
-    ExtendedRateIterator = RatesReadIterator<'a>,
-    ElementIterator = ElementReadIterator<'a>,
-> where
-    RateIterator: IntoIterator<Item = EncodedRate> + Clone,
-    ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
-    ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>>,
-{
-    pub tagged_payload: ElementIterator,
+pub struct ProbeRequestBody<ElementContainer> {
+    pub body: ElementContainer,
 }
-impl ProbeRequestBody<'_> {
+impl ProbeRequestBody<Elements<'_>> {
     /// The entire length in bytes.
     pub const fn length_in_bytes(&self) -> usize {
-        match self.tagged_payload.bytes {
-            Some(bytes) => bytes.len(),
-            None => 0,
-        }
+        self.body.bytes.len()
     }
 }
-impl<'a, RateIterator, ExtendedRateIterator, ElementIterator>
-    ProbeRequestBody<'a, RateIterator, ExtendedRateIterator, ElementIterator>
-where
-    RateIterator: IntoIterator<Item = EncodedRate> + Clone,
-    ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
-    ElementIterator:
-        IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone,
-{
+impl<'a> ProbeRequestBody<Elements<'a>> {
     /// Extract the SSID from the tlvs.
-    pub fn ssid(&self) -> Option<&str> {
+    pub fn ssid(&'a self) -> Option<&'a str> {
         // SSID should be the first TLV.
-        self.tagged_payload.clone().into_iter().find_map(|tlv| {
-            if let IEEE80211Element::SSID(ssid_tlv) = tlv {
-                Some(ssid_tlv.take_ssid())
-            } else {
-                None
-            }
-        })
+        self.body
+            .get_first_element::<SSID>()
+            .map(SSIDElement::take_ssid)
     }
 }
-impl<'a, RateIterator, ExtendedRateIterator, ElementIterator> MeasureWith<()>
-    for ProbeRequestBody<'a, RateIterator, ExtendedRateIterator, ElementIterator>
-where
-    RateIterator: IntoIterator<Item = EncodedRate> + Clone,
-    ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
-    ElementIterator:
-        IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone,
-{
+impl<ElementContainer: MeasureWith<()>> MeasureWith<()> for ProbeRequestBody<ElementContainer> {
     fn measure_with(&self, ctx: &()) -> usize {
-        self.tagged_payload
-            .clone()
-            .into_iter()
-            .map(|tlv| tlv.measure_with(ctx))
-            .sum::<usize>()
+        self.body.measure_with(ctx)
     }
 }
-impl<'a> TryFromCtx<'a> for ProbeRequestBody<'a> {
+impl<'a> TryFromCtx<'a> for ProbeRequestBody<Elements<'a>> {
     type Error = scroll::Error;
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         Ok((
             Self {
-                tagged_payload: ElementReadIterator::new(from),
+                body: Elements { bytes: from },
             },
             from.len(),
         ))
     }
 }
-impl<
-        'a,
-        RateIterator: IntoIterator<Item = EncodedRate> + Clone,
-        ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
-        ElementIterator: IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone + 'a,
-    > TryIntoCtx for ProbeRequestBody<'a, RateIterator, ExtendedRateIterator, ElementIterator>
-where
-    IEEE80211Element<'a, RateIterator, ExtendedRateIterator>: MeasureWith<()>,
+impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
+    for ProbeRequestBody<ElementContainer>
 {
     type Error = scroll::Error;
-    fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
-        let mut offset = 0;
-
-        for element in self.tagged_payload {
-            buf.gwrite(element, &mut offset)?;
-        }
-
-        Ok(offset)
+    fn try_into_ctx(self, buf: &mut [u8], ctx: ()) -> Result<usize, Self::Error> {
+        <ElementContainer as TryIntoCtx>::try_into_ctx(self.body, buf, ctx)
     }
 }
-impl<'a, RateIterator, ExtendedRateIterator, ElementIterator>
-    ToManagementFrameBody<'a, RateIterator, ExtendedRateIterator, ElementIterator>
-    for ProbeRequestBody<'a, RateIterator, ExtendedRateIterator, ElementIterator>
-where
-    RateIterator: IntoIterator<Item = EncodedRate> + Clone,
-    ExtendedRateIterator: IntoIterator<Item = EncodedRate> + Clone,
-    ElementIterator:
-        IntoIterator<Item = IEEE80211Element<'a, RateIterator, ExtendedRateIterator>> + Clone,
+impl<'a, ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>>
+    ToManagementFrameBody<'a, ElementContainer, Empty> for ProbeRequestBody<ElementContainer>
 {
-    fn to_management_frame_body(
-        self,
-    ) -> ManagementFrameBody<'a, RateIterator, ExtendedRateIterator, ElementIterator> {
+    fn to_management_frame_body(self) -> ManagementFrameBody<'a, ElementContainer, Empty> {
         ManagementFrameBody::ProbeRequest(self)
     }
 }

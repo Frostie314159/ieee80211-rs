@@ -698,6 +698,11 @@ impl<'a, DS: DSField, Category: DataFrameCategory, PayloadType: Copy>
         }
     }
 }
+impl<'a> Default for DataFrameBuilder<'a> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 pub type DataFrameBuilder<'a> = DataFrameBuilderInner<'a, (), (), (), (), (), (), ()>;
 
 #[test]
