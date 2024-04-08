@@ -78,9 +78,9 @@ impl TryIntoCtx for SSIDElement<'_> {
         buf.pwrite(self.0, 0)
     }
 }
-impl<'a> Element<'a> for SSIDElement<'a> {
+impl<'a> Element for SSIDElement<'a> {
     const ELEMENT_ID: ElementID = ElementID::Id(0x00);
-    type ReadType = Self;
+    type ReadType<'b> = SSIDElement<'b>;
 }
 #[macro_export]
 /// Generate an SSID element, while performing all validation at compile time.

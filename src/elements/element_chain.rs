@@ -30,7 +30,7 @@ pub trait ChainElement {
     type Appended<Appendee>: ChainElement;
 
     /// Append a new element to the chain.
-    fn append<'a, T: Element<'a>>(self, value: T) -> Self::Appended<T>;
+    fn append<T: Element>(self, value: T) -> Self::Appended<T>;
 }
 
 /// This is the end of a chain.
@@ -41,31 +41,31 @@ pub struct ElementChainEnd<Inner> {
     /// The last element of the chain.
     pub inner: Inner,
 }
-impl<'a, Inner: Element<'a>> ElementChainEnd<Inner> {
+impl<'a, Inner: Element> ElementChainEnd<Inner> {
     pub const fn new(inner: Inner) -> Self {
         Self { inner }
     }
 }
 impl<Inner> ChainElement for ElementChainEnd<Inner> {
     type Appended<Appendee> = ElementChainLink<Inner, ElementChainEnd<Appendee>>;
-    fn append<'a, T: Element<'a>>(self, value: T) -> Self::Appended<T> {
+    fn append<T: Element>(self, value: T) -> Self::Appended<T> {
         ElementChainLink {
             inner: self.inner,
             next: ElementChainEnd { inner: value },
         }
     }
 }
-impl<'a, Inner> MeasureWith<()> for ElementChainEnd<Inner>
+impl<Inner> MeasureWith<()> for ElementChainEnd<Inner>
 where
-    Inner: Element<'a>,
+    Inner: Element,
 {
     fn measure_with(&self, ctx: &()) -> usize {
         self.inner.measure_with(ctx) + if Inner::ELEMENT_ID.is_ext() { 3 } else { 2 }
     }
 }
-impl<'a, Inner> TryIntoCtx for ElementChainEnd<Inner>
+impl<Inner> TryIntoCtx for ElementChainEnd<Inner>
 where
-    Inner: Element<'a>,
+    Inner: Element,
 {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
@@ -103,16 +103,16 @@ pub struct ElementChainLink<Inner, Child: ChainElement> {
 }
 impl<Inner, Child: ChainElement> ChainElement for ElementChainLink<Inner, Child> {
     type Appended<Appendee> = ElementChainLink<Inner, <Child as ChainElement>::Appended<Appendee>>;
-    fn append<'a, T: Element<'a>>(self, value: T) -> Self::Appended<T> {
+    fn append<T: Element>(self, value: T) -> Self::Appended<T> {
         ElementChainLink {
             inner: self.inner,
             next: self.next.append(value),
         }
     }
 }
-impl<'a, Inner, Child> MeasureWith<()> for ElementChainLink<Inner, Child>
+impl<Inner, Child> MeasureWith<()> for ElementChainLink<Inner, Child>
 where
-    Inner: Element<'a>,
+    Inner: Element,
     Child: TryIntoCtx<Error = scroll::Error> + MeasureWith<()> + ChainElement,
 {
     fn measure_with(&self, ctx: &()) -> usize {
@@ -121,9 +121,9 @@ where
             + self.next.measure_with(ctx)
     }
 }
-impl<'a, Inner, Child> TryIntoCtx for ElementChainLink<Inner, Child>
+impl<Inner, Child> TryIntoCtx for ElementChainLink<Inner, Child>
 where
-    Inner: Element<'a>,
+    Inner: Element,
     Child: TryIntoCtx<Error = scroll::Error> + ChainElement,
 {
     type Error = scroll::Error;

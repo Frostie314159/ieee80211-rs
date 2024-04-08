@@ -7,20 +7,20 @@ use super::{Element, ElementID};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// The DSSS Parameter Set element contains information to allow channel number identification for STAs.
-pub struct DSSSParameterElement {
+pub struct DSSSParameterSetElement {
     pub current_channel: u8,
 }
-impl SizeWith for DSSSParameterElement {
+impl SizeWith for DSSSParameterSetElement {
     fn size_with(_ctx: &()) -> usize {
         1
     }
 }
-impl MeasureWith<()> for DSSSParameterElement {
+impl MeasureWith<()> for DSSSParameterSetElement {
     fn measure_with(&self, ctx: &()) -> usize {
         Self::size_with(ctx)
     }
 }
-impl TryFromCtx<'_> for DSSSParameterElement {
+impl TryFromCtx<'_> for DSSSParameterSetElement {
     type Error = scroll::Error;
     fn try_from_ctx(from: &'_ [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         Ok((
@@ -31,14 +31,14 @@ impl TryFromCtx<'_> for DSSSParameterElement {
         ))
     }
 }
-impl TryIntoCtx for DSSSParameterElement {
+impl TryIntoCtx for DSSSParameterSetElement {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         buf.pwrite(self.current_channel, 0)
     }
 }
 
-impl<'a> Element<'a> for DSSSParameterElement {
+impl Element for DSSSParameterSetElement {
     const ELEMENT_ID: ElementID = ElementID::Id(0x03);
-    type ReadType = Self;
+    type ReadType<'a> = Self;
 }

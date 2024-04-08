@@ -58,7 +58,7 @@ impl TryIntoCtx for BSSLoadElement {
     }
 }
 
-impl<'a> Element<'a> for BSSLoadElement {
+impl Element for BSSLoadElement {
     const ELEMENT_ID: ElementID = ElementID::Id(0x0b);
-    type ReadType = Self;
+    type ReadType<'a> = BSSLoadElement;
 }

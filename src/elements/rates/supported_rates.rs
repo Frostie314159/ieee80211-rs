@@ -71,9 +71,9 @@ impl<I: IntoIterator<Item = EncodedRate> + Clone> TryIntoCtx for SupportedRatesE
     }
 }
 
-impl<'a, I: IntoIterator<Item = EncodedRate> + Clone> Element<'a> for SupportedRatesElement<I> {
+impl<I: IntoIterator<Item = EncodedRate> + Clone> Element for SupportedRatesElement<I> {
     const ELEMENT_ID: ElementID = ElementID::Id(0x01);
-    type ReadType = SupportedRatesElement<RatesReadIterator<'a>>;
+    type ReadType<'a> = SupportedRatesElement<RatesReadIterator<'a>>;
 }
 
 #[macro_export]

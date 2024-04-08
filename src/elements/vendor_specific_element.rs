@@ -41,7 +41,7 @@ impl TryIntoCtx for VendorSpecificElement<'_> {
         Ok(offset)
     }
 }
-impl<'a> Element<'a> for VendorSpecificElement<'a> {
+impl<'a> Element for VendorSpecificElement<'a> {
     const ELEMENT_ID: ElementID = ElementID::Id(0xdd);
-    type ReadType = Self;
+    type ReadType<'b> = VendorSpecificElement<'b>;
 }

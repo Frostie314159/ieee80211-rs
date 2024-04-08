@@ -51,7 +51,7 @@ impl TryIntoCtx for IBSSParameterSetElement {
     }
 }
 
-impl<'a> Element<'a> for IBSSParameterSetElement {
+impl Element for IBSSParameterSetElement {
     const ELEMENT_ID: ElementID = ElementID::Id(0x06);
-    type ReadType = Self;
+    type ReadType<'a> = Self;
 }

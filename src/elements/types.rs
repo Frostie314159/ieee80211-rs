@@ -1,10 +1,9 @@
 use super::{
-    rates::{RatesReadIterator, SupportedRatesElement},
-    Element, SSIDElement,
+    ht_cap_oper::{HTCapabilitiesElement, HTOperationElement}, rates::{ExtendedSupportedRatesElement, RatesReadIterator, SupportedRatesElement}, vendor_specific_element::VendorSpecificElement, BSSLoadElement, DSSSParameterSetElement, Element, IBSSParameterSetElement, SSIDElement
 };
 
 pub trait ElementTypeRepr {
-    type ElementType<'a>: Element<'a>;
+    type ElementType<'a>: Element;
 }
 macro_rules! gen_element_type_reprs {
     (
@@ -22,5 +21,12 @@ macro_rules! gen_element_type_reprs {
 }
 gen_element_type_reprs! {
     SSID => SSIDElement<'a>,
-    SupportedRates => SupportedRatesElement<RatesReadIterator<'a>>
+    SupportedRates => SupportedRatesElement<RatesReadIterator<'a>>,
+    DSSSParameterSet => DSSSParameterSetElement,
+    IBSSParameterSet => IBSSParameterSetElement,
+    BSSLoad => BSSLoadElement,
+    HTCapabilities => HTCapabilitiesElement,
+    ExtendedSupportedRates => ExtendedSupportedRatesElement<RatesReadIterator<'a>>,
+    HTOperation => HTOperationElement,
+    VendorSpecific => VendorSpecificElement<'a>
 }

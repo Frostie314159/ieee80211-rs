@@ -136,7 +136,7 @@ impl TryIntoCtx for HTOperationElement {
         Ok(offset)
     }
 }
-impl<'a> Element<'a> for HTOperationElement {
+impl Element for HTOperationElement {
     const ELEMENT_ID: ElementID = ElementID::Id(0x3d);
-    type ReadType = Self;
+    type ReadType<'a> = Self;
 }
