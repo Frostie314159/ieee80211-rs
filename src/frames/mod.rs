@@ -13,6 +13,7 @@ use self::{
     mgmt_frame::ManagementFrame,
 };
 
+/// This module contains structs around data frames.
 pub mod data_frame;
 pub mod mgmt_frame;
 
