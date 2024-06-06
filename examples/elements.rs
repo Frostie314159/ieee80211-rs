@@ -18,6 +18,6 @@ fn main() {
     let ssid_element = beacon.elements.get_first_element::<SSID>().unwrap();
     let supported_rates = beacon.elements.get_first_element::<SupportedRates>();
 
-    println!("SSID: {}", ssid_element.take_ssid());
+    println!("SSID: {}", ssid_element.ssid());
     println!("Supported rates: {:?}", supported_rates);
 }

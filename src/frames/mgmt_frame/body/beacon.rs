@@ -37,7 +37,7 @@ impl<'a> BeaconFrameBody<Elements<'a>> {
         // SSID should be the first TLV.
         self.elements
             .get_first_element::<SSID>()
-            .map(|ssid| ssid.take_ssid())
+            .map(|ssid| ssid.ssid())
     }
 }
 impl<ElementContainer: MeasureWith<()>> MeasureWith<()> for BeaconFrameBody<ElementContainer> {

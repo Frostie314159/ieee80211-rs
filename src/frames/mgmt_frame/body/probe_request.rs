@@ -12,19 +12,17 @@ use super::{ManagementFrameBody, ToManagementFrameBody};
 pub struct ProbeRequestBody<ElementContainer> {
     pub elements: ElementContainer,
 }
-impl ProbeRequestBody<Elements<'_>> {
+impl<'a> ProbeRequestBody<Elements<'a>> {
     /// The entire length in bytes.
     pub const fn length_in_bytes(&self) -> usize {
         self.elements.bytes.len()
     }
-}
-impl<'a> ProbeRequestBody<Elements<'a>> {
     /// Extract the SSID from the tlvs.
     pub fn ssid(&'a self) -> Option<&'a str> {
         // SSID should be the first TLV.
         self.elements
             .get_first_element::<SSID>()
-            .map(SSIDElement::take_ssid)
+            .map(SSIDElement::ssid)
     }
 }
 impl<ElementContainer: MeasureWith<()>> MeasureWith<()> for ProbeRequestBody<ElementContainer> {
