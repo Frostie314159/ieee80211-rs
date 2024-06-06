@@ -17,7 +17,26 @@ pub struct SupportedRatesElement<I>
 where
     I: IntoIterator<Item = EncodedRate>,
 {
-    pub supported_rates: I,
+    supported_rates: I,
+}
+impl<I: IntoIterator<Item = EncodedRate>> SupportedRatesElement<I> {
+    #[doc(hidden)]
+    // For internal use only.
+    pub const fn new_unchecked(supported_rates: I) -> Self {
+        Self { supported_rates }
+    }
+}
+impl<I: IntoIterator<Item = EncodedRate> + ExactSizeIterator> SupportedRatesElement<I> {
+    /// Create a new supported rates element.
+    ///
+    /// This returns [None], if more than eight rates are supplied.
+    pub fn new(supported_rates: I) -> Option<Self> {
+        if supported_rates.len() <= 8 {
+            Some(Self::new_unchecked(supported_rates))
+        } else {
+            None
+        }
+    }
 }
 impl<LhsIterator, RhsIterator> PartialEq<SupportedRatesElement<RhsIterator>>
     for SupportedRatesElement<LhsIterator>
@@ -122,12 +141,12 @@ macro_rules! rate {
 ///     1.5 B,
 ///     2
 /// ];
-/// assert_eq!(supported_rates_element, SupportedRatesElement {
-///     supported_rates: [
+/// assert_eq!(supported_rates_element, SupportedRatesElement::new_unchecked(
+///     [
 ///         rate!(1.5 B),
 ///         rate!(2)
-///     ]
-/// });
+///     ])
+/// );
 /// ```
 macro_rules! supported_rates {
     ($(
@@ -149,9 +168,7 @@ macro_rules! supported_rates {
             const _: () = {
                 assert!(RATES.len() <= 8, "More than eight rates are invalid.");
             };
-            const RESULT: SupportedRatesElement<[EncodedRate; RATE_COUNT]> = SupportedRatesElement {
-                supported_rates: RATES
-            };
+            const RESULT: SupportedRatesElement<[EncodedRate; RATE_COUNT]> = SupportedRatesElement::new_unchecked(RATES);
             RESULT
         }
     };

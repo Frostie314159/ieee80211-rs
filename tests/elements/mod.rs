@@ -1,6 +1,7 @@
 mod dsss_parameter_set;
 mod ibss_parameter_set;
 mod ssid;
+mod supported_rates;
 
 #[macro_export]
 macro_rules! gen_element_rw_test {
