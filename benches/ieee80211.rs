@@ -13,7 +13,10 @@ use scroll::{Pread, Pwrite};
 macro_rules! gen_frame_benchmark {
     ($name:ident) => {
         pub fn $name(criterion: &mut Criterion) {
-            let bytes = include_bytes!(concat!("../bins/frames/", concat!(stringify!($name), ".bin")));
+            let bytes = include_bytes!(concat!(
+                "../bins/frames/",
+                concat!(stringify!($name), ".bin")
+            ));
             criterion.bench_function(concat!(stringify!($name), "_read"), |b| {
                 b.iter(|| {
                     let _ = black_box(bytes).pread::<IEEE80211Frame>(0).unwrap();
