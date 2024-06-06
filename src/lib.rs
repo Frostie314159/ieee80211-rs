@@ -1,7 +1,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
 //! # ieee80211-rs
-//! This is a library for reading and writing IEEE 802.11(aka. WiFi) frames.
+//! This is a library for dealing with IEEE 802.11(aka. WiFi) frames.
+//! This includes reading and writing, but may in the future also include crypto primitives and other things related to WiFi frames.
 //! The library doesn't use allocations and instead of collections, there is heavy use of [Iterators](Iterator).
 //! If the library seems like a mess of generics, than that's absolutely correct.
 //! Generics allow us, to make the library comfortable to use.
