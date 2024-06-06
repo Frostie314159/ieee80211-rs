@@ -29,11 +29,12 @@ impl<S: AsRef<str>> SSIDElement<S> {
         Self(ssid)
     }
 
-    /// Take the SSID.
+    /// Get the ssid as a [str] reference.
     pub fn ssid(&self) -> &str {
         self.0.as_ref()
     }
 
+    /// Take the SSID.
     pub fn take_ssid(self) -> S {
         self.0
     }
