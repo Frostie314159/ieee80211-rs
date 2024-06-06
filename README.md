@@ -38,5 +38,8 @@ Every line of code should be tested. At the time of writing this(April 2024), th
 
 You should try and use your own code in practice, since that's the only way to truly test it. You could for example build a sniffer, which makes your code process real world data.
 
+## Access to IEEE 802.11
+IEEE 802.11 is copyrighted by the IEEE, which is why we can't just share it publicly. You can however acquire your own copy of the standard for free through the IEEE's [GET program](https://ieeexplore.ieee.org/browse/standards/get-program/page). It requires a free account and only grants you access to currently active standards, which are older than six months. This means, that we'll probably be able to implement IEEE 802.11be related functionality by mid summer 2025, since it's expected to be ratified in Q4 2024.
+
 ## License
 This library is licensed under the MIT or Apache-2.0 License at your option. 
