@@ -30,7 +30,7 @@ impl<S: AsRef<str>> SSIDElement<S> {
     }
 
     /// Take the SSID.
-    pub fn ssid<'a>(&'a self) -> &'a str {
+    pub fn ssid(&self) -> &str {
         self.0.as_ref()
     }
 
