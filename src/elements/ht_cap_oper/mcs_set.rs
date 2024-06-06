@@ -1,29 +1,53 @@
 use core::array;
 
-use macro_bits::{bit, bitfield, check_bit, set_bit};
+use bitfield_struct::bitfield;
+use macro_bits::{bit, check_bit, set_bit};
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
     Pread, Pwrite,
 };
 
-bitfield! {
-    #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-    /// The MCS's supported by the transmitter.
-    ///
-    /// Condition | Tx MCS Set Defined | Tx Rx MCS Set Not Equal | Tx Maximum Number Spatial Streams Supported | Tx Unequal Modulation Supported
-    /// -- | -- | -- | -- | --
-    /// No Tx MCS set is defined | 0 | 0 | 0 | 0
-    /// The Tx MCS set is defined to be equal to the Rx MCS set | 1 | 0 | 0 | 0
-    /// The Tx MCS set may differ from the Rx MCS set | 1 | 1 | * | *
-    pub struct SupportedMCSSetFlags: u64 {
-        /// The highest supported data rate.
-        pub rx_highest_supported_data_rate: u16 => bit!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9),
-        pub reserved: u8 => bit!(10, 11, 12, 13, 14, 15),
-        pub tx_mcs_set_defined: bool => bit!(16),
-        pub tx_rx_mcs_set_not_equal: bool => bit!(17),
-        pub tx_maximum_number_spatial_streams_supported: u8 => bit!(18, 19),
-        pub tx_unequal_modulation_supported: bool => bit!(20),
-        pub reserved_2: u16 => bit!(21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31)
+/// The MCS's supported by the transmitter.
+///
+/// Condition | Tx MCS Set Defined | Tx Rx MCS Set Not Equal | Tx Maximum Number Spatial Streams Supported | Tx Unequal Modulation Supported
+/// -- | -- | -- | -- | --
+/// No Tx MCS set is defined | true | true | 0 | false
+/// The Tx MCS set is defined to be equal to the Rx MCS set | true | false | 0 | false
+/// The Tx MCS set may differ from the Rx MCS set | true | true | * | *
+#[bitfield(u32)]
+#[derive(PartialEq, Eq, Hash)]
+pub struct SupportedMCSSetFlags {
+    /// The highest supported data rate.
+    #[bits(10)]
+    pub rx_highest_supported_data_rate: u16,
+    #[bits(6)]
+    pub __: u8,
+    pub tx_mcs_set_defined: bool,
+    pub tx_rx_mcs_set_not_equal: bool,
+    #[bits(2)]
+    pub tx_maximum_number_spatial_streams_supported: u8,
+    pub tx_unequal_modulation_supported: bool,
+    #[bits(11)]
+    pub __: u16,
+}
+impl SupportedMCSSetFlags {
+    /// Returns true, if no TX MCS set is defined.
+    pub const fn is_tx_mcs_undefined(&self) -> bool {
+        !(self.tx_mcs_set_defined()
+            && self.tx_rx_mcs_set_not_equal()
+            && self.tx_maximum_number_spatial_streams_supported() == 0
+            && self.tx_unequal_modulation_supported())
+    }
+    /// Returns true, if the TX and RX MCS set are defined to be equal.
+    pub const fn is_tx_rx_mcs_defined_equal(&self) -> bool {
+        self.is_tx_mcs_undefined()
+            && !self.tx_rx_mcs_set_not_equal()
+            && self.tx_maximum_number_spatial_streams_supported() == 0
+            && !self.tx_unequal_modulation_supported()
+    }
+    /// Returns true, if the TX MCS set may differ from the RX MCS set.
+    pub const fn may_tx_mcs_set_differ_from_rx(&self) -> bool {
+        self.is_tx_mcs_undefined() && self.tx_rx_mcs_set_not_equal()
     }
 }
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
@@ -53,10 +77,13 @@ impl TryFromCtx<'_> for SupportedMCSSet {
         let mut offset = 0;
 
         let supported_rx_mcs_set = from.gread(&mut offset)?;
-        let mut supported_rx_mcs_set_flags = [0u8; 8];
-        supported_rx_mcs_set_flags[..6].copy_from_slice(from.gread_with(&mut offset, 6)?);
+        let mut supported_rx_mcs_set_flags = [0u8; 4];
+        supported_rx_mcs_set_flags
+            .as_mut_slice()
+            .copy_from_slice(from.gread_with(&mut offset, 4)?);
+        offset += 2;
         let supported_rx_mcs_set_flags =
-            SupportedMCSSetFlags::from_bits(u64::from_le_bytes(supported_rx_mcs_set_flags));
+            SupportedMCSSetFlags::from_bits(u32::from_le_bytes(supported_rx_mcs_set_flags));
 
         Ok((
             Self {
