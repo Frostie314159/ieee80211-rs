@@ -25,5 +25,5 @@ name = "ieee80211"
 harness = false
 
 [features]
-std = []
-default = ["std"]
+alloc = []
+default = []

@@ -33,8 +33,8 @@ impl EncodedRate {
         Self::new().with_rate((rate / 500) as u8).with_is_b(is_b)
     }
 }
-#[cfg(feature = "std")]
-impl ::std::fmt::Display for EncodedRate {
+#[cfg(feature = "alloc")]
+impl ::alloc::fmt::Display for EncodedRate {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_fmt(format_args!(
             "{}Mbit/s {}",
