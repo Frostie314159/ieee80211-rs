@@ -17,6 +17,9 @@ pub use disassoc::DisassociationFrameBody;
 mod probe_request;
 pub use probe_request::ProbeRequestBody;
 
+mod assoc;
+pub use assoc::{AssociationRequestBody, AssociationResponseBody};
+
 macro_rules! management_frame_bodies {
     (
         $(
@@ -169,6 +172,8 @@ management_frame_bodies! {
         ElementContainer: TryIntoCtx<Error = scroll::Error>, MeasureWith<()> = Elements<'a>,
         ActionFramePayload: TryIntoCtx<Error = scroll::Error>, MeasureWith<()> = &'a [u8]
     > {
+        AssociationRequest: 0b0000 => AssociationRequestBody<ElementContainer>,
+        AssociationResponse: 0b0001 => AssociationResponseBody<ElementContainer>,
         ProbeRequest: 0b0100 => ProbeRequestBody<ElementContainer>,
         Beacon: 0b1000 => BeaconFrameBody<ElementContainer>,
         ATIM: 0b1001,
