@@ -76,6 +76,11 @@ impl<'a> Element for SSIDElement<'a> {
     const ELEMENT_ID: ElementID = ElementID::Id(0x00);
     type ReadType<'b> = SSIDElement<'b>;
 }
+impl<'a> AsRef<str> for SSIDElement<'a> {
+    fn as_ref(&self) -> &'a str {
+        self.ssid()
+    }
+}
 #[macro_export]
 /// Generate an SSID element, while performing all validation at compile time.
 ///
