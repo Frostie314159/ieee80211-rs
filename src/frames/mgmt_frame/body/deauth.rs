@@ -5,6 +5,7 @@ use scroll::{
 
 use crate::{common::reason::IEEE80211Reason, elements::Elements};
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// This is the body of a deauthentication frame.
 pub struct DeauthenticationBody<ElementContainer> {
     /// The reason for the deauthentication.

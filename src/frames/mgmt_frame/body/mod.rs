@@ -181,6 +181,7 @@ management_frame_bodies! {
         Beacon: 0b1000 => BeaconFrameBody<ElementContainer>,
         ATIM: 0b1001,
         Disassociation: 0b1010 => DisassociationFrameBody<ElementContainer>,
+        Deauthentication: 0b1100 => DeauthenticationBody<ElementContainer>,
         Action: 0b1101 => ActionFrameBody<ActionFramePayload>,
         ActionNoACK: 0b1110 => ActionFrameBody<ActionFramePayload>
     }
