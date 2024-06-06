@@ -21,8 +21,6 @@ pub mod common;
 pub mod elements;
 mod frames;
 
-#[doc(hidden)]
-pub mod type_state;
 pub use frames::*;
 
 pub use const_soft_float;

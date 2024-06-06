@@ -15,6 +15,7 @@ pub mod read_iterator;
 
 pub mod capabilities;
 pub mod reason;
+pub mod type_state;
 
 /// This is one **T**ime **U**nit, which equalls 1024µs.
 pub const TU: Duration = Duration::from_micros(1024);

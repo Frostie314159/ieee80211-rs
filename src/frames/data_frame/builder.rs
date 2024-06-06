@@ -2,10 +2,7 @@ use core::marker::PhantomData;
 use mac_parser::MACAddress;
 use scroll::ctx::TryIntoCtx;
 
-use crate::{
-    common::{subtypes::DataFrameSubtype, FCFFlags, SequenceControl},
-    type_state::*,
-};
+use crate::common::{subtypes::DataFrameSubtype, type_state::*, FCFFlags, SequenceControl};
 
 use self::type_state::{Data, DataFrameCategory, DataNull, HasPayload, QoS, QoSNull};
 
