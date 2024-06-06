@@ -101,7 +101,7 @@ impl TryIntoCtx for SupportedMCSSet {
 
         buf.gwrite(self.supported_rx_mcs_set, &mut offset)?;
         buf.gwrite(
-            &self.supported_rx_mcs_set_flags.into_bits().to_le_bytes()[..6],
+            &(self.supported_rx_mcs_set_flags.into_bits() as u64).to_le_bytes()[..6],
             &mut offset,
         )?;
 
