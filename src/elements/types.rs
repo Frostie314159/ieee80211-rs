@@ -28,7 +28,7 @@ macro_rules! gen_element_type_reprs {
     };
 }
 gen_element_type_reprs! {
-    SSIDRepr => SSIDElement<'a>,
+    SSIDRepr => SSIDElement<&'a str>,
     SupportedRatesRepr => SupportedRatesElement<RatesReadIterator<'a>>,
     DSSSParameterSetRepr => DSSSParameterSetElement,
     IBSSParameterSetRepr => IBSSParameterSetElement,

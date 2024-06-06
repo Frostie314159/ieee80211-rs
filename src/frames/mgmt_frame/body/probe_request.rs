@@ -25,7 +25,7 @@ impl<'a> ProbeRequestBody<Elements<'a>> {
         // SSID should be the first TLV.
         self.elements
             .get_first_element::<SSIDRepr>()
-            .map(SSIDElement::ssid)
+            .map(SSIDElement::take_ssid)
     }
 }
 impl<ElementContainer: MeasureWith<()>> MeasureWith<()> for ProbeRequestBody<ElementContainer> {

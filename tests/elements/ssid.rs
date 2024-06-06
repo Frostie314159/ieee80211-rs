@@ -6,15 +6,15 @@ use crate::gen_element_rw_test;
 // This isn't doesn't really matter, since it's short enough to audit by hand.
 
 const EXPECTED_SSID_STRING: &str = "OpenRF";
-const EXPECTED_SSID_ELEMENT: SSIDElement = ssid!(EXPECTED_SSID_STRING);
+const EXPECTED_SSID_ELEMENT: SSIDElement<&str> = ssid!(EXPECTED_SSID_STRING);
 const EXPECTED_SSID_ELEMENT_BYTES: &[u8] = EXPECTED_SSID_STRING.as_bytes();
-const WILDCARD_SSID_ELEMENT: SSIDElement = ssid!("");
+const WILDCARD_SSID_ELEMENT: SSIDElement<&str> = ssid!("");
 // One byte too long.
 const INVALID_SSID_STRING: &str = "Lorem ipsum dolor sit amet augue.";
 
 gen_element_rw_test!(
     test_ssid_element_rw,
-    SSIDElement,
+    SSIDElement<&str>,
     EXPECTED_SSID_ELEMENT,
     EXPECTED_SSID_ELEMENT_BYTES
 );
