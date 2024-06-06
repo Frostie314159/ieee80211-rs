@@ -15,6 +15,7 @@ macro_rules! gen_element_type_reprs {
         ),*
     ) => {
         $(
+            #[doc = concat!("This is the type state representation for the ", concat!("[", concat!(stringify!($element_type_repr), "Element].")))]
             pub struct $element_type_repr;
             impl ElementTypeRepr for $element_type_repr {
                 type ElementType<'a> = $element_type;

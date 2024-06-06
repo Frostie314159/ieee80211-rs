@@ -40,15 +40,22 @@ pub enum ElementID {
     ExtId(u8),
 }
 impl ElementID {
+    /// Checks if this element ID is an extended element ID.
     pub const fn is_ext(&self) -> bool {
         matches!(self, Self::ExtId(_))
     }
+    /// Returns the ID used for matching.
+    ///
+    /// If [Self::is_ext] is true, this returns 255.
     pub const fn id(&self) -> u8 {
         match self {
             Self::Id(id) => *id,
             Self::ExtId(_) => 0xff,
         }
     }
+    /// Returns the extended ID.
+    ///
+    /// If [Self::is_ext] is false, this returns None.
     pub const fn ext_id(&self) -> Option<u8> {
         match self {
             Self::Id(_) => None,
@@ -59,7 +66,9 @@ impl ElementID {
 
 /// A trait representing shared behaviour between elements.
 pub trait Element: Sized + MeasureWith<()> + TryIntoCtx<Error = scroll::Error> {
+    /// The ID of this element.
     const ELEMENT_ID: ElementID;
+    /// The type returned, by reading this element.bi
     type ReadType<'a>: TryFromCtx<'a, Error = scroll::Error>;
 }
 
@@ -164,6 +173,7 @@ impl<'a> Elements<'a> {
         }
         .and_then(|slice| slice.pread(0).ok())
     }
+    /// This returns the first element, matchign the specified element type.
     pub fn get_first_element<ElementType: ElementTypeRepr>(
         &'a self,
     ) -> Option<<<ElementType as ElementTypeRepr>::ElementType<'a> as Element>::ReadType<'a>> {
