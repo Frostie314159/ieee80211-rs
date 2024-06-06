@@ -1,4 +1,5 @@
 mod ssid;
+mod dsss_parameter_set;
 
 #[macro_export]
 macro_rules! gen_element_rw_test {
