@@ -19,5 +19,5 @@ pub struct CapabilitiesInformation {
     pub is_radio_measurement_implemented: bool,
     pub is_epd_implemented: bool,
     #[bits(2)]
-    __: u8
+    __: u8,
 }

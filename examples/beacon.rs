@@ -1,7 +1,7 @@
 use ieee80211::{
     elements::element_chain::ElementChainEnd,
     mgmt_frame::{
-        body::{beacon::BeaconFrameBody, ManagementFrameBody, ToManagementFrameBody},
+        body::{BeaconFrameBody, ManagementFrameBody, ToManagementFrameBody},
         ManagementFrame,
     },
     ssid, IEEE80211Frame, ToFrame,

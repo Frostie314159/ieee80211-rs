@@ -13,8 +13,8 @@ pub mod subtypes;
 
 pub mod read_iterator;
 
-pub mod reason;
 pub mod capabilities;
+pub mod reason;
 
 /// This is one **T**ime **U**nit, which equalls 1024µs.
 pub const TU: Duration = Duration::from_micros(1024);
@@ -62,9 +62,9 @@ impl From<FrameType> for u16 {
     }
 }
 
+/// These are the flags included in the frame control field.
 #[bitfield(u8)]
 #[derive(PartialEq, Eq, Hash)]
-/// These are the flags included in the frame control field.
 pub struct FCFFlags {
     /// This frame is going to the distribution system.
     pub to_ds: bool,

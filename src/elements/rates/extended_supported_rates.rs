@@ -67,9 +67,7 @@ impl<I: IntoIterator<Item = EncodedRate>> TryIntoCtx for ExtendedSupportedRatesE
         Ok(offset)
     }
 }
-impl<I: IntoIterator<Item = EncodedRate> + Clone> Element
-    for ExtendedSupportedRatesElement<I>
-{
+impl<I: IntoIterator<Item = EncodedRate> + Clone> Element for ExtendedSupportedRatesElement<I> {
     const ELEMENT_ID: ElementID = ElementID::Id(0x32);
     type ReadType<'a> = ExtendedSupportedRatesElement<RatesReadIterator<'a>>;
 }

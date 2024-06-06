@@ -5,19 +5,19 @@ use scroll::{
 
 use crate::elements::Elements;
 
-use self::{
-    action::ActionFrameBody, beacon::BeaconFrameBody, disassoc::DisassociationFrameBody,
-    probe_request::ProbeRequestBody,
-};
+use self::action::ActionFrameBody;
 
 /// This module contains structs related to action frames
 pub mod action;
-/// This module contains the body for the beacon frame.
-pub mod beacon;
-/// This module contains the body for a disassociation frame.
-pub mod disassoc;
 
-pub mod probe_request;
+mod beacon;
+pub use beacon::BeaconFrameBody;
+
+mod disassoc;
+pub use disassoc::DisassociationFrameBody;
+
+mod probe_request;
+pub use probe_request::ProbeRequestBody;
 
 macro_rules! management_frame_bodies {
     (

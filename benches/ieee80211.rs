@@ -2,7 +2,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use ieee80211::{
     elements::element_chain::{ChainElement, ElementChainEnd},
     mgmt_frame::{
-        body::{beacon::BeaconFrameBody, ToManagementFrameBody},
+        body::{BeaconFrameBody, ToManagementFrameBody},
         header::ManagementFrameHeader,
         ManagementFrame,
     },
@@ -40,7 +40,8 @@ pub fn element_chain(criterion: &mut Criterion) {
             ..Default::default()
         }
         .to_management_frame_body(),
-    }.to_frame();
+    }
+    .to_frame();
     let mut buf = [0x00; 0xff];
     criterion.bench_function("element_chain_write", |b| {
         b.iter(|| {

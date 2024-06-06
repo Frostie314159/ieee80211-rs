@@ -1,5 +1,8 @@
 use super::{
-    ht_cap_oper::{HTCapabilitiesElement, HTOperationElement}, rates::{ExtendedSupportedRatesElement, RatesReadIterator, SupportedRatesElement}, vendor_specific_element::VendorSpecificElement, BSSLoadElement, DSSSParameterSetElement, Element, IBSSParameterSetElement, SSIDElement
+    ht_cap_oper::{HTCapabilitiesElement, HTOperationElement},
+    rates::{ExtendedSupportedRatesElement, RatesReadIterator, SupportedRatesElement},
+    vendor_specific_element::VendorSpecificElement,
+    BSSLoadElement, DSSSParameterSetElement, Element, IBSSParameterSetElement, SSIDElement,
 };
 
 pub trait ElementTypeRepr {
