@@ -30,11 +30,15 @@ impl<'a> TryFromCtx<'a> for DisassociationFrameBody<Elements<'a>> {
         let mut offset = 0;
 
         let reason = IEEE80211Reason::from_bits(from.gread_with(&mut offset, Endian::Little)?);
-        let body = Elements {
-            bytes: &from[offset..],
-        };
+        let elements = from.gread(&mut offset)?;
 
-        Ok((Self { reason, elements: body }, offset))
+        Ok((
+            Self {
+                reason,
+                elements,
+            },
+            offset,
+        ))
     }
 }
 impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx

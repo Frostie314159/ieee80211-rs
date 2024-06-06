@@ -1,4 +1,4 @@
-use scroll::ctx::{MeasureWith, TryFromCtx, TryIntoCtx};
+use scroll::{ctx::{MeasureWith, TryFromCtx, TryIntoCtx}, Pread};
 
 use crate::{
     common::Empty,
@@ -33,11 +33,13 @@ impl<ElementContainer: MeasureWith<()>> MeasureWith<()> for ProbeRequestBody<Ele
 impl<'a> TryFromCtx<'a> for ProbeRequestBody<Elements<'a>> {
     type Error = scroll::Error;
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
+        let mut offset = 0;
+        let elements = from.gread(&mut offset)?;
         Ok((
             Self {
-                elements: Elements { bytes: from },
+                elements,
             },
-            from.len(),
+            offset,
         ))
     }
 }

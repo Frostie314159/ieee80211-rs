@@ -5,10 +5,8 @@ use scroll::{
 
 use crate::elements::Elements;
 
-use self::action::ActionFrameBody;
-
-/// This module contains structs related to action frames
-pub mod action;
+mod action;
+pub use action::ActionFrameBody;
 
 mod beacon;
 pub use beacon::BeaconFrameBody;

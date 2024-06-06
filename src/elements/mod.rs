@@ -190,6 +190,12 @@ impl<'a> Elements<'a> {
             .filter_map(Self::filter_element::<ElementType>)
     }
 }
+impl<'a> TryFromCtx<'a> for Elements<'a> {
+    type Error = scroll::Error;
+    fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
+        Ok((Elements { bytes: from }, from.len()))
+    }
+}
 impl TryIntoCtx for Elements<'_> {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {

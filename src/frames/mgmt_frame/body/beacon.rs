@@ -54,10 +54,7 @@ impl<'a> TryFromCtx<'a> for BeaconFrameBody<Elements<'a>> {
         let beacon_interval = from.gread_with(&mut offset, Endian::Little)?;
         let capabilities_info =
             CapabilitiesInformation::from_bits(from.gread_with(&mut offset, Endian::Little)?);
-        let elements = Elements {
-            bytes: &from[offset..],
-        };
-        offset += elements.bytes.len();
+        let elements = from.gread(&mut offset)?;
 
         Ok((
             Self {
