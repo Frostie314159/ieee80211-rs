@@ -1,35 +1,16 @@
 use core::time::Duration;
 
-use macro_bits::{bit, bitfield};
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
     Endian, Pread, Pwrite,
 };
 
 use crate::{
-    common::{Empty, TU},
+    common::{capabilities::CapabilitiesInformation, Empty, TU},
     elements::{types::SSID, Elements},
 };
 
 use super::{ManagementFrameBody, ToManagementFrameBody};
-
-bitfield! {
-    #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-    /// This bitfield contains the capabilities of the sender.
-    pub struct CapabilitiesInformation: u16 {
-        pub is_ap: bool => bit!(0),
-        pub is_ibss: bool => bit!(1),
-        pub is_confidentially_required: bool => bit!(4),
-        pub is_short_preamble_allowed: bool => bit!(5),
-        pub is_spectrum_management_implemented: bool => bit!(8),
-        pub is_qos_implemented: bool => bit!(9),
-        pub is_short_time_slot_in_use: bool => bit!(10),
-        pub is_auto_power_save_implemented: bool => bit!(11),
-        pub is_radio_measurement_implemented: bool => bit!(12),
-        pub is_epd_implemented: bool => bit!(13),
-        pub reserved: u8 => bit!(14, 15)
-    }
-}
 
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 /// This is the body of a beacon frame.
