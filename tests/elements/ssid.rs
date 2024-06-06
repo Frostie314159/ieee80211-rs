@@ -33,9 +33,7 @@ fn test_ssid_element_misc() {
     );
     assert_eq!(
         SSIDElement::new(EXPECTED_SSID_STRING),
-        Some(
-            SSIDElement::new_unchecked(EXPECTED_SSID_STRING)
-        ),
+        Some(SSIDElement::new_unchecked(EXPECTED_SSID_STRING)),
         "Creating a SSID element, with a valid SSID failed."
     );
     assert!(

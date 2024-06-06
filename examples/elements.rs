@@ -1,5 +1,5 @@
 use ieee80211::{
-    elements::types::{SupportedRatesRepr, SSIDRepr},
+    elements::types::{SSIDRepr, SupportedRatesRepr},
     mgmt_frame::body::ManagementFrameBody,
     IEEE80211Frame,
 };
