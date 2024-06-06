@@ -10,10 +10,10 @@ use ieee80211::{
 };
 use scroll::{Pread, Pwrite};
 
-macro_rules! gen_benchmark {
+macro_rules! gen_frame_benchmark {
     ($name:ident) => {
         pub fn $name(criterion: &mut Criterion) {
-            let bytes = include_bytes!(concat!("../bins/", concat!(stringify!($name), ".bin")));
+            let bytes = include_bytes!(concat!("../bins/frames/", concat!(stringify!($name), ".bin")));
             criterion.bench_function(concat!(stringify!($name), "_read"), |b| {
                 b.iter(|| {
                     let _ = black_box(bytes).pread::<IEEE80211Frame>(0).unwrap();
@@ -29,9 +29,9 @@ macro_rules! gen_benchmark {
         }
     };
 }
-gen_benchmark!(qos_data);
-gen_benchmark!(beacon);
-gen_benchmark!(action_vendor);
+gen_frame_benchmark!(qos_data);
+gen_frame_benchmark!(beacon);
+gen_frame_benchmark!(action_vendor);
 pub fn element_chain(criterion: &mut Criterion) {
     let frame = ManagementFrame {
         header: ManagementFrameHeader::default(),

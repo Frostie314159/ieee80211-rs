@@ -6,7 +6,7 @@ use ieee80211::{
 use scroll::Pread;
 
 fn main() {
-    let bytes = include_bytes!("../bins/beacon.bin");
+    let bytes = include_bytes!("../bins/frames/beacon.bin");
     let frame = bytes.pread::<IEEE80211Frame>(0).unwrap();
     let IEEE80211Frame::Management(mgmt_frame) = frame else {
         todo!()
