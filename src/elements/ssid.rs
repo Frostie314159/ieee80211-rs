@@ -79,6 +79,8 @@ impl<'a> Element for SSIDElement<'a> {
 }
 #[macro_export]
 /// Generate an SSID element, while performing all validation at compile time.
+/// 
+/// This macro requires, that the passed parameter is either a literal or a const and must be a `&str`.
 ///
 /// ```
 /// use ieee80211::ssid;
@@ -87,7 +89,7 @@ impl<'a> Element for SSIDElement<'a> {
 /// assert_eq!(ssid_element.ssid(), "OpenRF");
 /// ```
 macro_rules! ssid {
-    ($ssid:literal) => {{
+    ($ssid:expr) => {{
         use ::ieee80211::elements::SSIDElement;
         const RESULT: SSIDElement = {
             assert!(
