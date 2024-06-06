@@ -36,7 +36,7 @@ pub fn element_chain(criterion: &mut Criterion) {
     let frame = ManagementFrame {
         header: ManagementFrameHeader::default(),
         body: BeaconFrameBody {
-            body: ElementChainEnd::new(ssid!("OpenRF")).append(supported_rates![1]),
+            elements: ElementChainEnd::new(ssid!("OpenRF")).append(supported_rates![1]),
             ..Default::default()
         }
         .to_management_frame_body(),

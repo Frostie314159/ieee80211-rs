@@ -15,8 +15,8 @@ fn main() {
         todo!()
     };
     // There is a method that does this automatically, see beacon.rs.
-    let ssid_element = beacon.body.get_first_element::<SSID>().unwrap();
-    let supported_rates = beacon.body.get_first_element::<SupportedRates>();
+    let ssid_element = beacon.elements.get_first_element::<SSID>().unwrap();
+    let supported_rates = beacon.elements.get_first_element::<SupportedRates>();
 
     println!("SSID: {}", ssid_element.take_ssid());
     println!("Supported rates: {:?}", supported_rates);

@@ -10,18 +10,18 @@ use crate::{common::reason::IEEE80211Reason, elements::Elements};
 pub struct DisassociationFrameBody<ElementContainer> {
     /// The reason for the disassociation.
     pub reason: IEEE80211Reason,
-    pub body: ElementContainer,
+    pub elements: ElementContainer,
 }
 impl DisassociationFrameBody<Elements<'_>> {
     pub const fn length_in_bytes(&self) -> usize {
-        2 + self.body.bytes.len()
+        2 + self.elements.bytes.len()
     }
 }
 impl<ElementContainer: MeasureWith<()>> MeasureWith<()>
     for DisassociationFrameBody<ElementContainer>
 {
     fn measure_with(&self, ctx: &()) -> usize {
-        2 + self.body.measure_with(ctx)
+        2 + self.elements.measure_with(ctx)
     }
 }
 impl<'a> TryFromCtx<'a> for DisassociationFrameBody<Elements<'a>> {
@@ -34,7 +34,7 @@ impl<'a> TryFromCtx<'a> for DisassociationFrameBody<Elements<'a>> {
             bytes: &from[offset..],
         };
 
-        Ok((Self { reason, body }, offset))
+        Ok((Self { reason, elements: body }, offset))
     }
 }
 impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
@@ -45,7 +45,7 @@ impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
         let mut offset = 0;
 
         buf.gwrite_with(self.reason.into_bits(), &mut offset, Endian::Little)?;
-        buf.gwrite(self.body, &mut offset)?;
+        buf.gwrite(self.elements, &mut offset)?;
 
         Ok(offset)
     }

@@ -159,21 +159,6 @@ macro_rules! management_frame_bodies {
         {
             fn to_management_frame_body(self) -> $enum_name<$lt, $($enum_generic),*>;
         }
-        /* $(
-            ::ieee80211_proc_macros::generate_to_management_frame_body_impl! {
-                $body_name<$($($body_generics),*)?>,
-                [
-                    $(
-                        $enum_generic = $enum_generic_default
-                    ),*
-                ],
-                [
-                    $(
-                        $body_generics
-                    ),*
-                ]
-            }
-        )* */
     };
 }
 

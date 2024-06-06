@@ -53,7 +53,7 @@ fn main() {
         capabilities_info: beacon.capabilities_info,
         timestamp: beacon.timestamp,
         beacon_interval: beacon.beacon_interval,
-        body: ElementChainEnd::new(ssid!("OpenRF")),
+        elements: ElementChainEnd::new(ssid!("OpenRF")),
     }
     .to_management_frame_body();
     let management_frame = ManagementFrame {

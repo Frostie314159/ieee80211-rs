@@ -12,22 +12,20 @@ use crate::{
 
 use super::{ManagementFrameBody, ToManagementFrameBody};
 
-#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 /// This is the body of a beacon frame.
-/// The generic parameter can be any type, which implements [IntoIterator<Item = IEEE80211TLV<'_>>](IntoIterator).
-/// When reading this struct the generic parameter is set to [ElementReadIterator].
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 pub struct BeaconFrameBody<ElementContainer> {
     pub timestamp: u64,
     pub beacon_interval: u16,
     pub capabilities_info: CapabilitiesInformation,
-    pub body: ElementContainer,
+    pub elements: ElementContainer,
 }
 impl<'a> BeaconFrameBody<Elements<'a>> {
     pub const fn length_in_bytes(&'a self) -> usize {
         8 + // Timestamp
         2 + // Beacon interval
         2 + // Capabilities information
-        self.body.bytes.len()
+        self.elements.bytes.len()
     }
 }
 impl<'a> BeaconFrameBody<Elements<'a>> {
@@ -37,14 +35,14 @@ impl<'a> BeaconFrameBody<Elements<'a>> {
     /// Extract the SSID from the tlvs.
     pub fn ssid(&'a self) -> Option<&'a str> {
         // SSID should be the first TLV.
-        self.body
+        self.elements
             .get_first_element::<SSID>()
             .map(|ssid| ssid.take_ssid())
     }
 }
 impl<ElementContainer: MeasureWith<()>> MeasureWith<()> for BeaconFrameBody<ElementContainer> {
     fn measure_with(&self, ctx: &()) -> usize {
-        12 + self.body.measure_with(ctx)
+        12 + self.elements.measure_with(ctx)
     }
 }
 impl<'a> TryFromCtx<'a> for BeaconFrameBody<Elements<'a>> {
@@ -56,16 +54,17 @@ impl<'a> TryFromCtx<'a> for BeaconFrameBody<Elements<'a>> {
         let beacon_interval = from.gread_with(&mut offset, Endian::Little)?;
         let capabilities_info =
             CapabilitiesInformation::from_bits(from.gread_with(&mut offset, Endian::Little)?);
-
-        let body = Elements {
+        let elements = Elements {
             bytes: &from[offset..],
         };
+        offset += elements.bytes.len();
+
         Ok((
             Self {
                 timestamp,
                 beacon_interval,
                 capabilities_info,
-                body,
+                elements,
             },
             offset,
         ))
@@ -85,7 +84,7 @@ impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
             &mut offset,
             Endian::Little,
         )?;
-        buf.gwrite(self.body, &mut offset)?;
+        buf.gwrite(self.elements, &mut offset)?;
 
         Ok(offset)
     }
