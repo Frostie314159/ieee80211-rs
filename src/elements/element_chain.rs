@@ -42,12 +42,14 @@ pub struct ElementChainEnd<Inner> {
     pub inner: Inner,
 }
 impl<'a, Inner: Element> ElementChainEnd<Inner> {
+    #[inline]
     pub const fn new(inner: Inner) -> Self {
         Self { inner }
     }
 }
 impl<Inner> ChainElement for ElementChainEnd<Inner> {
     type Appended<Appendee> = ElementChainLink<Inner, ElementChainEnd<Appendee>>;
+    #[inline]
     fn append<T: Element>(self, value: T) -> Self::Appended<T> {
         ElementChainLink {
             inner: self.inner,
@@ -59,6 +61,7 @@ impl<Inner> MeasureWith<()> for ElementChainEnd<Inner>
 where
     Inner: Element,
 {
+    #[inline]
     fn measure_with(&self, ctx: &()) -> usize {
         self.inner.measure_with(ctx) + if Inner::ELEMENT_ID.is_ext() { 3 } else { 2 }
     }
@@ -68,6 +71,7 @@ where
     Inner: Element,
 {
     type Error = scroll::Error;
+    #[inline]
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         // TODO: Move this to shared code somehow.
         match Inner::ELEMENT_ID {
@@ -103,6 +107,7 @@ pub struct ElementChainLink<Inner, Child: ChainElement> {
 }
 impl<Inner, Child: ChainElement> ChainElement for ElementChainLink<Inner, Child> {
     type Appended<Appendee> = ElementChainLink<Inner, <Child as ChainElement>::Appended<Appendee>>;
+    #[inline]
     fn append<T: Element>(self, value: T) -> Self::Appended<T> {
         ElementChainLink {
             inner: self.inner,
@@ -115,6 +120,7 @@ where
     Inner: Element,
     Child: TryIntoCtx<Error = scroll::Error> + MeasureWith<()> + ChainElement,
 {
+    #[inline]
     fn measure_with(&self, ctx: &()) -> usize {
         self.inner.measure_with(ctx)
             + if Inner::ELEMENT_ID.is_ext() { 3 } else { 2 }
@@ -127,6 +133,7 @@ where
     Child: TryIntoCtx<Error = scroll::Error> + ChainElement,
 {
     type Error = scroll::Error;
+    #[inline]
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         let mut offset = 0;
         match Inner::ELEMENT_ID {
