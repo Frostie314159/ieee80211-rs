@@ -1,5 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
+#![deny(unused)]
 //! # ieee80211-rs
 //! This is a library for dealing with IEEE 802.11(aka. WiFi) frames.
 //! This includes reading and writing, but may in the future also include crypto primitives and other things related to WiFi frames.

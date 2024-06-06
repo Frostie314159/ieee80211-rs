@@ -1,6 +1,8 @@
 use ieee80211::{
-    elements::rates::{EncodedRate, RatesReadIterator, SupportedRatesElement},
-    rate, supported_rates,
+    elements::rates::{
+        EncodedRate, ExtendedSupportedRatesElement, RatesReadIterator, SupportedRatesElement,
+    },
+    extended_supported_rates, rate, supported_rates,
 };
 
 use crate::gen_element_rw_test;
@@ -11,6 +13,11 @@ const EXPECTED_SUPPORTED_RATES: SupportedRatesElement<[EncodedRate; 1]> = suppor
     1.5 B
 ];
 const EXPECTED_SUPPORTED_RATES_BYTES: &[u8] = &[EXPECTED_ENCODED_RATE];
+const EXPECTED_EXTENDED_SUPPORTED_RATES: ExtendedSupportedRatesElement<[EncodedRate; 2]> = extended_supported_rates![
+    1.5 B,
+    2
+];
+const EXPECTED_EXTENDED_SUPPORTED_RATES_BYTES: &[u8] = &[0x83, 0x04];
 
 #[test]
 fn test_encoded_rate() {
@@ -34,9 +41,34 @@ fn test_encoded_rate() {
         "Rate wasn't indicated to be 1.5Mb/s"
     );
 }
+#[test]
+fn test_supported_rates_misc() {
+    assert!(
+        SupportedRatesElement::new([rate!(1.5 B)]).is_some(),
+        "Creating a supported rates element, with valid rates, failed."
+    );
+    assert!(
+        SupportedRatesElement::new([rate!(1.5 B); 9]).is_none(),
+        "Creating a supported rates element, with invalid rates, succeeded."
+    );
+    assert!(
+        ExtendedSupportedRatesElement::new([rate!(1.5 B)]).is_some(),
+        "Creating an extended supported rates element, with valid rates, failed."
+    );
+    assert!(
+        ExtendedSupportedRatesElement::new([rate!(1.5 B); 252]).is_none(),
+        "Creating an extended supported rates element, with invalid rates, succeeded."
+    );
+}
 gen_element_rw_test!(
     test_supported_rates_rw,
     SupportedRatesElement<RatesReadIterator<'_>>,
     EXPECTED_SUPPORTED_RATES,
     EXPECTED_SUPPORTED_RATES_BYTES
+);
+gen_element_rw_test!(
+    test_extended_supported_rates_rw,
+    ExtendedSupportedRatesElement<RatesReadIterator<'_>>,
+    EXPECTED_EXTENDED_SUPPORTED_RATES,
+    EXPECTED_EXTENDED_SUPPORTED_RATES_BYTES
 );

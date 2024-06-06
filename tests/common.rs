@@ -1,1 +1,2 @@
+#![deny(unused)]
 mod elements;

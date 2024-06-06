@@ -26,12 +26,16 @@ impl<I: IntoIterator<Item = EncodedRate>> SupportedRatesElement<I> {
         Self { supported_rates }
     }
 }
-impl<I: IntoIterator<Item = EncodedRate> + ExactSizeIterator> SupportedRatesElement<I> {
+impl<I> SupportedRatesElement<I>
+where
+    I: IntoIterator<Item = EncodedRate> + Clone,
+    I::IntoIter: ExactSizeIterator,
+{
     /// Create a new supported rates element.
     ///
     /// This returns [None], if more than eight rates are supplied.
     pub fn new(supported_rates: I) -> Option<Self> {
-        if supported_rates.len() <= 8 {
+        if supported_rates.clone().into_iter().len() <= 8 {
             Some(Self::new_unchecked(supported_rates))
         } else {
             None

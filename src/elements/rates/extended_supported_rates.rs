@@ -16,7 +16,30 @@ pub struct ExtendedSupportedRatesElement<I>
 where
     I: IntoIterator<Item = EncodedRate>,
 {
-    pub supported_rates: I,
+    supported_rates: I,
+}
+impl<I: IntoIterator<Item = EncodedRate>> ExtendedSupportedRatesElement<I> {
+    #[doc(hidden)]
+    // For internal use only.
+    pub const fn new_unchecked(supported_rates: I) -> Self {
+        Self { supported_rates }
+    }
+}
+impl<I> ExtendedSupportedRatesElement<I>
+where
+    I: IntoIterator<Item = EncodedRate> + Clone,
+    I::IntoIter: ExactSizeIterator,
+{
+    /// Create a new supported rates element.
+    ///
+    /// This returns [None], if more than 251 rates are supplied.
+    pub fn new(supported_rates: I) -> Option<Self> {
+        if supported_rates.clone().into_iter().len() <= 251 {
+            Some(Self::new_unchecked(supported_rates))
+        } else {
+            None
+        }
+    }
 }
 impl<LhsIterator, RhsIterator> PartialEq<ExtendedSupportedRatesElement<RhsIterator>>
     for ExtendedSupportedRatesElement<LhsIterator>
@@ -82,12 +105,10 @@ impl<I: IntoIterator<Item = EncodedRate> + Clone> Element for ExtendedSupportedR
 ///     1.5,
 ///     2
 /// ];
-/// assert_eq!(extended_supported_rates_element, ExtendedSupportedRatesElement {
-///     supported_rates: [
-///         rate!(1.5),
-///         rate!(2)
-///     ]
-/// });
+/// assert_eq!(extended_supported_rates_element, ExtendedSupportedRatesElement::new_unchecked([
+///     rate!(1.5),
+///     rate!(2)
+/// ]));
 /// ```
 macro_rules! extended_supported_rates {
     ($(
@@ -109,9 +130,7 @@ macro_rules! extended_supported_rates {
             const _: () = {
                 assert!(RATES.len() <= 251, "More than 251 rates are invalid.");
             };
-            const RESULT: ExtendedSupportedRatesElement<[EncodedRate; RATE_COUNT]> = ExtendedSupportedRatesElement {
-                supported_rates: RATES
-            };
+            const RESULT: ExtendedSupportedRatesElement<[EncodedRate; RATE_COUNT]> = ExtendedSupportedRatesElement::new_unchecked(RATES);
             RESULT
         }
     };
