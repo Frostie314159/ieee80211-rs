@@ -46,7 +46,7 @@ impl<'a> SSIDElement<'a> {
     ///
     /// This is useful for hardcoded SSIDs, since it's `const`.
     pub const fn length_in_bytes(&self) -> usize {
-        self.0.len()
+        self.0.as_bytes().len()
     }
 }
 impl MeasureWith<()> for SSIDElement<'_> {
