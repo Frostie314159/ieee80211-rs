@@ -2,6 +2,9 @@
 IEEE80211-rs is a library for dealing with IEEE 802.11 frames. It's highly experimental and unstable. It shouldn't be used in production yet, since the architecture may change.
 As soon as the first version is released, some level of API stability is to be expected.
 
+## Note
+This library is currently only developed by one person. I try to add stuff here as frequently as I can, but it's usually a byproduct of my main projects like [GraCe](https://github.com/Frostie314159/grace), which started this project. My current focus is working on the [ESP32-Open-MAC](https://esp32-open-mac.be/) project, which seeks to reverse engineer the PHY and MAC layers of the ESP32 and replace the proprietary WiFi stack. In the future I would like to write a WiFi stack in Rust, for which this library will be used. If you need certain features, which are still missing, feel free to open an issue. If they aren't too complex (unlike the RSNE), I should get them merged in under a week. If you want to implement them yourself, I'm happy to provide assistance where it's needed.
+
 ## Contents
 This section lists, the range of things handled by this library.
 ### Serialization and Deserialization
