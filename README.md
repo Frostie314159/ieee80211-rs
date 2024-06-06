@@ -1,11 +1,16 @@
 # IEEE80211-rs
-IEEE80211-rs is a library for serializing and deserializing IEEE 802.11 frames. It's highly experimental and unstable. It shouldn't be used in production yet, since the architecture may change.
+IEEE80211-rs is a library for dealing with IEEE 802.11 frames. It's highly experimental and unstable. It shouldn't be used in production yet, since the architecture may change.
 As soon as the first version is released, some level of API stability is to be expected.
 
-## Architecture
-Deserializing a `Frame` will destructure the frame into it's most elementary form. This means, that the fixed fields of - for example - an action frame will all be deserialized. The tagged fields however are not deserialized immediately and remain as a byte slice, which can be converted into an `Iterator<Item = IEEE80211TLV<'_>>`. At first parsing everything immediately, might seem terribly slow, however this library is zerocopy and the actual processing time is minimal.
+## Contents
+This section lists, the range of things handled by this library.
+### Serialization and Deserialization
+Serialization and deserialization capabilities were the first thing, that I started implementing and is likely to be the most mature part of the library.
 
-## Benchmarks
+#### Architecture
+Deserializing an `IEEE80211Frame` will destructure the frame into it's most elementary form. This means, that the fixed fields of - for example - an action frame will all be deserialized. The tagged fields however are not deserialized immediately and remain as an `Elements` struct, which can be used to extract the different element types. At first parsing everything immediately, might seem terribly slow, however this library is zerocopy and the actual processing time is minimal.
+
+#### Benchmarks
 Hardware: Framework 13 with Intel i5 1240p
 |benchmark|time in ns|notes|
 -- | -- | --
