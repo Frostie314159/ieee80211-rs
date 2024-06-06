@@ -41,7 +41,7 @@ pub struct ElementChainEnd<Inner> {
     /// The last element of the chain.
     pub inner: Inner,
 }
-impl<'a, Inner: Element> ElementChainEnd<Inner> {
+impl<Inner: Element> ElementChainEnd<Inner> {
     #[inline]
     pub const fn new(inner: Inner) -> Self {
         Self { inner }
