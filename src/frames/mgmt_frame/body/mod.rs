@@ -20,6 +20,9 @@ pub use probe_request::ProbeRequestBody;
 mod assoc;
 pub use assoc::{AssociationRequestBody, AssociationResponseBody};
 
+mod deauth;
+pub use deauth::DeauthenticationBody;
+
 macro_rules! management_frame_bodies {
     (
         $(
