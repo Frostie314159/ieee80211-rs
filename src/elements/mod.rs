@@ -23,6 +23,7 @@ use self::types::ElementTypeRepr;
 pub mod rsn;
 pub mod types;
 mod vendor_specific_element;
+pub use vendor_specific_element::VendorSpecificElement;
 
 pub mod element_chain;
 
