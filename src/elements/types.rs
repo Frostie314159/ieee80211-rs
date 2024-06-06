@@ -28,13 +28,13 @@ macro_rules! gen_element_type_reprs {
     };
 }
 gen_element_type_reprs! {
-    SSID => SSIDElement<'a>,
-    SupportedRates => SupportedRatesElement<RatesReadIterator<'a>>,
-    DSSSParameterSet => DSSSParameterSetElement,
-    IBSSParameterSet => IBSSParameterSetElement,
-    BSSLoad => BSSLoadElement,
-    HTCapabilities => HTCapabilitiesElement,
-    ExtendedSupportedRates => ExtendedSupportedRatesElement<RatesReadIterator<'a>>,
-    HTOperation => HTOperationElement,
-    VendorSpecific => VendorSpecificElement<'a>
+    SSIDRepr => SSIDElement<'a>,
+    SupportedRatesRepr => SupportedRatesElement<RatesReadIterator<'a>>,
+    DSSSParameterSetRepr => DSSSParameterSetElement,
+    IBSSParameterSetRepr => IBSSParameterSetElement,
+    BSSLoadRepr => BSSLoadElement,
+    HTCapabilitiesRepr => HTCapabilitiesElement,
+    ExtendedSupportedRatesRepr => ExtendedSupportedRatesElement<RatesReadIterator<'a>>,
+    HTOperationRepr => HTOperationElement,
+    VendorSpecificRepr => VendorSpecificElement<'a>
 }

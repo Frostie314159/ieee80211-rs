@@ -78,7 +78,7 @@ impl<'a> Element for SSIDElement<'a> {
 }
 #[macro_export]
 /// Generate an SSID element, while performing all validation at compile time.
-/// 
+///
 /// This macro requires, that the passed parameter is either a literal or a const and must be a `&str`.
 ///
 /// ```

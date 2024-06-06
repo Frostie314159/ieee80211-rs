@@ -5,7 +5,7 @@ use scroll::{
 
 use crate::{
     common::Empty,
-    elements::{types::SSID, Elements, SSIDElement},
+    elements::{types::SSIDRepr, Elements, SSIDElement},
 };
 
 use super::{ManagementFrameBody, ToManagementFrameBody};
@@ -24,7 +24,7 @@ impl<'a> ProbeRequestBody<Elements<'a>> {
     pub fn ssid(&'a self) -> Option<&'a str> {
         // SSID should be the first TLV.
         self.elements
-            .get_first_element::<SSID>()
+            .get_first_element::<SSIDRepr>()
             .map(SSIDElement::ssid)
     }
 }
