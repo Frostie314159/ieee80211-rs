@@ -7,7 +7,8 @@ use super::{
     ht_cap_oper::{HTCapabilitiesElement, HTOperationElement},
     rates::{ExtendedSupportedRatesElement, RatesReadIterator, SupportedRatesElement},
     rsn::{IEEE80211AKMType, IEEE80211CipherSuiteSelector, RSNElement, IEEE80211PMKID},
-    BSSLoadElement, DSSSParameterSetElement, Element, IBSSParameterSetElement, SSIDElement, VendorSpecificElement,
+    BSSLoadElement, DSSSParameterSetElement, Element, IBSSParameterSetElement, SSIDElement,
+    VendorSpecificElement,
 };
 
 pub trait ElementTypeRepr {

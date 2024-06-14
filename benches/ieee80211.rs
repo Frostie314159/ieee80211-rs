@@ -1,6 +1,9 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use ieee80211::{
-    elements::{element_chain::{ChainElement, ElementChainEnd}, types::RSNRepr},
+    elements::{
+        element_chain::{ChainElement, ElementChainEnd},
+        types::RSNRepr,
+    },
     mgmt_frame::{
         body::{BeaconFrameBody, ToManagementFrameBody},
         header::ManagementFrameHeader,
@@ -78,10 +81,15 @@ macro_rules! gen_element_benchmarks {
         }
     };
 }
-gen_element_benchmarks!(
-    (RSNRepr, "rsn")
-);
+gen_element_benchmarks!((RSNRepr, "rsn"));
 
-criterion_group!(benches, beacon, action_vendor, qos_data, element_chain, bench_elements);
+criterion_group!(
+    benches,
+    beacon,
+    action_vendor,
+    qos_data,
+    element_chain,
+    bench_elements
+);
 
 criterion_main!(benches);
