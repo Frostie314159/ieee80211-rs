@@ -274,7 +274,7 @@ checksum = "d231dfb89cfffdbc30e7fc41579ed6066ad03abda9e567ccafae602b97ec5024"
 
 [[package]]
 name = "ieee80211"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "bitfield-struct",
  "const_soft_float",
