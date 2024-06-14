@@ -7,7 +7,7 @@ use super::{
     ht_cap_oper::{HTCapabilitiesElement, HTOperationElement},
     rates::{ExtendedSupportedRatesElement, RatesReadIterator, SupportedRatesElement},
     rsn::{IEEE80211AKMType, IEEE80211CipherSuiteSelector, RSNElement, IEEE80211PMKID},
-    BSSLoadElement, DSSSParameterSetElement, Element, IBSSParameterSetElement, SSIDElement,
+    BSSLoadElement, DSSSParameterSetElement, Element, IBSSParameterSetElement, SSIDElement, VendorSpecificElement,
 };
 
 pub trait ElementTypeRepr {
@@ -16,15 +16,14 @@ pub trait ElementTypeRepr {
 macro_rules! gen_element_type_reprs {
     (
         $(
-            $element_type_repr:ident => $element_type:ident$(<$($generic_param:ty),*>)?
+            $element_type_repr:ident => $element_type:ty
         ),*
     ) => {
         $(
-            #[doc = concat!("This is the type state representation for the ", concat!(concat!("[", stringify!($element_type)), "]"))]
             #[doc = "See the module level documentation for more info."]
             pub struct $element_type_repr;
             impl ElementTypeRepr for $element_type_repr {
-                type ElementType<'a> = $element_type$(<$($generic_param),*>)?;
+                type ElementType<'a> = $element_type;
             }
         )*
     };
@@ -42,6 +41,6 @@ gen_element_type_reprs! {
         IEEE80211ReadList<'a, IEEE80211CipherSuiteSelector, u16, 4>,
         IEEE80211ReadList<'a, IEEE80211AKMType, u16, 4>,
         IEEE80211ReadList<'a, IEEE80211PMKID, u16, 16>
-    >
-    //VendorSpecificRepr => VendorSpecificElement<'a>
+    >,
+    VendorSpecificRepr => VendorSpecificElement<'a>
 }
