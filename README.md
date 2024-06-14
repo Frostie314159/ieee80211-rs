@@ -5,6 +5,32 @@ As soon as the first version is released, some level of API stability is to be e
 ## Note
 This library is currently only developed by one person. I try to add stuff here as frequently as I can, but it's usually a byproduct of my main projects like [GraCe](https://github.com/Frostie314159/grace), which started this project. My current focus is working on the [ESP32-Open-MAC](https://esp32-open-mac.be/) project, which seeks to reverse engineer the PHY and MAC layers of the ESP32 and replace the proprietary WiFi stack. In the future I would like to write a WiFi stack in Rust, for which this library will be used. If you need certain features, which are still missing, feel free to open an issue. If they aren't too complex (unlike the RSNE), I should get them merged in under a week. If you want to implement them yourself, I'm happy to provide assistance where it's needed.
 
+## Supported features
+### Frame format
+Only Protocol version zero is supported. This means no S1G (802.11ah or HaLow) for now.
+#### Management Frames
+- Association Request/ Response
+- Probe Request
+- Beacon
+- ATIM
+- Disassociation
+- Deauthentication
+- Action(No ACK)
+#### Data Frames
+The data frame implementation can handle any frames.
+#### Elements
+- SSID
+- Supported Rates
+- DSSS Parameter Set
+- IBSS Parameter Set
+- BSS Load
+- HT Capabilities
+- Extended Supported Rates
+- HT Operation
+- RSN
+- Vendor Specific
+
+
 ## Contents
 This section lists, the range of things handled by this library.
 ### Serialization and Deserialization
