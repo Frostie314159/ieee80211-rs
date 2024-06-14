@@ -1,6 +1,7 @@
 use ieee80211::{
-    elements::rates::{
-        EncodedRate, ExtendedSupportedRatesElement, RatesReadIterator, SupportedRatesElement,
+    elements::{
+        rates::{EncodedRate, ExtendedSupportedRatesElement, SupportedRatesElement},
+        types::{ExtendedSupportedRatesRepr, SupportedRatesRepr},
     },
     extended_supported_rates, rate, supported_rates,
 };
@@ -62,13 +63,13 @@ fn test_supported_rates_misc() {
 }
 gen_element_rw_test!(
     test_supported_rates_rw,
-    SupportedRatesElement<RatesReadIterator<'_>>,
+    SupportedRatesRepr,
     EXPECTED_SUPPORTED_RATES,
     EXPECTED_SUPPORTED_RATES_BYTES
 );
 gen_element_rw_test!(
     test_extended_supported_rates_rw,
-    ExtendedSupportedRatesElement<RatesReadIterator<'_>>,
+    ExtendedSupportedRatesRepr,
     EXPECTED_EXTENDED_SUPPORTED_RATES,
     EXPECTED_EXTENDED_SUPPORTED_RATES_BYTES
 );

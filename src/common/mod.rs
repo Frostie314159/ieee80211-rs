@@ -14,6 +14,7 @@ pub mod subtypes;
 pub mod read_iterator;
 
 pub mod capabilities;
+pub mod ieee80211_list;
 pub mod reason;
 pub mod status_code;
 pub mod type_state;

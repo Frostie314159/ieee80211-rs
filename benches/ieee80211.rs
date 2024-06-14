@@ -1,6 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use ieee80211::{
-    elements::element_chain::{ChainElement, ElementChainEnd},
+    elements::{element_chain::{ChainElement, ElementChainEnd}, types::RSNRepr},
     mgmt_frame::{
         body::{BeaconFrameBody, ToManagementFrameBody},
         header::ManagementFrameHeader,
@@ -52,6 +52,36 @@ pub fn element_chain(criterion: &mut Criterion) {
         })
     });
 }
-criterion_group!(benches, beacon, action_vendor, qos_data, element_chain);
+macro_rules! gen_element_benchmarks {
+    ($(
+        ($element:ty, $file_name:expr)
+    ),*) => {
+        pub fn bench_elements(criterion: &mut Criterion) {
+            use ::ieee80211::elements::types::ElementTypeRepr;
+            $(
+                {
+                    const BYTES: &[u8] = include_bytes!(concat!("../bins/elements/", concat!($file_name, ".bin")));
+                    criterion.bench_function(concat!($file_name, "_read"), |b| {
+                        b.iter(|| {
+                            let _ = black_box(BYTES).pread::<<$element as ElementTypeRepr>::ElementType<'_>>(0).unwrap();
+                        })
+                    });
+                    let parsed = BYTES.pread::<<$element as ElementTypeRepr>::ElementType<'_>>(0).unwrap();
+                    let mut buf = [0x00; 8000];
+                    criterion.bench_function(concat!($file_name, "_write"), |b| {
+                        b.iter(|| {
+                            let _ = buf.pwrite(black_box(parsed), 0).unwrap();
+                        })
+                    });
+                }
+            ),*
+        }
+    };
+}
+gen_element_benchmarks!(
+    (RSNRepr, "rsn")
+);
+
+criterion_group!(benches, beacon, action_vendor, qos_data, element_chain, bench_elements);
 
 criterion_main!(benches);

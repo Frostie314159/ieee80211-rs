@@ -1,5 +1,5 @@
 use ieee80211::{
-    elements::types::{SSIDRepr, SupportedRatesRepr},
+    elements::types::{RSNRepr, SSIDRepr, SupportedRatesRepr},
     mgmt_frame::body::ManagementFrameBody,
     IEEE80211Frame,
 };
@@ -17,7 +17,8 @@ fn main() {
     // There is a method that does this automatically, see beacon.rs.
     let ssid_element = beacon.elements.get_first_element::<SSIDRepr>().unwrap();
     let supported_rates = beacon.elements.get_first_element::<SupportedRatesRepr>();
-
+    let rsn_element = beacon.elements.get_first_element::<RSNRepr>();
+    println!("{rsn_element:#?}");
     println!("SSID: {}", ssid_element.ssid());
     println!("Supported rates: {:?}", supported_rates);
 }
