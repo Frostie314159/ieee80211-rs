@@ -6,6 +6,10 @@ serializable_enum! {
     ///
     /// Currently unused.
     pub enum ControlFrameSubtype: u8 {
+        TACK => 0b0011,
+        BeamformingReportPoll => 0b0100,
+        VHTNDPAnnouncement => 0b0101,
+        ControlFrameExtension => 0b0110,
         ControlWrapper => 0b0111,
         BlockAckRequest => 0b1000,
         BlockAck => 0b1001,
