@@ -1,3 +1,4 @@
+use control_frame::ControlFrame;
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
     Endian, Pread, Pwrite,
@@ -13,6 +14,7 @@ use self::{
     mgmt_frame::ManagementFrame,
 };
 
+pub mod control_frame;
 /// This module contains structs around data frames.
 pub mod data_frame;
 pub mod mgmt_frame;
@@ -32,6 +34,7 @@ pub enum IEEE80211Frame<
     DataFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
 {
     Management(ManagementFrame<'a, ElementContainer, ActionFramePayload>),
+    Control(ControlFrame<'a>),
     Data(DataFrame<'a, DataFramePayload>),
 }
 impl<
@@ -45,6 +48,7 @@ impl<
     pub const fn get_fcf(&self) -> FrameControlField {
         match self {
             Self::Management(management_frame) => management_frame.get_fcf(),
+            Self::Control(control_frame) => control_frame.get_fcf(),
             Self::Data(data_frame) => data_frame.header.get_fcf(),
         }
     }
@@ -55,6 +59,7 @@ impl IEEE80211Frame<'_> {
         2 + // Type/Subtype and Flags
         match self {
             Self::Management(management_frame) => management_frame.length_in_bytes(),
+            Self::Control(control_frame) => control_frame.length_in_bytes(),
             Self::Data(data_frame) => data_frame.length_in_bytes()
         } +
         if fcs_at_end {
@@ -75,6 +80,7 @@ impl<
     fn measure_with(&self, fcs_at_end: &bool) -> usize {
         2 + match self {
             Self::Management(management_frame) => management_frame.measure_with(&()),
+            Self::Control(control_frame) => control_frame.measure_with(&()),
             Self::Data(data_frame) => data_frame.measure_with(&()),
         } + if *fcs_at_end { 4 } else { 0 }
     }
@@ -105,6 +111,9 @@ impl<'a> TryFromCtx<'a, bool> for IEEE80211Frame<'a> {
             }
             FrameType::Data(subtype) => {
                 Self::Data(body_slice.gread_with(&mut offset, (subtype, fcf.flags()))?)
+            }
+            FrameType::Control(subtype) => {
+                Self::Control(body_slice.gread_with(&mut offset, (subtype, fcf.flags()))?)
             }
             _ => {
                 return Err(scroll::Error::BadInput {
@@ -142,6 +151,7 @@ impl<
 
         match self {
             Self::Management(management_frame) => buf.gwrite(management_frame, &mut offset)?,
+            Self::Control(control_frame) => buf.gwrite(control_frame, &mut offset)?,
             Self::Data(data_frame) => buf.gwrite(data_frame, &mut offset)?,
         };
         if fcs_at_end {

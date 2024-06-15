@@ -16,6 +16,10 @@ Only Protocol version zero is supported. This means no S1G (802.11ah or HaLow) f
 - Disassociation
 - Deauthentication
 - Action(No ACK)
+#### Control Frames
+- RTS
+- CTS
+- Ack
 #### Data Frames
 The data frame implementation can handle any frames.
 #### Elements
