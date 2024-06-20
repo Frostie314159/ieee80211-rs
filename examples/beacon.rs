@@ -54,6 +54,7 @@ fn main() {
         timestamp: beacon.timestamp,
         beacon_interval: beacon.beacon_interval,
         elements: ElementChainEnd::new(ssid!("OpenRF")),
+        ..Default::default()
     }
     .to_management_frame_body();
     let management_frame = ManagementFrame {

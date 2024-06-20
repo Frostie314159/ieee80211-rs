@@ -9,8 +9,8 @@ This library is currently only developed by one person. I try to add stuff here 
 ### Frame format
 Only Protocol version zero is supported. This means no S1G (802.11ah or HaLow) for now.
 #### Management Frames
-- Association Request/ Response
-- Probe Request
+- Association Request / Response
+- Probe Request / Response
 - Beacon
 - ATIM
 - Disassociation

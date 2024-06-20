@@ -1,3 +1,4 @@
+use probe::ProbeResponeBody;
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
     Pread, Pwrite,
@@ -9,13 +10,13 @@ mod action;
 pub use action::ActionFrameBody;
 
 mod beacon;
-pub use beacon::BeaconFrameBody;
+pub use beacon::{BeaconLikeFrameBody, BeaconFrameBody, BeaconSubtype, ProbeResponseSubtype};
 
 mod disassoc;
 pub use disassoc::DisassociationFrameBody;
 
-mod probe_request;
-pub use probe_request::ProbeRequestBody;
+mod probe;
+pub use probe::ProbeRequestBody;
 
 mod assoc;
 pub use assoc::{AssociationRequestBody, AssociationResponseBody};
@@ -178,6 +179,7 @@ management_frame_bodies! {
         AssociationRequest: 0b0000 => AssociationRequestBody<ElementContainer>,
         AssociationResponse: 0b0001 => AssociationResponseBody<ElementContainer>,
         ProbeRequest: 0b0100 => ProbeRequestBody<ElementContainer>,
+        ProbeRespone: 0b0101 => ProbeResponeBody<ElementContainer>,
         Beacon: 0b1000 => BeaconFrameBody<ElementContainer>,
         ATIM: 0b1001,
         Disassociation: 0b1010 => DisassociationFrameBody<ElementContainer>,

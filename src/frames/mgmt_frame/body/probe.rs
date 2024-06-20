@@ -8,7 +8,7 @@ use crate::{
     elements::{types::SSIDRepr, Elements, SSIDElement},
 };
 
-use super::{ManagementFrameBody, ToManagementFrameBody};
+use super::{beacon::ProbeResponseSubtype, BeaconLikeFrameBody, ManagementFrameBody, ToManagementFrameBody};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// The body of a probe request.
@@ -56,3 +56,5 @@ impl<'a, ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>>
         ManagementFrameBody::ProbeRequest(self)
     }
 }
+
+pub type ProbeResponeBody<ElementContainer> = BeaconLikeFrameBody<ElementContainer, ProbeResponseSubtype>;

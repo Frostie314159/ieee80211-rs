@@ -1,4 +1,4 @@
-use core::time::Duration;
+use core::{marker::PhantomData, time::Duration};
 
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
@@ -12,15 +12,21 @@ use crate::{
 
 use super::{ManagementFrameBody, ToManagementFrameBody};
 
-/// This is the body of a beacon frame.
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
-pub struct BeaconFrameBody<ElementContainer> {
+pub struct BeaconSubtype;
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
+pub struct ProbeResponseSubtype;
+
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
+/// This is a generic body of a beacon like frame. This includes beacons and probe responses.
+pub struct BeaconLikeFrameBody<ElementContainer, Subtype> {
     pub timestamp: u64,
     pub beacon_interval: u16,
     pub capabilities_info: CapabilitiesInformation,
     pub elements: ElementContainer,
+    pub _phantom: PhantomData<Subtype>
 }
-impl<'a> BeaconFrameBody<Elements<'a>> {
+impl<'a, Subtype> BeaconLikeFrameBody<Elements<'a>, Subtype> {
     pub const fn length_in_bytes(&'a self) -> usize {
         8 + // Timestamp
         2 + // Beacon interval
@@ -28,7 +34,7 @@ impl<'a> BeaconFrameBody<Elements<'a>> {
         self.elements.bytes.len()
     }
 }
-impl<'a> BeaconFrameBody<Elements<'a>> {
+impl<'a, Subtype> BeaconLikeFrameBody<Elements<'a>, Subtype> {
     pub const fn beacon_interval_as_duration(&self) -> Duration {
         Duration::from_micros(self.beacon_interval as u64 * TU.as_micros() as u64)
     }
@@ -40,12 +46,12 @@ impl<'a> BeaconFrameBody<Elements<'a>> {
             .map(SSIDElement::take_ssid)
     }
 }
-impl<ElementContainer: MeasureWith<()>> MeasureWith<()> for BeaconFrameBody<ElementContainer> {
+impl<ElementContainer: MeasureWith<()>, Subtype> MeasureWith<()> for BeaconLikeFrameBody<ElementContainer, Subtype> {
     fn measure_with(&self, ctx: &()) -> usize {
         12 + self.elements.measure_with(ctx)
     }
 }
-impl<'a> TryFromCtx<'a> for BeaconFrameBody<Elements<'a>> {
+impl<'a, Subtype: 'a> TryFromCtx<'a> for BeaconLikeFrameBody<Elements<'a>, Subtype> {
     type Error = scroll::Error;
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
@@ -62,13 +68,14 @@ impl<'a> TryFromCtx<'a> for BeaconFrameBody<Elements<'a>> {
                 beacon_interval,
                 capabilities_info,
                 elements,
+                _phantom: PhantomData
             },
             offset,
         ))
     }
 }
-impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
-    for BeaconFrameBody<ElementContainer>
+impl<ElementContainer: TryIntoCtx<Error = scroll::Error>, Subtype> TryIntoCtx
+    for BeaconLikeFrameBody<ElementContainer, Subtype>
 {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
@@ -87,9 +94,21 @@ impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
     }
 }
 impl<'a, ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>>
-    ToManagementFrameBody<'a, ElementContainer, Empty> for BeaconFrameBody<ElementContainer>
+    ToManagementFrameBody<'a, ElementContainer, Empty> for BeaconLikeFrameBody<ElementContainer, BeaconSubtype>
 {
     fn to_management_frame_body(self) -> ManagementFrameBody<'a, ElementContainer, Empty> {
         ManagementFrameBody::Beacon(self)
     }
 }
+impl<'a, ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>>
+    ToManagementFrameBody<'a, ElementContainer, Empty> for BeaconLikeFrameBody<ElementContainer, ProbeResponseSubtype>
+{
+    fn to_management_frame_body(self) -> ManagementFrameBody<'a, ElementContainer, Empty> {
+        ManagementFrameBody::ProbeRespone(self)
+    }
+}
+
+/// The body of a beacon frame.
+/// 
+/// This is derived from a [generic type](BeaconLikeFrameBody) over beacon like frames, since Beacons and Probe Responses have exactly the same frame format.
+pub type BeaconFrameBody<ElementContainer> = BeaconLikeFrameBody<ElementContainer, BeaconSubtype>;
