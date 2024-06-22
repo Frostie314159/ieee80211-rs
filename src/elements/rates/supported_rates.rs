@@ -17,7 +17,7 @@ pub struct SupportedRatesElement<I>
 where
     I: IntoIterator<Item = EncodedRate>,
 {
-    supported_rates: I,
+    pub supported_rates: I,
 }
 impl<I: IntoIterator<Item = EncodedRate>> SupportedRatesElement<I> {
     #[doc(hidden)]
