@@ -176,7 +176,7 @@ pub struct RSNCapabilities {
     pub ptksa_replay_counter: u8,
     #[bits(2)]
     pub gtksa_replay_counter: u8,
-    pub mfp_requried: bool,
+    pub mfp_required: bool,
     pub mfp_enabled: bool,
     pub supports_joint_multi_band_rsna: bool,
     pub supports_peer_key_enabled_handshake: bool,
@@ -192,7 +192,7 @@ impl RSNCapabilities {
     ///
     /// This returns false, if MFP is required but not enabled.
     pub const fn is_mfp_valid(&self) -> bool {
-        !self.mfp_requried() || self.mfp_enabled()
+        !self.mfp_required() || self.mfp_enabled()
     }
     /// Check if the own management frame protection (MFP) policy is compatible with the other provided one.
     pub const fn is_mfp_compatible(&self, other: RSNCapabilities) -> bool {
@@ -200,7 +200,7 @@ impl RSNCapabilities {
         if !self.is_mfp_valid() || !other.is_mfp_valid() {
             return false;
         }
-        if !self.mfp_enabled() & other.mfp_requried() || self.mfp_requried() & !other.mfp_enabled()
+        if !self.mfp_enabled() & other.mfp_required() || self.mfp_required() & !other.mfp_enabled()
         {
             return false;
         }
