@@ -10,7 +10,7 @@ mod action;
 pub use action::ActionFrameBody;
 
 mod beacon;
-pub use beacon::{BeaconLikeFrameBody, BeaconFrameBody, BeaconSubtype, ProbeResponseSubtype};
+pub use beacon::{BeaconFrameBody, BeaconLikeFrameBody, BeaconSubtype, ProbeResponseSubtype};
 
 mod disassoc;
 pub use disassoc::DisassociationFrameBody;
@@ -176,15 +176,15 @@ management_frame_bodies! {
         ElementContainer: TryIntoCtx<Error = scroll::Error>, MeasureWith<()> = Elements<'a>,
         ActionFramePayload: TryIntoCtx<Error = scroll::Error>, MeasureWith<()> = &'a [u8]
     > {
-        AssociationRequest: 0b0000 => AssociationRequestBody<ElementContainer>,
-        AssociationResponse: 0b0001 => AssociationResponseBody<ElementContainer>,
-        ProbeRequest: 0b0100 => ProbeRequestBody<ElementContainer>,
-        ProbeRespone: 0b0101 => ProbeResponeBody<ElementContainer>,
-        Beacon: 0b1000 => BeaconFrameBody<ElementContainer>,
+        AssociationRequest: 0b0000 => AssociationRequestBody<'a, ElementContainer>,
+        AssociationResponse: 0b0001 => AssociationResponseBody<'a, ElementContainer>,
+        ProbeRequest: 0b0100 => ProbeRequestBody<'a, ElementContainer>,
+        ProbeRespone: 0b0101 => ProbeResponeBody<'a, ElementContainer>,
+        Beacon: 0b1000 => BeaconFrameBody<'a, ElementContainer>,
         ATIM: 0b1001,
-        Disassociation: 0b1010 => DisassociationFrameBody<ElementContainer>,
-        Deauthentication: 0b1100 => DeauthenticationBody<ElementContainer>,
-        Action: 0b1101 => ActionFrameBody<ActionFramePayload>,
-        ActionNoACK: 0b1110 => ActionFrameBody<ActionFramePayload>
+        Disassociation: 0b1010 => DisassociationFrameBody<'a, ElementContainer>,
+        Deauthentication: 0b1100 => DeauthenticationBody<'a, ElementContainer>,
+        Action: 0b1101 => ActionFrameBody<'a, ActionFramePayload>,
+        ActionNoACK: 0b1110 => ActionFrameBody<'a, ActionFramePayload>
     }
 }

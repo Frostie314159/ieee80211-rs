@@ -19,26 +19,37 @@ serializable_enum! {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 /// This the body of an action frame.
-pub enum ActionFrameBody<P> {
+pub enum ActionFrameBody<'a, VendorSpecificPayload = &'a [u8]> {
     /// This is a vendor specific body.
-    VendorSpecific { oui: [u8; 3], payload: P },
+    VendorSpecific {
+        oui: [u8; 3],
+        payload: VendorSpecificPayload,
+    },
+    Unknown {
+        category_code: u8,
+        payload: &'a [u8],
+    },
 }
-impl ActionFrameBody<&[u8]> {
+impl ActionFrameBody<'_> {
     /// The total length in bytes.
     pub const fn length_in_bytes(&self) -> usize {
         1 + match self {
             Self::VendorSpecific { payload, .. } => 3 + payload.len(),
+            Self::Unknown { payload, .. } => payload.len(),
         }
     }
 }
-impl<P: MeasureWith<()>> MeasureWith<()> for ActionFrameBody<P> {
+impl<VendorSpecificPayload: MeasureWith<()>> MeasureWith<()>
+    for ActionFrameBody<'_, VendorSpecificPayload>
+{
     fn measure_with(&self, ctx: &()) -> usize {
         1 + match self {
             Self::VendorSpecific { payload, .. } => 3 + payload.measure_with(ctx),
+            Self::Unknown { payload, .. } => payload.len(),
         }
     }
 }
-impl<'a> TryFromCtx<'a> for ActionFrameBody<&'a [u8]> {
+impl<'a> TryFromCtx<'a> for ActionFrameBody<'a> {
     type Error = scroll::Error;
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
@@ -52,35 +63,52 @@ impl<'a> TryFromCtx<'a> for ActionFrameBody<&'a [u8]> {
                     let payload = from.gread_with(&mut offset, slice_len)?;
                     ActionFrameBody::VendorSpecific { oui, payload }
                 }
-                _ => {
-                    return Err(scroll::Error::BadInput {
-                        size: category_code.into_bits() as usize,
-                        msg: "Category code not yet implented.",
-                    })
+                CategoryCode::Unknown(category_code) => {
+                    offset = from.len();
+                    Self::Unknown {
+                        category_code,
+                        payload: &from,
+                    }
                 }
             },
             offset,
         ))
     }
 }
-impl<P: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for ActionFrameBody<P> {
+impl<VendorSpecificPayload: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
+    for ActionFrameBody<'_, VendorSpecificPayload>
+{
     type Error = scroll::Error;
     fn try_into_ctx(self, data: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
-        let mut offset = 0;
+        // Since we don't want to repeat, the call to gwrite for the category code, in every match arm, we store it in a variable and set the offset to one.
+        let mut offset = 1;
+        let category_code;
+
         match self {
             Self::VendorSpecific { oui, payload } => {
-                data.gwrite(CategoryCode::VendorSpecific.into_bits(), &mut offset)?;
+                category_code = CategoryCode::VendorSpecific;
                 data.gwrite(oui, &mut offset)?;
                 data.gwrite(payload, &mut offset)?;
             }
+            Self::Unknown {
+                category_code: unknown_category_code,
+                payload,
+            } => {
+                category_code = CategoryCode::Unknown(unknown_category_code);
+                data.gwrite(payload, &mut offset)?;
+            }
         }
+        // Here we write the category code at a fixed offset.
+        // Specifying an Endian is useless here, since it's just one byte.
+        data.pwrite(category_code.into_bits(), 0)?;
         Ok(offset)
     }
 }
-impl<'a, ActionFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>>
-    ToManagementFrameBody<'a, Empty, ActionFramePayload> for ActionFrameBody<ActionFramePayload>
+impl<'a, VendorSpecificPayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>>
+    ToManagementFrameBody<'a, Empty, VendorSpecificPayload>
+    for ActionFrameBody<'a, VendorSpecificPayload>
 {
-    fn to_management_frame_body(self) -> ManagementFrameBody<'a, Empty, ActionFramePayload> {
+    fn to_management_frame_body(self) -> ManagementFrameBody<'a, Empty, VendorSpecificPayload> {
         ManagementFrameBody::Action(self)
     }
 }

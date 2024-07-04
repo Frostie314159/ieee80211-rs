@@ -1,3 +1,5 @@
+use core::marker::PhantomData;
+
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
     Endian, Pread, Pwrite,
@@ -7,24 +9,25 @@ use crate::{common::reason::IEEE80211Reason, elements::Elements};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// A frame sent to disassociate from a BSS.
-pub struct DisassociationFrameBody<ElementContainer> {
+pub struct DisassociationFrameBody<'a, ElementContainer = Elements<'a>> {
     /// The reason for the disassociation.
     pub reason: IEEE80211Reason,
     pub elements: ElementContainer,
+    pub _phantom: PhantomData<&'a ()>,
 }
-impl DisassociationFrameBody<Elements<'_>> {
+impl DisassociationFrameBody<'_> {
     pub const fn length_in_bytes(&self) -> usize {
         2 + self.elements.bytes.len()
     }
 }
-impl<ElementContainer: MeasureWith<()>> MeasureWith<()>
-    for DisassociationFrameBody<ElementContainer>
+impl<'a, ElementContainer: MeasureWith<()>> MeasureWith<()>
+    for DisassociationFrameBody<'a, ElementContainer>
 {
     fn measure_with(&self, ctx: &()) -> usize {
         2 + self.elements.measure_with(ctx)
     }
 }
-impl<'a> TryFromCtx<'a> for DisassociationFrameBody<Elements<'a>> {
+impl<'a> TryFromCtx<'a> for DisassociationFrameBody<'a> {
     type Error = scroll::Error;
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
@@ -32,11 +35,18 @@ impl<'a> TryFromCtx<'a> for DisassociationFrameBody<Elements<'a>> {
         let reason = IEEE80211Reason::from_bits(from.gread_with(&mut offset, Endian::Little)?);
         let elements = from.gread(&mut offset)?;
 
-        Ok((Self { reason, elements }, offset))
+        Ok((
+            Self {
+                reason,
+                elements,
+                _phantom: PhantomData,
+            },
+            offset,
+        ))
     }
 }
-impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
-    for DisassociationFrameBody<ElementContainer>
+impl<'a, ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
+    for DisassociationFrameBody<'a, ElementContainer>
 {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {

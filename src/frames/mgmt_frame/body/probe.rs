@@ -1,3 +1,5 @@
+use core::marker::PhantomData;
+
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
     Pread,
@@ -8,14 +10,17 @@ use crate::{
     elements::{types::SSIDRepr, Elements, SSIDElement},
 };
 
-use super::{beacon::ProbeResponseSubtype, BeaconLikeFrameBody, ManagementFrameBody, ToManagementFrameBody};
+use super::{
+    beacon::ProbeResponseSubtype, BeaconLikeFrameBody, ManagementFrameBody, ToManagementFrameBody,
+};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// The body of a probe request.
-pub struct ProbeRequestBody<ElementContainer> {
+pub struct ProbeRequestBody<'a, ElementContainer = Elements<'a>> {
     pub elements: ElementContainer,
+    pub _phantom: PhantomData<&'a ()>,
 }
-impl<'a> ProbeRequestBody<Elements<'a>> {
+impl<'a> ProbeRequestBody<'a> {
     /// The entire length in bytes.
     pub const fn length_in_bytes(&self) -> usize {
         self.elements.bytes.len()
@@ -28,21 +33,27 @@ impl<'a> ProbeRequestBody<Elements<'a>> {
             .map(SSIDElement::take_ssid)
     }
 }
-impl<ElementContainer: MeasureWith<()>> MeasureWith<()> for ProbeRequestBody<ElementContainer> {
+impl<ElementContainer: MeasureWith<()>> MeasureWith<()> for ProbeRequestBody<'_, ElementContainer> {
     fn measure_with(&self, ctx: &()) -> usize {
         self.elements.measure_with(ctx)
     }
 }
-impl<'a> TryFromCtx<'a> for ProbeRequestBody<Elements<'a>> {
+impl<'a> TryFromCtx<'a> for ProbeRequestBody<'a> {
     type Error = scroll::Error;
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
         let elements = from.gread(&mut offset)?;
-        Ok((Self { elements }, offset))
+        Ok((
+            Self {
+                elements,
+                _phantom: PhantomData,
+            },
+            offset,
+        ))
     }
 }
 impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
-    for ProbeRequestBody<ElementContainer>
+    for ProbeRequestBody<'_, ElementContainer>
 {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], ctx: ()) -> Result<usize, Self::Error> {
@@ -50,11 +61,12 @@ impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
     }
 }
 impl<'a, ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>>
-    ToManagementFrameBody<'a, ElementContainer, Empty> for ProbeRequestBody<ElementContainer>
+    ToManagementFrameBody<'a, ElementContainer, Empty> for ProbeRequestBody<'a, ElementContainer>
 {
     fn to_management_frame_body(self) -> ManagementFrameBody<'a, ElementContainer, Empty> {
         ManagementFrameBody::ProbeRequest(self)
     }
 }
 
-pub type ProbeResponeBody<ElementContainer> = BeaconLikeFrameBody<ElementContainer, ProbeResponseSubtype>;
+pub type ProbeResponeBody<'a, ElementContainer = Elements<'a>> =
+    BeaconLikeFrameBody<'a, ProbeResponseSubtype, ElementContainer>;

@@ -1,3 +1,5 @@
+use core::marker::PhantomData;
+
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
     Endian, Pread, Pwrite,
@@ -10,17 +12,18 @@ use crate::{
 
 /// This is the body of an association request frame.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-pub struct AssociationRequestBody<ElementContainer> {
+pub struct AssociationRequestBody<'a, ElementContainer = Elements<'a>> {
     pub capabilities_info: CapabilitiesInformation,
     pub listen_interval: u16,
     pub elements: ElementContainer,
+    pub _phantom: PhantomData<&'a ()>,
 }
-impl<'a> AssociationRequestBody<Elements<'a>> {
+impl<'a> AssociationRequestBody<'a> {
     pub const fn length_in_bytes(&self) -> usize {
         4 + self.elements.bytes.len()
     }
 }
-impl<'a> TryFromCtx<'a> for AssociationRequestBody<Elements<'a>> {
+impl<'a> TryFromCtx<'a> for AssociationRequestBody<'a> {
     type Error = scroll::Error;
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
@@ -35,20 +38,21 @@ impl<'a> TryFromCtx<'a> for AssociationRequestBody<Elements<'a>> {
                 capabilities_info,
                 listen_interval,
                 elements,
+                _phantom: PhantomData,
             },
             offset,
         ))
     }
 }
 impl<ElementContainer: MeasureWith<()>> MeasureWith<()>
-    for AssociationRequestBody<ElementContainer>
+    for AssociationRequestBody<'_, ElementContainer>
 {
     fn measure_with(&self, ctx: &()) -> usize {
         4 + self.elements.measure_with(ctx)
     }
 }
 impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
-    for AssociationRequestBody<ElementContainer>
+    for AssociationRequestBody<'_, ElementContainer>
 {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
@@ -68,18 +72,19 @@ impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
 
 /// This is the body of an association response frame.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-pub struct AssociationResponseBody<ElementContainer> {
+pub struct AssociationResponseBody<'a, ElementContainer = Elements<'a>> {
     pub capabilities_info: CapabilitiesInformation,
     pub status_code: IEEE80211Status,
     pub association_id: u16,
     pub elements: ElementContainer,
+    pub _phantom: PhantomData<&'a ()>,
 }
-impl<'a> AssociationResponseBody<Elements<'a>> {
+impl<'a> AssociationResponseBody<'a> {
     pub const fn length_in_bytes(&self) -> usize {
         6 + self.elements.bytes.len()
     }
 }
-impl<'a> TryFromCtx<'a> for AssociationResponseBody<Elements<'a>> {
+impl<'a> TryFromCtx<'a> for AssociationResponseBody<'a> {
     type Error = scroll::Error;
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
@@ -96,20 +101,21 @@ impl<'a> TryFromCtx<'a> for AssociationResponseBody<Elements<'a>> {
                 status_code,
                 association_id,
                 elements,
+                _phantom: PhantomData,
             },
             offset,
         ))
     }
 }
 impl<ElementContainer: MeasureWith<()>> MeasureWith<()>
-    for AssociationResponseBody<ElementContainer>
+    for AssociationResponseBody<'_, ElementContainer>
 {
     fn measure_with(&self, ctx: &()) -> usize {
         6 + self.elements.measure_with(ctx)
     }
 }
 impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
-    for AssociationResponseBody<ElementContainer>
+    for AssociationResponseBody<'_, ElementContainer>
 {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
