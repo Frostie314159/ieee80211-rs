@@ -61,6 +61,29 @@ impl ControlFrame<'_> {
             .with_frame_type(FrameType::Control(self.get_subtype()))
             .with_flags(self.get_fcf_flags())
     }
+    pub fn receiver_address(&self) -> MACAddress {
+        match self {
+            Self::RTS {
+                receiver_address, ..
+            }
+            | Self::CTS {
+                receiver_address, ..
+            }
+            | Self::Ack {
+                receiver_address, ..
+            } => *receiver_address,
+            Self::Unknown { body, .. } => body.pread(2).unwrap_or_default(),
+        }
+    }
+    pub const fn transmitter_address(&self) -> Option<MACAddress> {
+        match self {
+            Self::RTS {
+                transmitter_address,
+                ..
+            } => Some(*transmitter_address),
+            _ => None,
+        }
+    }
 }
 impl<'a> TryFromCtx<'a, (ControlFrameSubtype, FCFFlags)> for ControlFrame<'a> {
     type Error = scroll::Error;
