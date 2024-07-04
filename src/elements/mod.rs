@@ -14,7 +14,7 @@ pub mod rates;
 mod ssid;
 pub use ssid::SSIDElement;
 mod bss_load;
-pub mod ht_cap_oper;
+pub mod ht;
 pub use bss_load::*;
 mod ibss_parameter_set;
 pub use ibss_parameter_set::IBSSParameterSetElement;
@@ -24,6 +24,7 @@ pub mod rsn;
 pub mod types;
 mod vendor_specific_element;
 pub use vendor_specific_element::VendorSpecificElement;
+pub mod vht;
 
 pub mod element_chain;
 
