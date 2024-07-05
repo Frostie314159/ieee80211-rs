@@ -1,3 +1,5 @@
+use core::marker::PhantomData;
+
 use scroll::{
     ctx::{MeasureWith, StrCtx, TryFromCtx, TryIntoCtx},
     Pwrite,
@@ -9,34 +11,59 @@ use super::{Element, ElementID};
 /// A SSID tlv.
 ///
 /// The SSID isn't public, since if we check the length at initialization, we won't have to do checks while serializing.
-pub struct SSIDElement<S>(S);
-impl<'a> SSIDElement<&'a str> {
+pub struct SSIDElement<'a, S = &'a str> {
+    ssid: S,
+    _phantom: PhantomData<&'a ()>,
+}
+impl<'a> SSIDElement<'a> {
     /// Create a new SSID element.
     ///
     /// This returns [None] if `ssid` is longer than 32 bytes.
-    pub const fn new(ssid: &'a str) -> Option<Self> {
-        if ssid.as_bytes().len() <= 32 {
-            Some(Self(ssid))
+    pub const fn const_new(ssid: &'a str) -> Option<Self> {
+        if ssid.len() <= 32 {
+            Some(Self {
+                ssid,
+                _phantom: PhantomData,
+            })
         } else {
             None
         }
     }
 }
-impl<S: AsRef<str>> SSIDElement<S> {
+impl<S: AsRef<str>> SSIDElement<'_, S> {
+    /// Create a new SSID element.
+    ///
+    /// This returns [None] if `ssid` is longer than 32 bytes.
+    pub fn new(ssid: S) -> Option<Self> {
+        if ssid.as_ref().len() <= 32 {
+            Some(Self {
+                ssid,
+                _phantom: PhantomData,
+            })
+        } else {
+            None
+        }
+    }
     #[doc(hidden)]
+    #[inline]
     // Only for internal use, by macros.
     pub const fn new_unchecked(ssid: S) -> Self {
-        Self(ssid)
+        Self {
+            ssid,
+            _phantom: PhantomData,
+        }
     }
 
+    #[inline]
     /// Get the ssid as a [str] reference.
     pub fn ssid(&self) -> &str {
-        self.0.as_ref()
+        self.ssid.as_ref()
     }
 
+    #[inline]
     /// Take the SSID.
     pub fn take_ssid(self) -> S {
-        self.0
+        self.ssid
     }
 
     /// Check if the SSID is hidden.
@@ -45,21 +72,21 @@ impl<S: AsRef<str>> SSIDElement<S> {
     /// - [`true`] If the SSID is empty.
     /// - [`false`] If the SSID isn't empty.
     pub fn is_hidden(&self) -> bool {
-        self.0.as_ref().is_empty()
+        self.ssid().is_empty()
     }
     /// Return the length in bytes.
     ///
     /// This is useful for hardcoded SSIDs, since it's `const`.
     pub fn length_in_bytes(&self) -> usize {
-        self.0.as_ref().len()
+        self.ssid().len()
     }
 }
-impl<S: AsRef<str>> MeasureWith<()> for SSIDElement<S> {
+impl<S: AsRef<str>> MeasureWith<()> for SSIDElement<'_, S> {
     fn measure_with(&self, _ctx: &()) -> usize {
         self.length_in_bytes()
     }
 }
-impl<'a> TryFromCtx<'a> for SSIDElement<&'a str> {
+impl<'a> TryFromCtx<'a> for SSIDElement<'a> {
     type Error = scroll::Error;
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         if from.len() > 32 {
@@ -69,20 +96,20 @@ impl<'a> TryFromCtx<'a> for SSIDElement<&'a str> {
             });
         }
         <&'a str as TryFromCtx<'a, StrCtx>>::try_from_ctx(from, StrCtx::Length(from.len()))
-            .map(|(ssid, len)| (SSIDElement(ssid), len))
+            .map(|(ssid, len)| (Self::new_unchecked(ssid), len))
     }
 }
-impl<S: AsRef<str>> TryIntoCtx for SSIDElement<S> {
+impl<S: AsRef<str>> TryIntoCtx for SSIDElement<'_, S> {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
-        buf.pwrite(self.0.as_ref(), 0)
+        buf.pwrite(self.ssid(), 0)
     }
 }
-impl<S: AsRef<str>> Element for SSIDElement<S> {
+impl<S: AsRef<str>> Element for SSIDElement<'_, S> {
     const ELEMENT_ID: ElementID = ElementID::Id(0x00);
-    type ReadType<'b> = SSIDElement<&'b str>;
+    type ReadType<'a> = SSIDElement<'a>;
 }
-impl<S: AsRef<str>> AsRef<str> for SSIDElement<S> {
+impl<S: AsRef<str>> AsRef<str> for SSIDElement<'_, S> {
     fn as_ref(&self) -> &str {
         self.ssid()
     }
@@ -101,7 +128,7 @@ impl<S: AsRef<str>> AsRef<str> for SSIDElement<S> {
 macro_rules! ssid {
     ($ssid:expr) => {{
         use ::ieee80211::elements::SSIDElement;
-        const RESULT: SSIDElement<&str> = {
+        const RESULT: SSIDElement<'static> = {
             assert!(
                 $ssid.as_bytes().len() <= 32,
                 "SSIDs must not exceed a length of more than 32 bytes."

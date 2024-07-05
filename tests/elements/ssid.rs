@@ -1,7 +1,4 @@
-use ieee80211::{
-    elements::{types::SSIDRepr, SSIDElement},
-    ssid,
-};
+use ieee80211::{elements::SSIDElement, ssid};
 
 use crate::gen_element_rw_test;
 
@@ -17,7 +14,7 @@ const INVALID_SSID_STRING: &str = "Lorem ipsum dolor sit amet augue.";
 
 gen_element_rw_test!(
     test_ssid_element_rw,
-    SSIDRepr,
+    SSIDElement,
     EXPECTED_SSID_ELEMENT,
     EXPECTED_SSID_ELEMENT_BYTES
 );

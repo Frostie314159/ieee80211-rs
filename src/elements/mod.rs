@@ -19,9 +19,7 @@ pub use bss_load::*;
 mod ibss_parameter_set;
 pub use ibss_parameter_set::IBSSParameterSetElement;
 
-use self::types::ElementTypeRepr;
 pub mod rsn;
-pub mod types;
 mod vendor_specific_element;
 pub use vendor_specific_element::VendorSpecificElement;
 pub mod vht;
@@ -158,10 +156,10 @@ impl<'a> Elements<'a> {
     pub fn raw_element_iterator(&self) -> ReadIterator<'a, Endian, RawIEEE80211Element> {
         ReadIterator::<Endian, RawIEEE80211Element<'a>>::new(self.bytes)
     }
-    pub fn filter_element<ElementType: ElementTypeRepr>(
+    pub fn filter_element<ElementType: Element>(
         raw_tlv: RawTLV<'a, u8, u8>,
-    ) -> Option<<<ElementType as ElementTypeRepr>::ElementType<'a> as Element>::ReadType<'a>> {
-        match <<ElementType as ElementTypeRepr>::ElementType<'a> as Element>::ELEMENT_ID {
+    ) -> Option<<ElementType as Element>::ReadType<'a>> {
+        match <ElementType as Element>::ELEMENT_ID {
             ElementID::Id(id) if id == raw_tlv.tlv_type => Some(raw_tlv.slice),
             ElementID::ExtId(ext_id) if raw_tlv.tlv_type == 0xff => {
                 let ext_element = raw_tlv.slice.pread::<RawIEEE80211ExtElement>(0).ok()?;
@@ -176,18 +174,14 @@ impl<'a> Elements<'a> {
         .and_then(|slice| slice.pread(0).ok())
     }
     /// This returns the first element, matchign the specified element type.
-    pub fn get_first_element<ElementType: ElementTypeRepr>(
-        &'a self,
-    ) -> Option<<<ElementType as ElementTypeRepr>::ElementType<'a> as Element>::ReadType<'a>> {
+    pub fn get_first_element<ElementType: Element>(&'a self) -> Option<ElementType::ReadType<'a>> {
         self.raw_element_iterator()
             .find_map(Self::filter_element::<ElementType>)
     }
     /// This returns an [Iterator] over a specific type of element, which is specified over the generic parameter.
-    pub fn get_elements<ElementType: ElementTypeRepr + 'a>(
+    pub fn get_elements<ElementType: Element + 'a>(
         &'a self,
-    ) -> impl Iterator<
-        Item = <<ElementType as ElementTypeRepr>::ElementType<'a> as Element>::ReadType<'a>,
-    > + 'a {
+    ) -> impl Iterator<Item = <ElementType as Element>::ReadType<'a>> + 'a {
         self.raw_element_iterator()
             .filter_map(Self::filter_element::<ElementType>)
     }

@@ -1,8 +1,7 @@
-use ieee80211::elements::{
-    rsn::{
-        IEEE80211AKMType, IEEE80211CipherSuiteSelector, RSNCapabilities, RSNElement, IEEE80211PMKID,
-    },
-    types::RSNRepr,
+use std::marker::PhantomData;
+
+use ieee80211::elements::rsn::{
+    IEEE80211AKMType, IEEE80211CipherSuiteSelector, RSNCapabilities, RSNElement, IEEE80211PMKID,
 };
 
 use crate::gen_element_rw_test;
@@ -18,12 +17,13 @@ const EXPECTED_RSN_ELEMENT: RSNElement<
     rsn_capbilities: Some(RSNCapabilities::new().with_ptksa_replay_counter(3)),
     pmkid_list: None,
     group_management_cipher_suite: None,
+    _phantom: PhantomData,
 };
 const EXPECTED_RSN_ELEMENT_BYTES: &[u8] = include_bytes!("../../bins/elements/rsn.bin");
 
 gen_element_rw_test!(
     test_rsn_element_rw,
-    RSNRepr,
+    RSNElement,
     EXPECTED_RSN_ELEMENT,
     EXPECTED_RSN_ELEMENT_BYTES
 );

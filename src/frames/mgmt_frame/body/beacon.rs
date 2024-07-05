@@ -7,7 +7,7 @@ use scroll::{
 
 use crate::{
     common::{capabilities::CapabilitiesInformation, Empty, TU},
-    elements::{types::SSIDRepr, Elements, SSIDElement},
+    elements::{Elements, SSIDElement},
 };
 
 use super::{ManagementFrameBody, ToManagementFrameBody};
@@ -42,7 +42,7 @@ impl<'a, Subtype> BeaconLikeFrameBody<'a, Subtype> {
     pub fn ssid(&'a self) -> Option<&'a str> {
         // SSID should be the first TLV.
         self.elements
-            .get_first_element::<SSIDRepr>()
+            .get_first_element::<SSIDElement>()
             .map(SSIDElement::take_ssid)
     }
 }

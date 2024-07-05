@@ -1,3 +1,5 @@
+use core::marker::PhantomData;
+
 use bitfield_struct::bitfield;
 use macro_bits::serializable_enum;
 use scroll::{
@@ -248,7 +250,12 @@ macro_rules! compare_list_option {
 /// The reason, that all fields after the `version` are wrapped in an [Option] is, that they only appear if there are enough bytes left for them.
 /// This means, that if you want to use the `rsn_capabilities` field, all prior fields need to be [Option::Some] even if they are just default values.
 /// This is not validated while writing, due to the performance hit, and can cause invalid outputs.
-pub struct RSNElement<PairwiseCipherSuiteList, AKMList, PMKIDList> {
+pub struct RSNElement<
+    'a,
+    PairwiseCipherSuiteList = IEEE80211ReadList<'a, IEEE80211CipherSuiteSelector, u16, 4>,
+    AKMList = IEEE80211ReadList<'a, IEEE80211AKMType, u16, 4>,
+    PMKIDList = IEEE80211ReadList<'a, IEEE80211PMKID, u16, 4>,
+> {
     /// The cipher suite used for group addressed data traffic.
     pub group_data_cipher_suite: Option<IEEE80211CipherSuiteSelector>,
     /// The list of cipher suites supported for individually addressed traffic.
@@ -261,16 +268,18 @@ pub struct RSNElement<PairwiseCipherSuiteList, AKMList, PMKIDList> {
     pub pmkid_list: Option<PMKIDList>,
     /// The cipher suite used for group addressed management frames.
     pub group_management_cipher_suite: Option<IEEE80211CipherSuiteSelector>,
+    pub _phantom: PhantomData<&'a ()>,
 }
 impl<
+        'a,
         LPairwiseCipherSuiteList: IEEE80211List<IEEE80211CipherSuiteSelector, u16> + Clone,
         LAKMList: IEEE80211List<IEEE80211AKMType, u16> + Clone,
         LPMKIDList: IEEE80211List<IEEE80211PMKID, u16> + Clone,
         RPairwiseCipherSuiteList: IEEE80211List<IEEE80211CipherSuiteSelector, u16> + Clone,
         RAKMList: IEEE80211List<IEEE80211AKMType, u16> + Clone,
         RPMKIDList: IEEE80211List<IEEE80211PMKID, u16> + Clone,
-    > PartialEq<RSNElement<RPairwiseCipherSuiteList, RAKMList, RPMKIDList>>
-    for RSNElement<LPairwiseCipherSuiteList, LAKMList, LPMKIDList>
+    > PartialEq<RSNElement<'a, RPairwiseCipherSuiteList, RAKMList, RPMKIDList>>
+    for RSNElement<'a, LPairwiseCipherSuiteList, LAKMList, LPMKIDList>
 {
     fn eq(&self, other: &RSNElement<RPairwiseCipherSuiteList, RAKMList, RPMKIDList>) -> bool {
         self.group_data_cipher_suite == other.group_data_cipher_suite
@@ -281,8 +290,8 @@ impl<
             && self.group_management_cipher_suite == other.group_management_cipher_suite
     }
 }
-impl<PairwiseCipherSuiteList, AKMList, PMKIDList> Default
-    for RSNElement<PairwiseCipherSuiteList, AKMList, PMKIDList>
+impl<'a, PairwiseCipherSuiteList, AKMList, PMKIDList> Default
+    for RSNElement<'a, PairwiseCipherSuiteList, AKMList, PMKIDList>
 {
     fn default() -> Self {
         Self {
@@ -292,16 +301,11 @@ impl<PairwiseCipherSuiteList, AKMList, PMKIDList> Default
             rsn_capbilities: None,
             pmkid_list: None,
             group_management_cipher_suite: None,
+            _phantom: PhantomData,
         }
     }
 }
-impl<'a> TryFromCtx<'a>
-    for RSNElement<
-        IEEE80211ReadList<'a, IEEE80211CipherSuiteSelector, u16, 4>,
-        IEEE80211ReadList<'a, IEEE80211AKMType, u16, 4>,
-        IEEE80211ReadList<'a, IEEE80211PMKID, u16, 16>,
-    >
-{
+impl<'a> TryFromCtx<'a> for RSNElement<'a> {
     type Error = scroll::Error;
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
@@ -351,7 +355,7 @@ impl<
         PairwiseCipherSuiteList: IEEE80211List<IEEE80211CipherSuiteSelector, u16>,
         AKMList: IEEE80211List<IEEE80211AKMType, u16>,
         PMKIDList: IEEE80211List<IEEE80211PMKID, u16>,
-    > MeasureWith<()> for RSNElement<PairwiseCipherSuiteList, AKMList, PMKIDList>
+    > MeasureWith<()> for RSNElement<'_, PairwiseCipherSuiteList, AKMList, PMKIDList>
 {
     fn measure_with(&self, _ctx: &()) -> usize {
         2 + if self.group_data_cipher_suite.is_some() {
@@ -397,7 +401,7 @@ impl<
         PairwiseCipherSuiteList: IEEE80211List<IEEE80211CipherSuiteSelector, u16>,
         AKMList: IEEE80211List<IEEE80211AKMType, u16>,
         PMKIDList: IEEE80211List<IEEE80211PMKID, u16>,
-    > TryIntoCtx for RSNElement<PairwiseCipherSuiteList, AKMList, PMKIDList>
+    > TryIntoCtx for RSNElement<'_, PairwiseCipherSuiteList, AKMList, PMKIDList>
 where
     Self: MeasureWith<()>,
 {
@@ -429,7 +433,7 @@ where
     }
 }
 impl<PairwiseCipherSuiteList, AKMList, PMKIDList> Element
-    for RSNElement<PairwiseCipherSuiteList, AKMList, PMKIDList>
+    for RSNElement<'_, PairwiseCipherSuiteList, AKMList, PMKIDList>
 where
     PairwiseCipherSuiteList: Clone
         + IEEE80211List<IEEE80211CipherSuiteSelector, u16>
@@ -439,9 +443,5 @@ where
     Self: MeasureWith<()>,
 {
     const ELEMENT_ID: ElementID = ElementID::Id(0x30);
-    type ReadType<'a> = RSNElement<
-        IEEE80211ReadList<'a, IEEE80211CipherSuiteSelector, u16, 4>,
-        IEEE80211ReadList<'a, IEEE80211AKMType, u16, 4>,
-        IEEE80211ReadList<'a, IEEE80211PMKID, u16, 16>,
-    >;
+    type ReadType<'a> = RSNElement<'a>;
 }

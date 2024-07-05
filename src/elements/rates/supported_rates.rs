@@ -1,3 +1,5 @@
+use core::marker::PhantomData;
+
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
     Pwrite,
@@ -13,20 +15,24 @@ use super::{EncodedRate, RatesReadIterator};
 /// The `supported_rates` field is an [Iterator] over [EncodedRate]. This allows passing rates, agnostic of the collection.
 /// When deserializing this struct, the Iterator is [RatesReadIterator].
 /// There must be no more than 8 rates present, since anything after that gets truncated.
-pub struct SupportedRatesElement<I>
+pub struct SupportedRatesElement<'a, I = RatesReadIterator<'a>>
 where
     I: IntoIterator<Item = EncodedRate>,
 {
     pub supported_rates: I,
+    pub _phantom: PhantomData<&'a ()>,
 }
-impl<I: IntoIterator<Item = EncodedRate>> SupportedRatesElement<I> {
+impl<I: IntoIterator<Item = EncodedRate>> SupportedRatesElement<'_, I> {
     #[doc(hidden)]
     // For internal use only.
     pub const fn new_unchecked(supported_rates: I) -> Self {
-        Self { supported_rates }
+        Self {
+            supported_rates,
+            _phantom: PhantomData,
+        }
     }
 }
-impl<I> SupportedRatesElement<I>
+impl<I> SupportedRatesElement<'_, I>
 where
     I: IntoIterator<Item = EncodedRate> + Clone,
     I::IntoIter: ExactSizeIterator,
@@ -42,8 +48,8 @@ where
         }
     }
 }
-impl<LhsIterator, RhsIterator> PartialEq<SupportedRatesElement<RhsIterator>>
-    for SupportedRatesElement<LhsIterator>
+impl<LhsIterator, RhsIterator> PartialEq<SupportedRatesElement<'_, RhsIterator>>
+    for SupportedRatesElement<'_, LhsIterator>
 where
     LhsIterator: IntoIterator<Item = EncodedRate> + Clone,
     RhsIterator: IntoIterator<Item = EncodedRate> + Clone,
@@ -55,14 +61,14 @@ where
             .eq(other.supported_rates.clone())
     }
 }
-impl<I> Eq for SupportedRatesElement<I> where I: IntoIterator<Item = EncodedRate> + Clone {}
-impl<I: IntoIterator<Item = EncodedRate> + Clone> MeasureWith<()> for SupportedRatesElement<I> {
+impl<I> Eq for SupportedRatesElement<'_, I> where I: IntoIterator<Item = EncodedRate> + Clone {}
+impl<I: IntoIterator<Item = EncodedRate> + Clone> MeasureWith<()> for SupportedRatesElement<'_, I> {
     fn measure_with(&self, _ctx: &()) -> usize {
         // Each rate is exactly one byte.
         self.supported_rates.clone().into_iter().count()
     }
 }
-impl<'a> TryFromCtx<'a> for SupportedRatesElement<RatesReadIterator<'a>> {
+impl<'a> TryFromCtx<'a> for SupportedRatesElement<'a> {
     type Error = scroll::Error;
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         if from.len() > 8 {
@@ -72,15 +78,13 @@ impl<'a> TryFromCtx<'a> for SupportedRatesElement<RatesReadIterator<'a>> {
             })
         } else {
             Ok((
-                SupportedRatesElement {
-                    supported_rates: RatesReadIterator::new(from),
-                },
+                Self::new_unchecked(RatesReadIterator::new(from)),
                 from.len(),
             ))
         }
     }
 }
-impl<I: IntoIterator<Item = EncodedRate> + Clone> TryIntoCtx for SupportedRatesElement<I> {
+impl<I: IntoIterator<Item = EncodedRate> + Clone> TryIntoCtx for SupportedRatesElement<'_, I> {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         let mut offset = 0;
@@ -94,9 +98,9 @@ impl<I: IntoIterator<Item = EncodedRate> + Clone> TryIntoCtx for SupportedRatesE
     }
 }
 
-impl<I: IntoIterator<Item = EncodedRate> + Clone> Element for SupportedRatesElement<I> {
+impl<I: IntoIterator<Item = EncodedRate> + Clone> Element for SupportedRatesElement<'_, I> {
     const ELEMENT_ID: ElementID = ElementID::Id(0x01);
-    type ReadType<'a> = SupportedRatesElement<RatesReadIterator<'a>>;
+    type ReadType<'a> = SupportedRatesElement<'a>;
 }
 
 #[macro_export]
