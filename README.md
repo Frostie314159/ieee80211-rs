@@ -47,12 +47,15 @@ Deserializing an `IEEE80211Frame` will destructure the frame into it's most elem
 Hardware: Framework 13 with Intel i5 1240p
 |benchmark|time in ns|notes|
 -- | -- | --
-beacon_read | 40.2 | --
-beacon_write | 43.4 | This is using the element chain approach.
-action_vendor_read | 31.8 | --
-action_vendor_write | 26.3 | --
-qos_data_read | 20.5 | --
-qos_data_write | 25 | --
+beacon_read | 57.1 | --
+beacon_write | 46.5 | This is using the element chain approach.
+action_vendor_read | 57 | --
+action_vendor_write | 46 | --
+qos_data_read | 70.2 | --
+qos_data_write | 41.1 | --
+element_chain_write | 71.4 | --
+rsn_read | 7.8 | --
+rsn_write | 59.3 | --
 
 
 ## no_std and zerocopy
