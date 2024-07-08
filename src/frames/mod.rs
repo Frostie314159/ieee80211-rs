@@ -6,7 +6,7 @@ use scroll::{
 
 use crate::{
     common::{FrameControlField, FrameType},
-    elements::Elements,
+    elements::ReadElements,
 };
 
 use self::{
@@ -25,7 +25,7 @@ pub mod mgmt_frame;
 /// The [TryIntoCtx] implementation for this takes a [bool] as `Ctx`, which specifies if the fcs is at the end.
 pub enum IEEE80211Frame<
     'a,
-    ElementContainer = Elements<'a>,
+    ElementContainer = ReadElements<'a>,
     ActionFramePayload = &'a [u8],
     DataFramePayload = DataFrameReadPayload<'a>,
 > where

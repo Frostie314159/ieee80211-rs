@@ -5,11 +5,11 @@ use scroll::{
     Endian, Pread, Pwrite,
 };
 
-use crate::{common::reason::IEEE80211Reason, elements::Elements};
+use crate::{common::reason::IEEE80211Reason, elements::ReadElements};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// This is the body of a deauthentication frame.
-pub struct DeauthenticationBody<'a, ElementContainer = Elements<'a>> {
+pub struct DeauthenticationBody<'a, ElementContainer = ReadElements<'a>> {
     /// The reason for the deauthentication.
     pub reason: IEEE80211Reason,
     pub elements: ElementContainer,

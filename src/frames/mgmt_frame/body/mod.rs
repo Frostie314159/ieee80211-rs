@@ -4,7 +4,7 @@ use scroll::{
     Pread, Pwrite,
 };
 
-use crate::elements::Elements;
+use crate::elements::ReadElements;
 
 mod action;
 pub use action::ActionFrameBody;
@@ -173,7 +173,7 @@ management_frame_bodies! {
     /// The rest of the frame can be found in [crate::frames::ManagementFrame].
     pub enum ManagementFrameBody<
         'a,
-        ElementContainer: TryIntoCtx<Error = scroll::Error>, MeasureWith<()> = Elements<'a>,
+        ElementContainer: TryIntoCtx<Error = scroll::Error>, MeasureWith<()> = ReadElements<'a>,
         ActionFramePayload: TryIntoCtx<Error = scroll::Error>, MeasureWith<()> = &'a [u8]
     > {
         AssociationRequest: 0b0000 => AssociationRequestBody<'a, ElementContainer>,

@@ -7,7 +7,7 @@ use scroll::{
 
 use crate::{
     common::{capabilities::CapabilitiesInformation, Empty, TU},
-    elements::{Elements, SSIDElement},
+    elements::{ReadElements, SSIDElement},
 };
 
 use super::{ManagementFrameBody, ToManagementFrameBody};
@@ -19,7 +19,7 @@ pub struct ProbeResponseSubtype;
 
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 /// This is a generic body of a beacon like frame. This includes beacons and probe responses.
-pub struct BeaconLikeFrameBody<'a, Subtype, ElementContainer = Elements<'a>> {
+pub struct BeaconLikeFrameBody<'a, Subtype, ElementContainer = ReadElements<'a>> {
     pub timestamp: u64,
     pub beacon_interval: u16,
     pub capabilities_info: CapabilitiesInformation,
@@ -125,5 +125,5 @@ impl<'a, ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>>
 /// The body of a beacon frame.
 ///
 /// This is derived from a [generic type](BeaconLikeFrameBody) over beacon like frames, since Beacons and Probe Responses have exactly the same frame format.
-pub type BeaconFrameBody<'a, ElementContainer = Elements<'a>> =
+pub type BeaconFrameBody<'a, ElementContainer = ReadElements<'a>> =
     BeaconLikeFrameBody<'a, BeaconSubtype, ElementContainer>;

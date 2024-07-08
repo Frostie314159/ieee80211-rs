@@ -7,7 +7,7 @@ use scroll::{
 
 use crate::{
     common::Empty,
-    elements::{Elements, SSIDElement},
+    elements::{ReadElements, SSIDElement},
 };
 
 use super::{
@@ -16,7 +16,7 @@ use super::{
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// The body of a probe request.
-pub struct ProbeRequestBody<'a, ElementContainer = Elements<'a>> {
+pub struct ProbeRequestBody<'a, ElementContainer = ReadElements<'a>> {
     pub elements: ElementContainer,
     pub _phantom: PhantomData<&'a ()>,
 }
@@ -68,5 +68,5 @@ impl<'a, ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>>
     }
 }
 
-pub type ProbeResponeBody<'a, ElementContainer = Elements<'a>> =
+pub type ProbeResponeBody<'a, ElementContainer = ReadElements<'a>> =
     BeaconLikeFrameBody<'a, ProbeResponseSubtype, ElementContainer>;

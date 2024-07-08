@@ -7,12 +7,12 @@ use scroll::{
 
 use crate::{
     common::{capabilities::CapabilitiesInformation, status_code::IEEE80211Status},
-    elements::Elements,
+    elements::ReadElements,
 };
 
 /// This is the body of an association request frame.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-pub struct AssociationRequestBody<'a, ElementContainer = Elements<'a>> {
+pub struct AssociationRequestBody<'a, ElementContainer = ReadElements<'a>> {
     pub capabilities_info: CapabilitiesInformation,
     pub listen_interval: u16,
     pub elements: ElementContainer,
@@ -72,7 +72,7 @@ impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
 
 /// This is the body of an association response frame.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-pub struct AssociationResponseBody<'a, ElementContainer = Elements<'a>> {
+pub struct AssociationResponseBody<'a, ElementContainer = ReadElements<'a>> {
     pub capabilities_info: CapabilitiesInformation,
     pub status_code: IEEE80211Status,
     pub association_id: u16,

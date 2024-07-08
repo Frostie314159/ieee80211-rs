@@ -148,57 +148,84 @@ impl<Payload: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for TypedIEEE80211Ex
 /// A container, which contains the elements of a frame.
 ///
 /// It can be used to extract different elements from the body of a frame.
+/// If the element type you're looking for, is already implemented, you can use the [Self::get_first_element] and [Self::get_matching_elements] functions to extract them.
+/// These functions will automatically parse the elements and take the type of the element as a generic parameter.
+/// If the element type isn't implemented yet, you can still extract it using the [Self::get_first_element_raw] and [Self::get_matching_elements_raw] functions, which return [RawIEEE80211Elements](RawIEEE80211Element).
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
-pub struct Elements<'a> {
+pub struct ReadElements<'a> {
     pub bytes: &'a [u8],
 }
-impl<'a> Elements<'a> {
+impl<'a> ReadElements<'a> {
+    /// Check if the provided [RawIEEE80211Element] matches with the [ElementID].
+    fn element_id_matches(raw_element: &RawIEEE80211Element<'a>, element_id: ElementID) -> bool {
+        match element_id {
+            ElementID::Id(id) => id == raw_element.tlv_type,
+            ElementID::ExtId(ext_id) if raw_element.tlv_type == 0xff => {
+                let Ok(ext_element) = raw_element.slice.pread::<RawIEEE80211ExtElement>(0) else {
+                    return false;
+                };
+                ext_id == ext_element.ext_id
+            }
+            _ => false,
+        }
+    }
+    /// Parse a [RawIEEE80211Element] into the specified type.
+    fn parse_raw_element<ElementType: Element>(
+        raw_element: RawIEEE80211Element<'a>,
+    ) -> Option<ElementType::ReadType<'a>> {
+        raw_element.slice.pread(0).ok()
+    }
+    /// Returns an iterator over [RawIEEE80211Elements](RawIEEE80211Element).
     pub fn raw_element_iterator(&self) -> ReadIterator<'a, Endian, RawIEEE80211Element> {
         ReadIterator::<Endian, RawIEEE80211Element<'a>>::new(self.bytes)
     }
-    pub fn filter_element<ElementType: Element>(
-        raw_tlv: RawTLV<'a, u8, u8>,
-    ) -> Option<<ElementType as Element>::ReadType<'a>> {
-        match <ElementType as Element>::ELEMENT_ID {
-            ElementID::Id(id) if id == raw_tlv.tlv_type => Some(raw_tlv.slice),
-            ElementID::ExtId(ext_id) if raw_tlv.tlv_type == 0xff => {
-                let ext_element = raw_tlv.slice.pread::<RawIEEE80211ExtElement>(0).ok()?;
-                if ext_element.ext_id == ext_id {
-                    Some(ext_element.slice)
-                } else {
-                    None
-                }
-            }
-            _ => None,
-        }
-        .and_then(|slice| slice.pread(0).ok())
-    }
-    /// This returns the first element, matchign the specified element type.
-    pub fn get_first_element<ElementType: Element>(&'a self) -> Option<ElementType::ReadType<'a>> {
-        self.raw_element_iterator()
-            .find_map(Self::filter_element::<ElementType>)
-    }
-    /// This returns an [Iterator] over a specific type of element, which is specified over the generic parameter.
-    pub fn get_elements<ElementType: Element + 'a>(
+    /// Returns an iterator over [RawIEEE80211Elements](RawIEEE80211Element), which match the specified [ElementID].
+    pub fn get_matching_elements_raw(
         &'a self,
-    ) -> impl Iterator<Item = <ElementType as Element>::ReadType<'a>> + 'a {
+        element_id: ElementID,
+    ) -> impl Iterator<Item = RawIEEE80211Element<'a>> + 'a {
         self.raw_element_iterator()
-            .filter_map(Self::filter_element::<ElementType>)
+            .filter(move |raw_element| Self::element_id_matches(raw_element, element_id))
+    }
+    /// Returns an [Iterator] over a specific type of element, which is specified over the generic parameter.
+    pub fn get_matching_elements<ElementType: Element + 'a>(
+        &'a self,
+    ) -> impl Iterator<Item = ElementType::ReadType<'a>> + 'a {
+        self.raw_element_iterator().filter_map(|raw_element| {
+            if Self::element_id_matches(&raw_element, ElementType::ELEMENT_ID) {
+                Self::parse_raw_element::<ElementType>(raw_element)
+            } else {
+                None
+            }
+        })
+    }
+    /// Returns the first [RawIEEE80211Element], which matches the specified [ElementID].
+    pub fn get_first_element_raw(
+        &'a self,
+        element_id: ElementID,
+    ) -> Option<RawIEEE80211Element<'a>> {
+        self.get_matching_elements_raw(element_id).next()
+    }
+    /// This returns the first element, matching the specified element type.
+    pub fn get_first_element<ElementType: Element + 'a>(
+        &'a self,
+    ) -> Option<ElementType::ReadType<'a>> {
+        self.get_matching_elements::<ElementType>().next()
     }
 }
-impl<'a> TryFromCtx<'a> for Elements<'a> {
+impl<'a> TryFromCtx<'a> for ReadElements<'a> {
     type Error = scroll::Error;
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
-        Ok((Elements { bytes: from }, from.len()))
+        Ok((ReadElements { bytes: from }, from.len()))
     }
 }
-impl TryIntoCtx for Elements<'_> {
+impl TryIntoCtx for ReadElements<'_> {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         buf.pwrite(self.bytes, 0)
     }
 }
-impl MeasureWith<()> for Elements<'_> {
+impl MeasureWith<()> for ReadElements<'_> {
     fn measure_with(&self, _ctx: &()) -> usize {
         self.bytes.len()
     }

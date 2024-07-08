@@ -5,7 +5,7 @@ use scroll::{
 
 use crate::{
     common::{Empty, FCFFlags, FrameControlField, FrameType},
-    elements::Elements,
+    elements::ReadElements,
     IEEE80211Frame, ToFrame,
 };
 
@@ -19,7 +19,7 @@ pub mod header;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 /// An IEEE 802.11 Management Frame.
-pub struct ManagementFrame<'a, ElementContainer = Elements<'a>, ActionFramePayload = &'a [u8]>
+pub struct ManagementFrame<'a, ElementContainer = ReadElements<'a>, ActionFramePayload = &'a [u8]>
 where
     ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
     ActionFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
