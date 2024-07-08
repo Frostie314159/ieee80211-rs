@@ -19,10 +19,12 @@ use core::marker::PhantomData;
 
 use scroll::{
     ctx::{MeasureWith, TryIntoCtx},
-    Pwrite,
+    Endian, Pwrite,
 };
 
-use super::{Element, ElementID, TypedIEEE80211Element, TypedIEEE80211ExtElement};
+use super::{
+    Element, ElementID, RawIEEE80211Element, TypedIEEE80211Element, TypedIEEE80211ExtElement,
+};
 
 /// This trait represents a singular element of the chain.
 pub trait ChainElement {
@@ -30,7 +32,7 @@ pub trait ChainElement {
     type Appended<Appendee>: ChainElement;
 
     /// Append a new element to the chain.
-    fn append<T: Element>(self, value: T) -> Self::Appended<T>;
+    fn append<T>(self, value: T) -> Self::Appended<T>;
 }
 
 /// This is the end of a chain.
@@ -47,16 +49,18 @@ impl<Inner: Element> ElementChainEnd<Inner> {
         Self { inner }
     }
 }
+
 impl<Inner> ChainElement for ElementChainEnd<Inner> {
     type Appended<Appendee> = ElementChainLink<Inner, ElementChainEnd<Appendee>>;
     #[inline]
-    fn append<T: Element>(self, value: T) -> Self::Appended<T> {
+    fn append<T>(self, value: T) -> Self::Appended<T> {
         ElementChainLink {
             inner: self.inner,
             next: ElementChainEnd { inner: value },
         }
     }
 }
+
 impl<Inner> MeasureWith<()> for ElementChainEnd<Inner>
 where
     Inner: Element,
@@ -66,6 +70,12 @@ where
         self.inner.measure_with(ctx) + if Inner::ELEMENT_ID.is_ext() { 3 } else { 2 }
     }
 }
+impl MeasureWith<()> for ElementChainEnd<RawIEEE80211Element<'_>> {
+    fn measure_with(&self, _ctx: &()) -> usize {
+        self.inner.slice.len() + 2
+    }
+}
+
 impl<Inner> TryIntoCtx for ElementChainEnd<Inner>
 where
     Inner: Element,
@@ -97,6 +107,13 @@ where
         }
     }
 }
+impl TryIntoCtx for ElementChainEnd<RawIEEE80211Element<'_>> {
+    type Error = scroll::Error;
+    fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
+        buf.pwrite_with(self.inner, 0, Endian::Little)
+    }
+}
+
 /// A link in the element chain.
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 pub struct ElementChainLink<Inner, Child: ChainElement> {
@@ -108,13 +125,14 @@ pub struct ElementChainLink<Inner, Child: ChainElement> {
 impl<Inner, Child: ChainElement> ChainElement for ElementChainLink<Inner, Child> {
     type Appended<Appendee> = ElementChainLink<Inner, <Child as ChainElement>::Appended<Appendee>>;
     #[inline]
-    fn append<T: Element>(self, value: T) -> Self::Appended<T> {
+    fn append<T>(self, value: T) -> Self::Appended<T> {
         ElementChainLink {
             inner: self.inner,
             next: self.next.append(value),
         }
     }
 }
+
 impl<Inner, Child> MeasureWith<()> for ElementChainLink<Inner, Child>
 where
     Inner: Element,
@@ -127,6 +145,15 @@ where
             + self.next.measure_with(ctx)
     }
 }
+impl<Child> MeasureWith<()> for ElementChainLink<RawIEEE80211Element<'_>, Child>
+where
+    Child: TryIntoCtx<Error = scroll::Error> + MeasureWith<()> + ChainElement,
+{
+    fn measure_with(&self, ctx: &()) -> usize {
+        self.inner.slice.len() + 2 + self.next.measure_with(ctx)
+    }
+}
+
 impl<Inner, Child> TryIntoCtx for ElementChainLink<Inner, Child>
 where
     Inner: Element,
@@ -157,6 +184,18 @@ where
                 &mut offset,
             )?,
         };
+        buf.gwrite(self.next, &mut offset)?;
+
+        Ok(offset)
+    }
+}
+impl<Child> TryIntoCtx for ElementChainLink<RawIEEE80211Element<'_>, Child> where
+    Child: TryIntoCtx<Error = scroll::Error> + ChainElement
+{
+    type Error = scroll::Error;
+    fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
+        let mut offset = 0;
+        buf.gwrite_with(self.inner, &mut offset, Endian::Little)?;
         buf.gwrite(self.next, &mut offset)?;
 
         Ok(offset)
