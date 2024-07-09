@@ -108,6 +108,7 @@ impl TryIntoCtx for SupportedMCSSet {
         Ok(offset)
     }
 }
+/// Generates the MCS-Set field from an [Iterator] over [bool].
 pub fn generate_supported_rx_mcs_set<I: IntoIterator<Item = bool>>(mcs_indices: I) -> [u8; 10] {
     let mut supported_rx_mcs_set = [0; 10];
 
