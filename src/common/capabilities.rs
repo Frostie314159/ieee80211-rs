@@ -4,7 +4,7 @@ use bitfield_struct::bitfield;
 #[derive(PartialEq, Eq, Hash)]
 /// This bitfield contains the capabilities of the sender.
 pub struct CapabilitiesInformation {
-    pub is_ebss: bool,
+    pub is_ess: bool,
     pub is_ibss: bool,
     #[bits(2)]
     __: u8,
