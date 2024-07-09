@@ -4,7 +4,8 @@ use scroll::{
 };
 
 use crate::{
-    common::{Empty, FCFFlags, FrameControlField, FrameType},
+    common::{FCFFlags, FrameControlField, FrameType},
+    data_frame::DataFrameReadPayload,
     elements::ReadElements,
     IEEE80211Frame, ToFrame,
 };
@@ -87,10 +88,12 @@ impl<
         'a,
         ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()> + 'a,
         ActionFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()> + 'a,
-    > ToFrame<'a, ElementContainer, ActionFramePayload, Empty>
+    > ToFrame<'a, ElementContainer, ActionFramePayload, DataFrameReadPayload<'a>>
     for ManagementFrame<'a, ElementContainer, ActionFramePayload>
 {
-    fn to_frame(self) -> IEEE80211Frame<'a, ElementContainer, ActionFramePayload, Empty> {
+    fn to_frame(
+        self,
+    ) -> IEEE80211Frame<'a, ElementContainer, ActionFramePayload, DataFrameReadPayload<'a>> {
         IEEE80211Frame::Management(self)
     }
 }
