@@ -24,6 +24,7 @@ use scroll::{
 
 use super::{
     Element, ElementID, RawIEEE80211Element, TypedIEEE80211Element, TypedIEEE80211ExtElement,
+    VendorSpecificElement,
 };
 
 /// This trait represents a singular element of the chain.
@@ -99,6 +100,19 @@ where
                     payload: TypedIEEE80211ExtElement {
                         ext_id,
                         payload: self.inner,
+                    },
+                    _phantom: PhantomData,
+                },
+                0,
+            ),
+            ElementID::VendorSpecific { oui, subtype } => buf.pwrite(
+                TypedIEEE80211Element {
+                    tlv_type: 0xdd,
+                    payload: VendorSpecificElement {
+                        oui,
+                        subtype,
+                        payload: self.inner,
+                        _phantom: PhantomData,
                     },
                     _phantom: PhantomData,
                 },
@@ -183,14 +197,28 @@ where
                 },
                 &mut offset,
             )?,
+            ElementID::VendorSpecific { oui, subtype } => buf.gwrite(
+                TypedIEEE80211Element {
+                    tlv_type: 0xdd,
+                    payload: VendorSpecificElement {
+                        oui,
+                        subtype,
+                        payload: self.inner,
+                        _phantom: PhantomData,
+                    },
+                    _phantom: PhantomData,
+                },
+                &mut offset,
+            )?,
         };
         buf.gwrite(self.next, &mut offset)?;
 
         Ok(offset)
     }
 }
-impl<Child> TryIntoCtx for ElementChainLink<RawIEEE80211Element<'_>, Child> where
-    Child: TryIntoCtx<Error = scroll::Error> + ChainElement
+impl<Child> TryIntoCtx for ElementChainLink<RawIEEE80211Element<'_>, Child>
+where
+    Child: TryIntoCtx<Error = scroll::Error> + ChainElement,
 {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {

@@ -1,3 +1,10 @@
+use std::marker::PhantomData;
+
+use ieee80211::{
+    elements::{ElementID, RawIEEE80211Element, ReadElements, SSIDElement},
+    ssid,
+};
+
 mod dsss_parameter_set;
 mod ibss_parameter_set;
 mod rsn_element;
@@ -24,4 +31,38 @@ macro_rules! gen_element_rw_test {
                 Either check the test case for correctness or the TryIntoCtx implementation.", stringify!($element_type));
         }
     };
+}
+#[test]
+fn test_read_elements() {
+    let elements = ReadElements {
+        bytes: &[
+            0x00, 0x04, b'T', b'e', b's', b't', 0xdd, 0x06, 0x00, 0x80, 0x41, 0x00, 0x13, 0x37,
+            0xff, 0x03, 0x00, 0x13, 0x37,
+        ],
+    };
+    assert_eq!(
+        elements.get_first_element::<SSIDElement>().unwrap(),
+        ssid!("Test")
+    );
+    assert_eq!(
+        elements
+            .get_first_element_raw(ElementID::VendorSpecific {
+                oui: [0x00, 0x80, 0x41],
+                subtype: 0
+            })
+            .unwrap(),
+        RawIEEE80211Element {
+            tlv_type: 0xdd,
+            slice: &[0x00, 0x80, 0x41, 0x00, 0x13, 0x37],
+            _phantom: PhantomData
+        }
+    );
+    assert_eq!(
+        elements.get_first_element_raw(ElementID::ExtId(0x00)).unwrap(),
+        RawIEEE80211Element {
+            tlv_type: 0xff,
+            slice: &[0x00, 0x13, 0x37],
+            _phantom: PhantomData
+        }
+    );
 }
