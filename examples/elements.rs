@@ -1,5 +1,5 @@
 use ieee80211::{
-    elements::{rates::SupportedRatesElement, rsn::RSNElement, SSIDElement},
+    elements::{RSNElement, SSIDElement, SupportedRatesElement},
     mgmt_frame::body::ManagementFrameBody,
     IEEE80211Frame,
 };

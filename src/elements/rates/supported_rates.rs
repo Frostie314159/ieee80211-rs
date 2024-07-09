@@ -107,7 +107,7 @@ impl<I: IntoIterator<Item = EncodedRate> + Clone> Element for SupportedRatesElem
 /// This macro generates an [EncodedRate].
 ///
 /// ```
-/// use ieee80211::{rate, elements::rates::EncodedRate};
+/// use ieee80211::{rate, elements::EncodedRate};
 ///
 /// let normal_rate = rate!(1.5); // 1.5Mbit/s
 /// assert_eq!(normal_rate, EncodedRate::new()
@@ -122,7 +122,7 @@ impl<I: IntoIterator<Item = EncodedRate> + Clone> Element for SupportedRatesElem
 /// ```
 macro_rules! rate {
     ($rate:literal) => {
-        ::ieee80211::elements::rates::EncodedRate::from_rate_in_kbps(
+        ::ieee80211::elements::EncodedRate::from_rate_in_kbps(
             ::ieee80211::const_soft_float::soft_f32::SoftF32($rate as f32)
                 .mul(::ieee80211::const_soft_float::soft_f32::SoftF32(1000f32))
                 .0 as usize,
@@ -130,7 +130,7 @@ macro_rules! rate {
         )
     };
     ($rate:literal B) => {
-        ::ieee80211::elements::rates::EncodedRate::from_rate_in_kbps(
+        ::ieee80211::elements::EncodedRate::from_rate_in_kbps(
             ::ieee80211::const_soft_float::soft_f32::SoftF32($rate as f32)
                 .mul(::ieee80211::const_soft_float::soft_f32::SoftF32(1000f32))
                 .0 as usize,
@@ -143,7 +143,7 @@ macro_rules! rate {
 /// Generate a [SupportedRatesElement].
 ///
 /// ```
-/// use ieee80211::{supported_rates, rate, elements::rates::SupportedRatesElement};
+/// use ieee80211::{supported_rates, rate, elements::SupportedRatesElement};
 ///
 /// let supported_rates_element = supported_rates![
 ///     1.5 B,
@@ -161,7 +161,7 @@ macro_rules! supported_rates {
         $rate:literal $($is_b:ident)?
     ),*) => {
         {
-            use ::ieee80211::{elements::rates::{SupportedRatesElement, EncodedRate}, rate, const_soft_float::soft_f32::SoftF32, macro_bits::{check_bit, set_bit, bit}};
+            use ::ieee80211::{elements::{SupportedRatesElement, EncodedRate}, rate, const_soft_float::soft_f32::SoftF32, macro_bits::{check_bit, set_bit, bit}};
             const RATE_COUNT: usize = $(
                 {
                     let _ = $rate;

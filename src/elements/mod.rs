@@ -6,22 +6,23 @@ use tlv_rs::{raw_tlv::RawTLV, TLV};
 
 use crate::common::read_iterator::ReadIterator;
 
-/// This module contains the elements, which are found in the body of some frames.
-/// If an element only consists of one struct, like the [ssid::SSIDTLV], they are re-exported, otherwise they get their own module.
 mod dsss_parameter_set;
-pub use dsss_parameter_set::DSSSParameterSetElement;
-pub mod rates;
+pub use dsss_parameter_set::*;
+mod rates;
+pub use rates::*;
 mod ssid;
-pub use ssid::SSIDElement;
+pub use ssid::*;
 mod bss_load;
-pub mod ht;
 pub use bss_load::*;
+mod ht;
+pub use ht::*;
 mod ibss_parameter_set;
-pub use ibss_parameter_set::IBSSParameterSetElement;
-
-pub mod rsn;
+pub use ibss_parameter_set::*;
+mod rsn;
+pub use rsn::*;
 mod vendor_specific_element;
-pub use vendor_specific_element::VendorSpecificElement;
+pub use vendor_specific_element::*;
+pub mod vht;
 
 pub mod element_chain;
 
@@ -37,6 +38,10 @@ pub enum ElementID {
     /// An extension ID.
     /// This implies, that the normal ID is 255.
     ExtId(u8),
+    VendorSpecific {
+        oui: [u8; 3],
+        subtype: u8,
+    },
 }
 impl ElementID {
     /// Checks if this element ID is an extended element ID.
@@ -50,6 +55,7 @@ impl ElementID {
         match self {
             Self::Id(id) => *id,
             Self::ExtId(_) => 0xff,
+            Self::VendorSpecific { .. } => 0xdd,
         }
     }
     /// Returns the extended ID.
@@ -57,8 +63,14 @@ impl ElementID {
     /// If [Self::is_ext] is false, this returns None.
     pub const fn ext_id(&self) -> Option<u8> {
         match self {
-            Self::Id(_) => None,
             Self::ExtId(ext_id) => Some(*ext_id),
+            _ => None,
+        }
+    }
+    pub const fn oui_and_subtype(&self) -> Option<([u8; 3], u8)> {
+        match *self {
+            Self::VendorSpecific { oui, subtype } => Some((oui, subtype)),
+            _ => None,
         }
     }
 }
@@ -165,14 +177,37 @@ impl<'a> ReadElements<'a> {
                 };
                 ext_id == ext_element.ext_id
             }
+            ElementID::VendorSpecific { oui, subtype } if raw_element.tlv_type == 0xdd => {
+                let Ok(vendor_specific_element) =
+                    raw_element.slice.pread::<VendorSpecificElement>(0)
+                else {
+                    return false;
+                };
+                vendor_specific_element.oui == oui && vendor_specific_element.subtype == subtype
+            }
             _ => false,
         }
     }
     /// Parse a [RawIEEE80211Element] into the specified type.
+    ///
+    /// This doesn't validate that the types match..
     fn parse_raw_element<ElementType: Element>(
         raw_element: RawIEEE80211Element<'a>,
     ) -> Option<ElementType::ReadType<'a>> {
-        raw_element.slice.pread(0).ok()
+        match ElementType::ELEMENT_ID {
+            ElementID::Id(_) => raw_element.slice,
+            ElementID::ExtId(_) => {
+                let ext_element: RawIEEE80211ExtElement = raw_element.slice.pread(0).ok()?;
+                ext_element.slice
+            }
+            ElementID::VendorSpecific { .. } => {
+                let vendor_specific_element: VendorSpecificElement =
+                    raw_element.slice.pread(0).ok()?;
+                vendor_specific_element.payload
+            }
+        }
+        .pread(0)
+        .ok()
     }
     /// Returns an iterator over [RawIEEE80211Elements](RawIEEE80211Element).
     pub fn raw_element_iterator(&self) -> ReadIterator<'a, Endian, RawIEEE80211Element> {
