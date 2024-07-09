@@ -45,6 +45,7 @@ macro_rules! cipher_suite_selectors {
         $(
             #[$enum_meta]
         )*
+        #[non_exhaustive]
         $enum_vis enum $enum_name {
             Unknown {
                 oui: [u8; 3],
@@ -120,6 +121,7 @@ macro_rules! cipher_suite_selectors {
 }
 cipher_suite_selectors! {
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+    /// The cipher suites.
     pub enum IEEE80211CipherSuiteSelector {
         #[default]
         UseGroupCipherSuite => (IEEE_OUI, 0),
@@ -139,6 +141,7 @@ cipher_suite_selectors! {
 }
 cipher_suite_selectors! {
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+    /// The authentication and key-management type.
     pub enum IEEE80211AKMType {
         #[default]
         None => (IEEE_OUI, 0),
@@ -171,6 +174,7 @@ cipher_suite_selectors! {
 
 #[bitfield(u16)]
 #[derive(PartialEq, Eq, Hash)]
+/// The specific capabilities of the transmitting STA.
 pub struct RSNCapabilities {
     pub supports_preauthentication: bool,
     pub no_pairwise_key: bool,
@@ -178,7 +182,9 @@ pub struct RSNCapabilities {
     pub ptksa_replay_counter: u8,
     #[bits(2)]
     pub gtksa_replay_counter: u8,
+    /// Protection of management frames is required.
     pub mfp_required: bool,
+    /// Protection of management frames is optionally supported.
     pub mfp_enabled: bool,
     pub supports_joint_multi_band_rsna: bool,
     pub supports_peer_key_enabled_handshake: bool,
