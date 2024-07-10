@@ -1,5 +1,5 @@
 use ieee80211::{
-    elements::{EncodedRate, ExtendedSupportedRatesElement, SupportedRatesElement},
+    elements::rates::{EncodedRate, ExtendedSupportedRatesElement, SupportedRatesElement},
     extended_supported_rates, rate, supported_rates,
 };
 

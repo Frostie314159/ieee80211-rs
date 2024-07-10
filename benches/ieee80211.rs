@@ -2,7 +2,8 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use ieee80211::{
     elements::{
         element_chain::{ChainElement, ElementChainEnd},
-        ElementID, RSNElement, ReadElements,
+        rsn::RSNElement,
+        ElementID, ReadElements,
     },
     mgmt_frame::{
         body::{BeaconFrameBody, ToManagementFrameBody},

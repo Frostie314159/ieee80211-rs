@@ -123,7 +123,7 @@ macro_rules! extended_supported_rates {
         $rate:literal $($is_b:ident)?
     ),*) => {
         {
-            use ::ieee80211::{elements::{ExtendedSupportedRatesElement, EncodedRate}, rate, const_soft_float::soft_f32::SoftF32, macro_bits::{check_bit, set_bit, bit}};
+            use ::ieee80211::{elements::rates::{ExtendedSupportedRatesElement, EncodedRate}, rate, const_soft_float::soft_f32::SoftF32, macro_bits::{check_bit, set_bit, bit}};
             const RATE_COUNT: usize = $(
                 {
                     let _ = $rate;

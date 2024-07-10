@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use ieee80211::elements::{
+use ieee80211::elements::rsn::{
     IEEE80211AKMType, IEEE80211CipherSuiteSelector, RSNCapabilities, RSNElement, IEEE80211PMKID,
 };
 
