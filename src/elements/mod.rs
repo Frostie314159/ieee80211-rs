@@ -218,7 +218,7 @@ impl<'bytes> ReadElements<'bytes> {
     }
 
     /// Returns an iterator over [RawIEEE80211Elements](RawIEEE80211Element), which match the specified [ElementID].
-    pub fn get_matching_elements_raw<'a>(
+    pub fn get_matching_elements_raw(
         self,
         element_id: ElementID,
     ) -> impl Iterator<Item = RawIEEE80211Element<'bytes>> + 'bytes {
