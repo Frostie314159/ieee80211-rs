@@ -210,8 +210,7 @@ impl<'bytes> ReadElements<'bytes> {
         .ok()
     }
     /// Returns an iterator over [RawIEEE80211Elements](RawIEEE80211Element).
-    pub fn raw_element_iterator(self) -> ReadIterator<'bytes, Endian, RawIEEE80211Element<'bytes>>
-    {
+    pub fn raw_element_iterator(self) -> ReadIterator<'bytes, Endian, RawIEEE80211Element<'bytes>> {
         ReadIterator::<Endian, RawIEEE80211Element<'bytes>>::new(self.bytes)
     }
 
@@ -219,16 +218,14 @@ impl<'bytes> ReadElements<'bytes> {
     pub fn get_matching_elements_raw<'a>(
         self,
         element_id: ElementID,
-    ) -> impl Iterator<Item = RawIEEE80211Element<'bytes>> + 'bytes
-    {
+    ) -> impl Iterator<Item = RawIEEE80211Element<'bytes>> + 'bytes {
         self.raw_element_iterator()
             .filter(move |raw_element| Self::element_id_matches(raw_element, element_id))
     }
     /// Returns an [Iterator] over a specific type of element, which is specified over the generic parameter.
     pub fn get_matching_elements<ElementType: Element>(
         self,
-    ) -> impl Iterator<Item = ElementType::ReadType<'bytes>> + 'bytes
-    {
+    ) -> impl Iterator<Item = ElementType::ReadType<'bytes>> + 'bytes {
         self.raw_element_iterator().filter_map(|raw_element| {
             if Self::element_id_matches(&raw_element, ElementType::ELEMENT_ID) {
                 Self::parse_raw_element::<ElementType>(raw_element)
@@ -246,10 +243,7 @@ impl<'bytes> ReadElements<'bytes> {
         self.get_matching_elements_raw(element_id).next()
     }
     /// This returns the first element, matching the specified element type.
-    pub fn get_first_element<ElementType: Element>(
-        self,
-    ) -> Option<ElementType::ReadType<'bytes>>
-    {
+    pub fn get_first_element<ElementType: Element>(self) -> Option<ElementType::ReadType<'bytes>> {
         self.get_matching_elements::<ElementType>().next()
     }
 }
