@@ -26,7 +26,7 @@ impl<'a> ProbeRequestBody<'a> {
         self.elements.bytes.len()
     }
     /// Extract the SSID from the tlvs.
-    pub fn ssid(&'a self) -> Option<&'a str> {
+    pub fn ssid(&self) -> Option<&'a str> {
         // SSID should be the first TLV.
         self.elements
             .get_first_element::<SSIDElement>()
