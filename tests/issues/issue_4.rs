@@ -18,3 +18,13 @@ pub fn borrow_element<'a>(packet: &'a [u8]) -> Option<VendorSpecificElement<'a>>
 
     None
 }
+#[allow(unused)]
+pub fn borrow_ssid<'a>(packet: &'a [u8]) -> Option<&'a str> {
+    let frame = packet.pread::<IEEE80211Frame>(0).unwrap();
+    if let IEEE80211Frame::Management(mgmt) = frame {
+        if let ManagementFrameBody::Beacon(beacon) = mgmt.body {
+            return beacon.ssid();
+        }
+    }
+    None
+}

@@ -38,8 +38,8 @@ impl<'a, Subtype> BeaconLikeFrameBody<'a, Subtype> {
     pub const fn beacon_interval_as_duration(&self) -> Duration {
         Duration::from_micros(self.beacon_interval as u64 * TU.as_micros() as u64)
     }
-    /// Extract the SSID from the tlvs.
-    pub fn ssid(&'a self) -> Option<&'a str> {
+    /// Extract the SSID from the elements.
+    pub fn ssid(&self) -> Option<&'a str> {
         // SSID should be the first TLV.
         self.elements
             .get_first_element::<SSIDElement>()
