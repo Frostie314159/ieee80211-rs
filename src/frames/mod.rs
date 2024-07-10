@@ -1,4 +1,5 @@
 use control_frame::ControlFrame;
+use mac_parser::MACAddress;
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
     Endian, Pread, Pwrite,
@@ -14,6 +15,7 @@ use self::{
     mgmt_frame::ManagementFrame,
 };
 
+/// Support for control frames.
 pub mod control_frame;
 /// This module contains structs around data frames.
 pub mod data_frame;
@@ -66,6 +68,22 @@ impl IEEE80211Frame<'_> {
             4
         } else {
             0
+        }
+    }
+    /// Query the receiver address of the frame.
+    pub fn receiver_address(&self) -> Option<MACAddress> {
+        match self {
+            Self::Management(ManagementFrame { header, .. }) => Some(header.receiver_address),
+            Self::Control(control_frame) => Some(control_frame.receiver_address()),
+            Self::Data(DataFrame { header, .. }) => Some(*header.receiver_address()),
+        }
+    }
+    /// Query the transmitter address of the frame.
+    pub fn transmitter_address(&self) -> Option<MACAddress> {
+        match self {
+            Self::Management(ManagementFrame { header, .. }) => Some(header.transmitter_address),
+            Self::Control(control_frame) => control_frame.transmitter_address(),
+            Self::Data(DataFrame { header, .. }) => Some(*header.transmitter_address()),
         }
     }
 }

@@ -5,7 +5,7 @@ use scroll::{
 };
 
 use crate::{
-    common::{subtypes::ControlFrameSubtype, Empty, FCFFlags, FrameControlField, FrameType},
+    common::{ControlFrameSubtype, Empty, FCFFlags, FrameControlField, FrameType},
     IEEE80211Frame, ToFrame,
 };
 
@@ -35,6 +35,7 @@ pub enum ControlFrame<'a> {
     },
 }
 impl ControlFrame<'_> {
+    /// Returns the total length in bytes.
     pub const fn length_in_bytes(&self) -> usize {
         match self {
             ControlFrame::RTS { .. } => 14,
@@ -43,6 +44,7 @@ impl ControlFrame<'_> {
             ControlFrame::Unknown { body, .. } => body.len(),
         }
     }
+    /// Returns the subtype of the control frame.
     pub const fn get_subtype(&self) -> ControlFrameSubtype {
         match self {
             ControlFrame::RTS { .. } => ControlFrameSubtype::RTS,
@@ -51,6 +53,7 @@ impl ControlFrame<'_> {
             ControlFrame::Unknown { subtype, .. } => *subtype,
         }
     }
+    /// Returns the FCF flags.
     pub const fn get_fcf_flags(&self) -> FCFFlags {
         match self {
             ControlFrame::RTS { fcf_flags, .. }
@@ -59,11 +62,13 @@ impl ControlFrame<'_> {
             | ControlFrame::Unknown { fcf_flags, .. } => *fcf_flags,
         }
     }
+    /// Returns the frame control field.
     pub const fn get_fcf(&self) -> FrameControlField {
         FrameControlField::new()
             .with_frame_type(FrameType::Control(self.get_subtype()))
             .with_flags(self.get_fcf_flags())
     }
+    /// Returns the receiver address if present.
     pub fn receiver_address(&self) -> MACAddress {
         match self {
             Self::RTS {
@@ -78,6 +83,7 @@ impl ControlFrame<'_> {
             Self::Unknown { body, .. } => body.pread(2).unwrap_or_default(),
         }
     }
+    /// Returns the transmitter address if present.
     pub const fn transmitter_address(&self) -> Option<MACAddress> {
         match self {
             Self::RTS {

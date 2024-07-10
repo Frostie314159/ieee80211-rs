@@ -6,7 +6,7 @@ use scroll::{
 };
 
 use crate::{
-    common::{capabilities::CapabilitiesInformation, status_code::IEEE80211Status},
+    common::{CapabilitiesInformation, IEEE80211Status},
     elements::ReadElements,
 };
 

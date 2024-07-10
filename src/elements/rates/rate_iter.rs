@@ -1,6 +1,6 @@
 use scroll::Endian;
 
-use crate::common::read_iterator::ReadIterator;
+use crate::common::ReadIterator;
 
 use super::EncodedRate;
 

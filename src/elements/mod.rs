@@ -4,7 +4,7 @@ use scroll::{
 };
 use tlv_rs::{raw_tlv::RawTLV, TLV};
 
-use crate::common::read_iterator::ReadIterator;
+use crate::common::ReadIterator;
 
 mod dsss_parameter_set;
 pub use dsss_parameter_set::*;

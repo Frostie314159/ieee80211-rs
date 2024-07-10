@@ -4,20 +4,22 @@ use bitfield_struct::bitfield;
 use macro_bits::bit;
 use scroll::ctx::{MeasureWith, TryFromCtx, TryIntoCtx};
 
-use crate::mgmt_frame::body::ManagementFrameSubtype;
+pub use crate::mgmt_frame::body::ManagementFrameSubtype;
 
-use self::subtypes::{ControlFrameSubtype, DataFrameSubtype};
-
-/// This modules contains the enum for the individual subtypes.
-pub mod subtypes;
-
-pub mod read_iterator;
-
-pub mod capabilities;
-pub mod ieee80211_list;
-pub mod reason;
-pub mod status_code;
-pub mod type_state;
+mod subtypes;
+pub use subtypes::*;
+mod read_iterator;
+pub use read_iterator::*;
+mod capabilities;
+pub use capabilities::*;
+mod ieee80211_list;
+pub use ieee80211_list::*;
+mod reason;
+pub use reason::*;
+mod status_code;
+pub use status_code::*;
+mod type_state;
+pub use type_state::*;
 
 /// This is one **T**ime **U**nit, which equalls 1024µs.
 pub const TU: Duration = Duration::from_micros(1024);

@@ -7,10 +7,7 @@ use scroll::{
     Endian, Pread, Pwrite,
 };
 
-use crate::common::{
-    ieee80211_list::{IEEE80211List, IEEE80211ReadList},
-    IEEE_OUI,
-};
+use crate::common::{IEEE80211List, IEEE80211ReadList, IEEE_OUI};
 
 use super::{Element, ElementID};
 

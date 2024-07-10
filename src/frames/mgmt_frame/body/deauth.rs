@@ -5,7 +5,7 @@ use scroll::{
     Endian, Pread, Pwrite,
 };
 
-use crate::{common::reason::IEEE80211Reason, elements::ReadElements};
+use crate::{common::IEEE80211Reason, elements::ReadElements};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// This is the body of a deauthentication frame.

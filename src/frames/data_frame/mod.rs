@@ -6,7 +6,7 @@ use scroll::{
 };
 
 use crate::{
-    common::{subtypes::DataFrameSubtype, Empty, FCFFlags},
+    common::{DataFrameSubtype, Empty, FCFFlags},
     IEEE80211Frame, ToFrame,
 };
 

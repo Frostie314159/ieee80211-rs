@@ -6,7 +6,7 @@ use scroll::{
 };
 
 use crate::{
-    common::{capabilities::CapabilitiesInformation, Empty, TU},
+    common::{CapabilitiesInformation, Empty, TU},
     elements::{ReadElements, SSIDElement},
 };
 

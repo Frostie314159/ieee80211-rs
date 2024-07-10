@@ -1,7 +1,8 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use ieee80211::{
     elements::{
-        element_chain::{ChainElement, ElementChainEnd}, ElementID, RSNElement, ReadElements
+        element_chain::{ChainElement, ElementChainEnd},
+        ElementID, RSNElement, ReadElements,
     },
     mgmt_frame::{
         body::{BeaconFrameBody, ToManagementFrameBody},
@@ -56,10 +57,7 @@ pub fn element_chain(criterion: &mut Criterion) {
 }
 pub fn get_element(criterion: &mut Criterion) {
     let read_elements = ReadElements {
-        bytes: &[
-            0x00, 0x04, b'T', b'e', b's', b't',
-            0x03, 0x01, 0x13
-        ]
+        bytes: &[0x00, 0x04, b'T', b'e', b's', b't', 0x03, 0x01, 0x13],
     };
     criterion.bench_function("get_first_element_raw", |b| {
         b.iter(|| {
