@@ -168,7 +168,10 @@ pub struct ReadElements<'bytes> {
 }
 impl<'bytes> ReadElements<'bytes> {
     /// Check if the provided [RawIEEE80211Element] matches with the [ElementID].
-    fn element_id_matches(raw_element: &RawIEEE80211Element<'bytes>, element_id: ElementID) -> bool {
+    pub fn element_id_matches(
+        raw_element: &RawIEEE80211Element<'bytes>,
+        element_id: ElementID,
+    ) -> bool {
         match element_id {
             ElementID::Id(id) => id == raw_element.tlv_type,
             ElementID::ExtId(ext_id) if raw_element.tlv_type == 0xff => {
@@ -190,8 +193,8 @@ impl<'bytes> ReadElements<'bytes> {
     }
     /// Parse a [RawIEEE80211Element] into the specified type.
     ///
-    /// This doesn't validate that the types match..
-    fn parse_raw_element<ElementType: Element>(
+    /// This doesn't validate that the types match, and will most likely cause the parser for the element to return an error.
+    pub fn parse_raw_element<ElementType: Element>(
         raw_element: RawIEEE80211Element<'bytes>,
     ) -> Option<ElementType::ReadType<'bytes>> {
         match ElementType::ELEMENT_ID {
