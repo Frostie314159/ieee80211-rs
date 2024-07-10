@@ -1,3 +1,5 @@
+//! This module contains support for the VHT Capabilities and Operation elements.
+
 use core::fmt::Debug;
 
 use bitfield_struct::bitfield;

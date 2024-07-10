@@ -1,3 +1,5 @@
+//! This module contains support for the RSN element.
+
 use core::marker::PhantomData;
 
 use bitfield_struct::bitfield;

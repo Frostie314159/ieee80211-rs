@@ -107,7 +107,7 @@ impl<I: IntoIterator<Item = EncodedRate> + Clone> Element for SupportedRatesElem
 /// This macro generates an [EncodedRate].
 ///
 /// ```
-/// use ieee80211::{rate, elements::EncodedRate};
+/// use ieee80211::{rate, elements::rates::EncodedRate};
 ///
 /// let normal_rate = rate!(1.5); // 1.5Mbit/s
 /// assert_eq!(normal_rate, EncodedRate::new()

@@ -1,3 +1,5 @@
+//! This module contains support for the Supported- and Extended Supported Rates elements.
+
 mod supported_rates;
 
 use bitfield_struct::bitfield;

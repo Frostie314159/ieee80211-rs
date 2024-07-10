@@ -1,4 +1,4 @@
-//! This module contains an element chain.
+//! This module contains the element chain.
 //!
 //! An element chain is a data structure, which can contain distinct types, while only requiring the minimal amount of data necessary to store the elements, unlike an array of enums.
 //! ## Example

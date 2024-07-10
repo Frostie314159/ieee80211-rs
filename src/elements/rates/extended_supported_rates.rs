@@ -107,7 +107,7 @@ impl<I: IntoIterator<Item = EncodedRate> + Clone> Element for ExtendedSupportedR
 /// Generate an [ExtendedSupportedRatesElement].
 ///
 /// ```
-/// use ieee80211::{extended_supported_rates, rate, elements::ExtendedSupportedRatesElement};
+/// use ieee80211::{extended_supported_rates, rate, elements::rates::ExtendedSupportedRatesElement};
 ///
 /// let extended_supported_rates_element = extended_supported_rates![
 ///     1.5,
