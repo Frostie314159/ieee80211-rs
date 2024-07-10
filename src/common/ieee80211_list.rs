@@ -13,7 +13,7 @@ use scroll::{
 
 /// A generic trait over a list of items, as it is represented in IEEE 802.11.
 ///
-/// It was originally developed for the [RSN element](crate::elements::rsn::RSNElement), but maybe reused in the future.
+/// It was originally developed for the [RSN element](crate::elements::RSNElement), but maybe reused in the future.
 pub trait IEEE80211List<InnerItem, ElementCountType>
 where
     Self: Clone,

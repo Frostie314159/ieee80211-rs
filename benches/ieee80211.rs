@@ -1,8 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use ieee80211::{
     elements::{
-        element_chain::{ChainElement, ElementChainEnd},
-        RSNElement,
+        element_chain::{ChainElement, ElementChainEnd}, ElementID, RSNElement, ReadElements
     },
     mgmt_frame::{
         body::{BeaconFrameBody, ToManagementFrameBody},
@@ -55,6 +54,19 @@ pub fn element_chain(criterion: &mut Criterion) {
         })
     });
 }
+pub fn get_element(criterion: &mut Criterion) {
+    let read_elements = ReadElements {
+        bytes: &[
+            0x00, 0x04, b'T', b'e', b's', b't',
+            0x03, 0x01, 0x13
+        ]
+    };
+    criterion.bench_function("get_first_element_raw", |b| {
+        b.iter(|| {
+            let _ = read_elements.get_first_element_raw(ElementID::Id(0x00));
+        })
+    });
+}
 macro_rules! gen_element_benchmarks {
     ($(
         ($element:ty, $file_name:expr)
@@ -88,7 +100,8 @@ criterion_group!(
     action_vendor,
     qos_data,
     element_chain,
-    bench_elements
+    bench_elements,
+    get_element
 );
 
 criterion_main!(benches);
