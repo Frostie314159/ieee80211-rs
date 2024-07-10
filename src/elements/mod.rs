@@ -163,12 +163,12 @@ impl<Payload: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for TypedIEEE80211Ex
 /// These functions will automatically parse the elements and take the type of the element as a generic parameter.
 /// If the element type isn't implemented yet, you can still extract it using the [Self::get_first_element_raw] and [Self::get_matching_elements_raw] functions, which return [RawIEEE80211Elements](RawIEEE80211Element).
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
-pub struct ReadElements<'a> {
-    pub bytes: &'a [u8],
+pub struct ReadElements<'bytes> {
+    pub bytes: &'bytes [u8],
 }
-impl<'a> ReadElements<'a> {
+impl<'bytes> ReadElements<'bytes> {
     /// Check if the provided [RawIEEE80211Element] matches with the [ElementID].
-    fn element_id_matches(raw_element: &RawIEEE80211Element<'a>, element_id: ElementID) -> bool {
+    fn element_id_matches(raw_element: &RawIEEE80211Element<'bytes>, element_id: ElementID) -> bool {
         match element_id {
             ElementID::Id(id) => id == raw_element.tlv_type,
             ElementID::ExtId(ext_id) if raw_element.tlv_type == 0xff => {
@@ -192,8 +192,8 @@ impl<'a> ReadElements<'a> {
     ///
     /// This doesn't validate that the types match..
     fn parse_raw_element<ElementType: Element>(
-        raw_element: RawIEEE80211Element<'a>,
-    ) -> Option<ElementType::ReadType<'a>> {
+        raw_element: RawIEEE80211Element<'bytes>,
+    ) -> Option<ElementType::ReadType<'bytes>> {
         match ElementType::ELEMENT_ID {
             ElementID::Id(_) => raw_element.slice,
             ElementID::ExtId(_) => {
@@ -210,21 +210,25 @@ impl<'a> ReadElements<'a> {
         .ok()
     }
     /// Returns an iterator over [RawIEEE80211Elements](RawIEEE80211Element).
-    pub fn raw_element_iterator(&self) -> ReadIterator<'a, Endian, RawIEEE80211Element> {
-        ReadIterator::<Endian, RawIEEE80211Element<'a>>::new(self.bytes)
+    pub fn raw_element_iterator(self) -> ReadIterator<'bytes, Endian, RawIEEE80211Element<'bytes>>
+    {
+        ReadIterator::<Endian, RawIEEE80211Element<'bytes>>::new(self.bytes)
     }
+
     /// Returns an iterator over [RawIEEE80211Elements](RawIEEE80211Element), which match the specified [ElementID].
-    pub fn get_matching_elements_raw(
-        &'a self,
+    pub fn get_matching_elements_raw<'a>(
+        self,
         element_id: ElementID,
-    ) -> impl Iterator<Item = RawIEEE80211Element<'a>> + 'a {
+    ) -> impl Iterator<Item = RawIEEE80211Element<'bytes>> + 'bytes
+    {
         self.raw_element_iterator()
             .filter(move |raw_element| Self::element_id_matches(raw_element, element_id))
     }
     /// Returns an [Iterator] over a specific type of element, which is specified over the generic parameter.
-    pub fn get_matching_elements<ElementType: Element + 'a>(
-        &'a self,
-    ) -> impl Iterator<Item = ElementType::ReadType<'a>> + 'a {
+    pub fn get_matching_elements<ElementType: Element>(
+        self,
+    ) -> impl Iterator<Item = ElementType::ReadType<'bytes>> + 'bytes
+    {
         self.raw_element_iterator().filter_map(|raw_element| {
             if Self::element_id_matches(&raw_element, ElementType::ELEMENT_ID) {
                 Self::parse_raw_element::<ElementType>(raw_element)
@@ -233,17 +237,19 @@ impl<'a> ReadElements<'a> {
             }
         })
     }
+
     /// Returns the first [RawIEEE80211Element], which matches the specified [ElementID].
     pub fn get_first_element_raw(
-        &'a self,
+        self,
         element_id: ElementID,
-    ) -> Option<RawIEEE80211Element<'a>> {
+    ) -> Option<RawIEEE80211Element<'bytes>> {
         self.get_matching_elements_raw(element_id).next()
     }
     /// This returns the first element, matching the specified element type.
-    pub fn get_first_element<ElementType: Element + 'a>(
-        &'a self,
-    ) -> Option<ElementType::ReadType<'a>> {
+    pub fn get_first_element<ElementType: Element>(
+        self,
+    ) -> Option<ElementType::ReadType<'bytes>>
+    {
         self.get_matching_elements::<ElementType>().next()
     }
 }
