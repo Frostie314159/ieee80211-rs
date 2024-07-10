@@ -58,7 +58,9 @@ fn test_read_elements() {
         }
     );
     assert_eq!(
-        elements.get_first_element_raw(ElementID::ExtId(0x00)).unwrap(),
+        elements
+            .get_first_element_raw(ElementID::ExtId(0x00))
+            .unwrap(),
         RawIEEE80211Element {
             tlv_type: 0xff,
             slice: &[0x00, 0x13, 0x37],

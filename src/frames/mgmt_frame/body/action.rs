@@ -67,7 +67,7 @@ impl<'a> TryFromCtx<'a> for ActionFrameBody<'a> {
                     offset = from.len();
                     Self::Unknown {
                         category_code,
-                        payload: &from,
+                        payload: from,
                     }
                 }
             },
