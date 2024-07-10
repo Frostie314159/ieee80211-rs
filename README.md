@@ -28,10 +28,10 @@ The data frame implementation can handle any frames.
 - DSSS Parameter Set
 - IBSS Parameter Set
 - BSS Load
-- HT Capabilities
+- HT Capabilities/Operation
 - Extended Supported Rates
-- HT Operation
 - RSN
+- VHT Capabilities/Operation
 - Vendor Specific
 
 
