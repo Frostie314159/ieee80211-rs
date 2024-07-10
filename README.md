@@ -60,6 +60,10 @@ rsn_write | 59.3 | 52.9 | --
 ## Optimization
 This library can benefit greatly from Profile-Guide-Optimization(PGO), which can be used through [cargo-pgo](https://github.com/Kobzol/cargo-pgo). For further details, see the [issue](https://github.com/Frostie314159/ieee80211-rs/issues/3) created by [zamazan4jk](https://github.com/zamazan4ik), so thanks a lot to him.
 
+## Other libraries
+- [AirCap](https://github.com/Frostie314159/aircap) | WiFi capturing on linux
+- [Rtap](https://github.com/Frostie314159/rtap) | Radiotap parsing
+
 ## no_std and zerocopy
 This library doesn't require allocations and also doesn't copy the data around. It is designed to be usable even on embedded devices.
 
