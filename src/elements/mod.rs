@@ -22,7 +22,8 @@ mod rsn;
 pub use rsn::*;
 mod vendor_specific_element;
 pub use vendor_specific_element::*;
-pub mod vht;
+mod vht;
+pub use vht::*;
 
 pub mod element_chain;
 
