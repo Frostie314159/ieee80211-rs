@@ -31,7 +31,7 @@ pub enum ActionFrameBody<'a, VendorSpecificPayload = &'a [u8]> {
     },
 }
 impl ActionFrameBody<'_> {
-    /// The total length in bytes.
+    /// Returns the total length in bytes.
     pub const fn length_in_bytes(&self) -> usize {
         1 + match self {
             Self::VendorSpecific { payload, .. } => 3 + payload.len(),
