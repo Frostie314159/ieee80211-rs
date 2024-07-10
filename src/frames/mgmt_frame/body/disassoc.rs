@@ -16,6 +16,7 @@ pub struct DisassociationFrameBody<'a, ElementContainer = ReadElements<'a>> {
     pub _phantom: PhantomData<&'a ()>,
 }
 impl DisassociationFrameBody<'_> {
+    /// Returns the total length in bytes.
     pub const fn length_in_bytes(&self) -> usize {
         2 + self.elements.bytes.len()
     }

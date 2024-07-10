@@ -19,6 +19,7 @@ pub struct AssociationRequestBody<'a, ElementContainer = ReadElements<'a>> {
     pub _phantom: PhantomData<&'a ()>,
 }
 impl<'a> AssociationRequestBody<'a> {
+    /// Returns the total length in bytes.
     pub const fn length_in_bytes(&self) -> usize {
         4 + self.elements.bytes.len()
     }

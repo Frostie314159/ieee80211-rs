@@ -27,6 +27,7 @@ pub struct BeaconLikeFrameBody<'a, Subtype, ElementContainer = ReadElements<'a>>
     pub _phantom: PhantomData<(&'a (), Subtype)>,
 }
 impl<'a, Subtype> BeaconLikeFrameBody<'a, Subtype> {
+    /// Returns the total length in bytes.
     pub const fn length_in_bytes(&'a self) -> usize {
         8 + // Timestamp
         2 + // Beacon interval

@@ -21,7 +21,7 @@ pub struct ProbeRequestBody<'a, ElementContainer = ReadElements<'a>> {
     pub _phantom: PhantomData<&'a ()>,
 }
 impl<'a> ProbeRequestBody<'a> {
-    /// The entire length in bytes.
+    /// Returns the total length in bytes.
     pub const fn length_in_bytes(&self) -> usize {
         self.elements.bytes.len()
     }
