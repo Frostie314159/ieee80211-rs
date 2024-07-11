@@ -68,7 +68,12 @@ where
 {
     #[inline]
     fn measure_with(&self, ctx: &()) -> usize {
-        self.inner.measure_with(ctx) + if Inner::ELEMENT_ID.is_ext() { 3 } else { 2 }
+        self.inner.measure_with(ctx)
+            + match Inner::ELEMENT_ID {
+                ElementID::Id(_) => 2,
+                ElementID::ExtId(_) => 3,
+                ElementID::VendorSpecific { .. } => 6,
+            }
     }
 }
 impl MeasureWith<()> for ElementChainEnd<RawIEEE80211Element<'_>> {
@@ -155,7 +160,11 @@ where
     #[inline]
     fn measure_with(&self, ctx: &()) -> usize {
         self.inner.measure_with(ctx)
-            + if Inner::ELEMENT_ID.is_ext() { 3 } else { 2 }
+            + match Inner::ELEMENT_ID {
+                ElementID::Id(_) => 2,
+                ElementID::ExtId(_) => 3,
+                ElementID::VendorSpecific { .. } => 6,
+            }
             + self.next.measure_with(ctx)
     }
 }
