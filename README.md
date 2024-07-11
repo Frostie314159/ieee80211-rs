@@ -33,6 +33,7 @@ The data frame implementation can handle any frames.
 - RSN
 - VHT Capabilities/Operation
 - Vendor Specific
+- OWE Transition
 
 
 ## Contents
