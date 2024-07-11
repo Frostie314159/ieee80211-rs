@@ -19,7 +19,9 @@ pub use ibss_parameter_set::IBSSParameterSetElement;
 pub mod rsn;
 mod vendor_specific_element;
 pub use vendor_specific_element::VendorSpecificElement;
+mod owe_transition;
 pub mod vht;
+pub use owe_transition::OWETransitionModeElement;
 
 pub mod element_chain;
 

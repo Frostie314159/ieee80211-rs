@@ -25,6 +25,7 @@ pub use type_state::*;
 pub const TU: Duration = Duration::from_micros(1024);
 
 pub const IEEE_OUI: [u8; 3] = [0x00, 0x0f, 0xac];
+pub const WIFI_ALLIANCE_OUI: [u8; 3] = [0x50, 0x6f, 0x9a];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 /// The frame type of an IEEE 802.11 frame.
