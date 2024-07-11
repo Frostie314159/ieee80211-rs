@@ -11,8 +11,8 @@ use super::{Element, ElementID};
 /// A SSID tlv.
 ///
 /// The SSID isn't public, since if we check the length at initialization, we won't have to do checks while serializing.
-pub struct SSIDElement<'a, S = &'a str> {
-    ssid: S,
+pub struct SSIDElement<'a, SSID = &'a str> {
+    ssid: SSID,
     _phantom: PhantomData<&'a ()>,
 }
 impl<'a> SSIDElement<'a> {
@@ -30,11 +30,11 @@ impl<'a> SSIDElement<'a> {
         }
     }
 }
-impl<S: AsRef<str>> SSIDElement<'_, S> {
+impl<SSID: AsRef<str>> SSIDElement<'_, SSID> {
     /// Create a new SSID element.
     ///
     /// This returns [None] if `ssid` is longer than 32 bytes.
-    pub fn new(ssid: S) -> Option<Self> {
+    pub fn new(ssid: SSID) -> Option<Self> {
         if ssid.as_ref().len() <= 32 {
             Some(Self {
                 ssid,
@@ -47,7 +47,7 @@ impl<S: AsRef<str>> SSIDElement<'_, S> {
     #[doc(hidden)]
     #[inline]
     // Only for internal use, by macros.
-    pub const fn new_unchecked(ssid: S) -> Self {
+    pub const fn new_unchecked(ssid: SSID) -> Self {
         Self {
             ssid,
             _phantom: PhantomData,
@@ -62,7 +62,7 @@ impl<S: AsRef<str>> SSIDElement<'_, S> {
 
     #[inline]
     /// Take the SSID.
-    pub fn take_ssid(self) -> S {
+    pub fn take_ssid(self) -> SSID {
         self.ssid
     }
 
@@ -81,7 +81,7 @@ impl<S: AsRef<str>> SSIDElement<'_, S> {
         self.ssid().len()
     }
 }
-impl<S: AsRef<str>> MeasureWith<()> for SSIDElement<'_, S> {
+impl<SSID: AsRef<str>> MeasureWith<()> for SSIDElement<'_, SSID> {
     fn measure_with(&self, _ctx: &()) -> usize {
         self.length_in_bytes()
     }
@@ -99,13 +99,13 @@ impl<'a> TryFromCtx<'a> for SSIDElement<'a> {
             .map(|(ssid, len)| (Self::new_unchecked(ssid), len))
     }
 }
-impl<S: AsRef<str>> TryIntoCtx for SSIDElement<'_, S> {
+impl<SSID: AsRef<str>> TryIntoCtx for SSIDElement<'_, SSID> {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         buf.pwrite(self.ssid(), 0)
     }
 }
-impl<S: AsRef<str>> Element for SSIDElement<'_, S> {
+impl<SSID: AsRef<str>> Element for SSIDElement<'_, SSID> {
     const ELEMENT_ID: ElementID = ElementID::Id(0x00);
     type ReadType<'a> = SSIDElement<'a>;
 }
