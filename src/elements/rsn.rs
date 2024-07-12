@@ -3,7 +3,6 @@
 use core::marker::PhantomData;
 
 use bitfield_struct::bitfield;
-use macro_bits::serializable_enum;
 use scroll::{
     ctx::{MeasureWith, SizeWith, TryFromCtx, TryIntoCtx},
     Endian, Pread, Pwrite,
@@ -13,20 +12,6 @@ use crate::common::{IEEE80211List, IEEE80211ReadList, IEEE_OUI};
 
 use super::{Element, ElementID};
 
-serializable_enum! {
-    #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-    pub enum IEEE80211AuthenticationAlgorithmNumber: u16 {
-        #[default]
-        OpenSystem => 0,
-        SharedKey => 1,
-        FastBSSTransition => 2,
-        SimultaneousAuthenticationOfEquals => 3,
-        FILSSharedKeyAuthenticationWithout => 4,
-        FILSSharedKeyAuthenticationWith => 5,
-        FILSPublicKeyAuthentication => 6,
-        VendorSpecificUse => 0xffff
-    }
-}
 macro_rules! cipher_suite_selectors {
     (
         $(
