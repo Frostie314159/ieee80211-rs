@@ -1,6 +1,5 @@
 use macro_bits::serializable_enum;
 
-
 serializable_enum! {
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
     pub enum IEEE80211AuthenticationAlgorithmNumber: u16 {

@@ -24,6 +24,8 @@ pub use assoc::{AssociationRequestBody, AssociationResponseBody};
 mod deauth;
 pub use deauth::DeauthenticationBody;
 
+mod auth;
+
 macro_rules! management_frame_bodies {
     (
         $(
