@@ -6,7 +6,7 @@ use scroll::{
 };
 
 use crate::{
-    common::{CapabilitiesInformation, IEEE80211Status},
+    common::{CapabilitiesInformation, IEEE80211StatusCode},
     elements::ReadElements,
 };
 
@@ -75,7 +75,7 @@ impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct AssociationResponseBody<'a, ElementContainer = ReadElements<'a>> {
     pub capabilities_info: CapabilitiesInformation,
-    pub status_code: IEEE80211Status,
+    pub status_code: IEEE80211StatusCode,
     pub association_id: u16,
     pub elements: ElementContainer,
     pub _phantom: PhantomData<&'a ()>,
@@ -92,7 +92,8 @@ impl<'a> TryFromCtx<'a> for AssociationResponseBody<'a> {
 
         let capabilities_info =
             CapabilitiesInformation::from_bits(from.gread_with(&mut offset, Endian::Little)?);
-        let status_code = IEEE80211Status::from_bits(from.gread_with(&mut offset, Endian::Little)?);
+        let status_code =
+            IEEE80211StatusCode::from_bits(from.gread_with(&mut offset, Endian::Little)?);
         let association_id = from.gread_with(&mut offset, Endian::Little)?;
         let elements = from.gread(&mut offset)?;
 

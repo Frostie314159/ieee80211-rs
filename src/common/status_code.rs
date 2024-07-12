@@ -3,7 +3,7 @@ use macro_bits::serializable_enum;
 serializable_enum! {
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
     /// An IEEE 802.11 status code used in certain management frames.
-    pub enum IEEE80211Status: u16 {
+    pub enum IEEE80211StatusCode: u16 {
         #[default]
         Success => 0,
         RefusedReasonUnspec => 1,
