@@ -79,14 +79,12 @@ impl<Payload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>> TryIntoCtx
 pub struct AMSDUSubframeIterator<'a> {
     // Making this an option comes with the advantage, that after encoutering an error, subsequent iterations will be almost instant.
     pub(crate) bytes: Option<&'a [u8]>,
-    offset: usize,
 }
 impl<'a> AMSDUSubframeIterator<'a> {
     /// Initializes the iterator with the offset set to zero.
     pub const fn from_bytes(bytes: &'a [u8]) -> Self {
         Self {
             bytes: Some(bytes),
-            offset: 0,
         }
     }
     /// Returns the complete length in bytes.
@@ -100,9 +98,14 @@ impl<'a> AMSDUSubframeIterator<'a> {
 impl<'a> Iterator for AMSDUSubframeIterator<'a> {
     type Item = AMSDUSubframe<&'a [u8]>;
     fn next(&mut self) -> Option<Self::Item> {
-        let sub_frame = self.bytes?.gread(&mut self.offset).ok();
+        let mut offset = 0;
+        let bytes = self.bytes?;
+        let sub_frame = bytes.gread(&mut offset).ok();
         match sub_frame {
-            Some(sub_frame) => Some(sub_frame),
+            Some(sub_frame) => {
+                self.bytes = Some(&bytes[offset..]);
+                Some(sub_frame)
+            },
             None => {
                 self.bytes = None;
                 None
