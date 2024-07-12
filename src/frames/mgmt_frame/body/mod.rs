@@ -25,6 +25,7 @@ mod deauth;
 pub use deauth::DeauthenticationBody;
 
 mod auth;
+pub use auth::AuthenticationBody;
 
 macro_rules! management_frame_bodies {
     (
@@ -185,6 +186,7 @@ management_frame_bodies! {
         Beacon: 0b1000 => BeaconFrameBody<'a, ElementContainer>,
         ATIM: 0b1001,
         Disassociation: 0b1010 => DisassociationFrameBody<'a, ElementContainer>,
+        Authentication: 0b1011 => DeauthenticationBody<'a, ElementContainer>,
         Deauthentication: 0b1100 => DeauthenticationBody<'a, ElementContainer>,
         Action: 0b1101 => ActionFrameBody<'a, ActionFramePayload>,
         ActionNoACK: 0b1110 => ActionFrameBody<'a, ActionFramePayload>
