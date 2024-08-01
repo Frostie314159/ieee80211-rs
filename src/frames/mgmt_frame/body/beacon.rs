@@ -126,5 +126,5 @@ impl<'a, ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>>
 /// The body of a beacon frame.
 ///
 /// This is derived from a [generic type](BeaconLikeFrameBody) over beacon like frames, since Beacons and Probe Responses have exactly the same frame format.
-pub type BeaconFrameBody<'a, ElementContainer = ReadElements<'a>> =
+pub type BeaconBody<'a, ElementContainer = ReadElements<'a>> =
     BeaconLikeFrameBody<'a, BeaconSubtype, ElementContainer>;

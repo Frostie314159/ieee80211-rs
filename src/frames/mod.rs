@@ -12,7 +12,7 @@ use crate::{
 
 use self::{
     data_frame::{DataFrame, DataFrameReadPayload},
-    mgmt_frame::ManagementFrame,
+    mgmt_frame::GenericManagementFrame,
 };
 
 /// Support for control frames.
@@ -35,7 +35,7 @@ pub enum IEEE80211Frame<
     ActionFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
     DataFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
 {
-    Management(ManagementFrame<'a, ElementContainer, ActionFramePayload>),
+    Management(GenericManagementFrame<'a, ElementContainer, ActionFramePayload>),
     Control(ControlFrame<'a>),
     Data(DataFrame<'a, DataFramePayload>),
 }
@@ -73,7 +73,9 @@ impl IEEE80211Frame<'_> {
     /// Query the receiver address of the frame.
     pub fn receiver_address(&self) -> Option<MACAddress> {
         match self {
-            Self::Management(ManagementFrame { header, .. }) => Some(header.receiver_address),
+            Self::Management(GenericManagementFrame { header, .. }) => {
+                Some(header.receiver_address)
+            }
             Self::Control(control_frame) => Some(control_frame.receiver_address()),
             Self::Data(DataFrame { header, .. }) => Some(*header.receiver_address()),
         }
@@ -81,7 +83,9 @@ impl IEEE80211Frame<'_> {
     /// Query the transmitter address of the frame.
     pub fn transmitter_address(&self) -> Option<MACAddress> {
         match self {
-            Self::Management(ManagementFrame { header, .. }) => Some(header.transmitter_address),
+            Self::Management(GenericManagementFrame { header, .. }) => {
+                Some(header.transmitter_address)
+            }
             Self::Control(control_frame) => control_frame.transmitter_address(),
             Self::Data(DataFrame { header, .. }) => Some(*header.transmitter_address()),
         }
@@ -188,4 +192,7 @@ pub trait ToFrame<
 {
     fn to_frame(self)
         -> IEEE80211Frame<'a, ElementContainer, ActionFramePayload, DataFramePayload>;
+}
+pub trait IEEE80211FrameTrait {
+    const TYPE: FrameType;
 }

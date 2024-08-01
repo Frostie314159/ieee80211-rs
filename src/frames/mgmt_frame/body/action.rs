@@ -19,7 +19,7 @@ serializable_enum! {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 /// This the body of an action frame.
-pub enum ActionFrameBody<'a, VendorSpecificPayload = &'a [u8]> {
+pub enum ActionBody<'a, VendorSpecificPayload = &'a [u8]> {
     /// This is a vendor specific body.
     VendorSpecific {
         oui: [u8; 3],
@@ -30,7 +30,7 @@ pub enum ActionFrameBody<'a, VendorSpecificPayload = &'a [u8]> {
         payload: &'a [u8],
     },
 }
-impl ActionFrameBody<'_> {
+impl ActionBody<'_> {
     /// Returns the total length in bytes.
     pub const fn length_in_bytes(&self) -> usize {
         1 + match self {
@@ -40,7 +40,7 @@ impl ActionFrameBody<'_> {
     }
 }
 impl<VendorSpecificPayload: MeasureWith<()>> MeasureWith<()>
-    for ActionFrameBody<'_, VendorSpecificPayload>
+    for ActionBody<'_, VendorSpecificPayload>
 {
     fn measure_with(&self, ctx: &()) -> usize {
         1 + match self {
@@ -49,7 +49,7 @@ impl<VendorSpecificPayload: MeasureWith<()>> MeasureWith<()>
         }
     }
 }
-impl<'a> TryFromCtx<'a> for ActionFrameBody<'a> {
+impl<'a> TryFromCtx<'a> for ActionBody<'a> {
     type Error = scroll::Error;
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
@@ -61,7 +61,7 @@ impl<'a> TryFromCtx<'a> for ActionFrameBody<'a> {
                     let oui = from.gread(&mut offset)?;
                     let slice_len = from.len() - offset;
                     let payload = from.gread_with(&mut offset, slice_len)?;
-                    ActionFrameBody::VendorSpecific { oui, payload }
+                    ActionBody::VendorSpecific { oui, payload }
                 }
                 CategoryCode::Unknown(category_code) => {
                     offset = from.len();
@@ -76,7 +76,7 @@ impl<'a> TryFromCtx<'a> for ActionFrameBody<'a> {
     }
 }
 impl<VendorSpecificPayload: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
-    for ActionFrameBody<'_, VendorSpecificPayload>
+    for ActionBody<'_, VendorSpecificPayload>
 {
     type Error = scroll::Error;
     fn try_into_ctx(self, data: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
@@ -106,7 +106,7 @@ impl<VendorSpecificPayload: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
 }
 impl<'a, VendorSpecificPayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>>
     ToManagementFrameBody<'a, Empty, VendorSpecificPayload>
-    for ActionFrameBody<'a, VendorSpecificPayload>
+    for ActionBody<'a, VendorSpecificPayload>
 {
     fn to_management_frame_body(self) -> ManagementFrameBody<'a, Empty, VendorSpecificPayload> {
         ManagementFrameBody::Action(self)

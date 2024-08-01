@@ -1,4 +1,3 @@
-use probe::ProbeResponeBody;
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
     Pread, Pwrite,
@@ -7,16 +6,16 @@ use scroll::{
 use crate::elements::ReadElements;
 
 mod action;
-pub use action::ActionFrameBody;
+pub use action::ActionBody;
 
 mod beacon;
-pub use beacon::{BeaconFrameBody, BeaconLikeFrameBody, BeaconSubtype, ProbeResponseSubtype};
+pub use beacon::{BeaconBody, BeaconLikeFrameBody, BeaconSubtype, ProbeResponseSubtype};
 
 mod disassoc;
-pub use disassoc::DisassociationFrameBody;
+pub use disassoc::DisassociationBody;
 
 mod probe;
-pub use probe::ProbeRequestBody;
+pub use probe::{ProbeRequestBody, ProbeResponseBody};
 
 mod assoc;
 pub use assoc::{AssociationRequestBody, AssociationResponseBody};
@@ -173,7 +172,6 @@ macro_rules! management_frame_bodies {
 management_frame_bodies! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     /// This is the body of a management frame.
-    /// The rest of the frame can be found in [crate::frames::ManagementFrame].
     pub enum ManagementFrameBody<
         'a,
         ElementContainer: TryIntoCtx<Error = scroll::Error>, MeasureWith<()> = ReadElements<'a>,
@@ -182,13 +180,13 @@ management_frame_bodies! {
         AssociationRequest: 0b0000 => AssociationRequestBody<'a, ElementContainer>,
         AssociationResponse: 0b0001 => AssociationResponseBody<'a, ElementContainer>,
         ProbeRequest: 0b0100 => ProbeRequestBody<'a, ElementContainer>,
-        ProbeRespone: 0b0101 => ProbeResponeBody<'a, ElementContainer>,
-        Beacon: 0b1000 => BeaconFrameBody<'a, ElementContainer>,
+        ProbeRespone: 0b0101 => ProbeResponseBody<'a, ElementContainer>,
+        Beacon: 0b1000 => BeaconBody<'a, ElementContainer>,
         ATIM: 0b1001,
-        Disassociation: 0b1010 => DisassociationFrameBody<'a, ElementContainer>,
+        Disassociation: 0b1010 => DisassociationBody<'a, ElementContainer>,
         Authentication: 0b1011 => DeauthenticationBody<'a, ElementContainer>,
         Deauthentication: 0b1100 => DeauthenticationBody<'a, ElementContainer>,
-        Action: 0b1101 => ActionFrameBody<'a, ActionFramePayload>,
-        ActionNoACK: 0b1110 => ActionFrameBody<'a, ActionFramePayload>
+        Action: 0b1101 => ActionBody<'a, ActionFramePayload>,
+        ActionNoACK: 0b1110 => ActionBody<'a, ActionFramePayload>
     }
 }

@@ -4,8 +4,8 @@ use ieee80211::{
         OWETransitionModeElement,
     },
     mgmt_frame::{
-        body::{BeaconFrameBody, ManagementFrameBody, ToManagementFrameBody},
-        ManagementFrame,
+        body::{BeaconBody, ManagementFrameBody, ToManagementFrameBody},
+        GenericManagementFrame,
     },
     ssid, IEEE80211Frame, ToFrame,
 };
@@ -62,7 +62,7 @@ fn main() {
             .ssid
     );
 
-    let beacon = BeaconFrameBody {
+    let beacon = BeaconBody {
         capabilities_info: beacon.capabilities_info,
         timestamp: beacon.timestamp,
         beacon_interval: beacon.beacon_interval,
@@ -74,7 +74,7 @@ fn main() {
         ..Default::default()
     }
     .to_management_frame_body();
-    let management_frame = ManagementFrame {
+    let management_frame = GenericManagementFrame {
         header: management_frame.header,
         body: beacon,
     }

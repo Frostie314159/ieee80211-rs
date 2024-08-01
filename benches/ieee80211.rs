@@ -6,9 +6,9 @@ use ieee80211::{
         ElementID, ReadElements,
     },
     mgmt_frame::{
-        body::{BeaconFrameBody, ToManagementFrameBody},
+        body::{BeaconBody, ToManagementFrameBody},
         header::ManagementFrameHeader,
-        ManagementFrame,
+        GenericManagementFrame,
     },
     ssid, supported_rates, IEEE80211Frame, ToFrame,
 };
@@ -40,9 +40,9 @@ gen_frame_benchmark!(qos_data);
 gen_frame_benchmark!(beacon);
 gen_frame_benchmark!(action_vendor);
 pub fn element_chain(criterion: &mut Criterion) {
-    let frame = ManagementFrame {
+    let frame = GenericManagementFrame {
         header: ManagementFrameHeader::default(),
-        body: BeaconFrameBody {
+        body: BeaconBody {
             elements: ElementChainEnd::new(ssid!("OpenRF")).append(supported_rates![1]),
             ..Default::default()
         }
