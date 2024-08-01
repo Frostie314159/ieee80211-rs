@@ -68,5 +68,5 @@ impl<'a, ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>>
     }
 }
 
-pub type ProbeResponeBody<'a, ElementContainer = ReadElements<'a>> =
+pub type ProbeResponseBody<'a, ElementContainer = ReadElements<'a>> =
     BeaconLikeFrameBody<'a, ProbeResponseSubtype, ElementContainer>;
