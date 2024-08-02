@@ -81,8 +81,12 @@ impl<SSID: AsRef<str>> TryIntoCtx for OWETransitionModeElement<'_, SSID> {
 }
 impl<SSID: AsRef<str>> Element for OWETransitionModeElement<'_, SSID> {
     const ELEMENT_ID: ElementID = ElementID::VendorSpecific {
-        oui: WIFI_ALLIANCE_OUI,
-        subtype: 0x1c,
+        prefix: &[
+            WIFI_ALLIANCE_OUI[0],
+            WIFI_ALLIANCE_OUI[1],
+            WIFI_ALLIANCE_OUI[2],
+            0x1c,
+        ],
     };
     type ReadType<'a> = OWETransitionModeElement<'a>;
 }

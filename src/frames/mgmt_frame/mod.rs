@@ -1,4 +1,7 @@
-use body::{ActionBody, AssociationRequestBody, AssociationResponseBody, AuthenticationBody, BeaconBody, DeauthenticationBody, DisassociationBody, ProbeRequestBody, ProbeResponseBody};
+use body::{
+    ActionBody, AssociationRequestBody, AssociationResponseBody, AuthenticationBody, BeaconBody,
+    DeauthenticationBody, DisassociationBody, ProbeRequestBody, ProbeResponseBody,
+};
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
     Endian, Pread, Pwrite,
