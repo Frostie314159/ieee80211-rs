@@ -6,11 +6,9 @@ use scroll::{
 };
 
 use crate::{
-    common::{CapabilitiesInformation, Empty, TU},
+    common::{CapabilitiesInformation, TU},
     elements::{ReadElements, SSIDElement},
 };
-
-use super::{ManagementFrameBody, ToManagementFrameBody};
 
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 pub struct BeaconSubtype;
@@ -106,25 +104,9 @@ impl<'a, ElementContainer: TryIntoCtx<Error = scroll::Error>, Subtype> TryIntoCt
         Ok(offset)
     }
 }
-impl<'a, ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>>
-    ToManagementFrameBody<'a, ElementContainer, Empty>
-    for BeaconLikeFrameBody<'a, BeaconSubtype, ElementContainer>
-{
-    fn to_management_frame_body(self) -> ManagementFrameBody<'a, ElementContainer, Empty> {
-        ManagementFrameBody::Beacon(self)
-    }
-}
-impl<'a, ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>>
-    ToManagementFrameBody<'a, ElementContainer, Empty>
-    for BeaconLikeFrameBody<'a, ProbeResponseSubtype, ElementContainer>
-{
-    fn to_management_frame_body(self) -> ManagementFrameBody<'a, ElementContainer, Empty> {
-        ManagementFrameBody::ProbeRespone(self)
-    }
-}
 
 /// The body of a beacon frame.
 ///
 /// This is derived from a [generic type](BeaconLikeFrameBody) over beacon like frames, since Beacons and Probe Responses have exactly the same frame format.
-pub type BeaconFrameBody<'a, ElementContainer = ReadElements<'a>> =
+pub type BeaconBody<'a, ElementContainer = ReadElements<'a>> =
     BeaconLikeFrameBody<'a, BeaconSubtype, ElementContainer>;

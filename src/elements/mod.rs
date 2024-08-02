@@ -38,8 +38,7 @@ pub enum ElementID {
     /// This implies, that the normal ID is 255.
     ExtId(u8),
     VendorSpecific {
-        oui: [u8; 3],
-        subtype: u8,
+        prefix: &'static [u8],
     },
 }
 impl ElementID {
@@ -66,9 +65,9 @@ impl ElementID {
             _ => None,
         }
     }
-    pub const fn oui_and_subtype(&self) -> Option<([u8; 3], u8)> {
+    pub const fn vendor_prefix(&self) -> Option<&'static [u8]> {
         match *self {
-            Self::VendorSpecific { oui, subtype } => Some((oui, subtype)),
+            Self::VendorSpecific { prefix } => Some(prefix),
             _ => None,
         }
     }
@@ -179,13 +178,13 @@ impl<'bytes> ReadElements<'bytes> {
                 };
                 ext_id == ext_element.ext_id
             }
-            ElementID::VendorSpecific { oui, subtype } if raw_element.tlv_type == 0xdd => {
+            ElementID::VendorSpecific { prefix } if raw_element.tlv_type == 0xdd => {
                 let Ok(vendor_specific_element) =
                     raw_element.slice.pread::<VendorSpecificElement>(0)
                 else {
                     return false;
                 };
-                vendor_specific_element.oui == oui && vendor_specific_element.subtype == subtype
+                vendor_specific_element.get_payload().starts_with(prefix)
             }
             _ => false,
         }
@@ -202,10 +201,10 @@ impl<'bytes> ReadElements<'bytes> {
                 let ext_element: RawIEEE80211ExtElement = raw_element.slice.pread(0).ok()?;
                 ext_element.slice
             }
-            ElementID::VendorSpecific { .. } => {
+            ElementID::VendorSpecific { prefix } => {
                 let vendor_specific_element: VendorSpecificElement =
                     raw_element.slice.pread(0).ok()?;
-                vendor_specific_element.payload
+                &vendor_specific_element.get_payload()[prefix.len()..]
             }
         }
         .pread(0)

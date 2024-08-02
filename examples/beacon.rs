@@ -3,11 +3,8 @@ use ieee80211::{
         element_chain::{ChainElement, ElementChainEnd},
         OWETransitionModeElement,
     },
-    mgmt_frame::{
-        body::{BeaconFrameBody, ManagementFrameBody, ToManagementFrameBody},
-        ManagementFrame,
-    },
-    ssid, IEEE80211Frame, ToFrame,
+    mgmt_frame::{body::BeaconBody, BeaconFrame},
+    ssid,
 };
 use mac_parser::MACAddress;
 use scroll::{ctx::MeasureWith, Pread, Pwrite};
@@ -44,16 +41,10 @@ const NEW_BYTES: &[u8] = &[
 ];
 
 fn main() {
-    let frame = INITIAL_BYTES.pread(0).unwrap();
-    let IEEE80211Frame::Management(management_frame) = frame else {
-        panic!()
-    };
-    let ManagementFrameBody::Beacon(beacon) = management_frame.body else {
-        panic!()
-    };
+    let beacon = INITIAL_BYTES.pread::<BeaconFrame>(0).unwrap();
     println!(
         "BSSID: {:?}, SSID: {:#?}, OWE SSID: {}",
-        management_frame.header.bssid,
+        beacon.header.bssid,
         beacon.ssid(),
         beacon
             .elements
@@ -62,26 +53,23 @@ fn main() {
             .ssid
     );
 
-    let beacon = BeaconFrameBody {
-        capabilities_info: beacon.capabilities_info,
-        timestamp: beacon.timestamp,
-        beacon_interval: beacon.beacon_interval,
-        elements: ElementChainEnd::new(ssid!("OpenRF")).append(OWETransitionModeElement {
-            bssid: MACAddress::new([0x00, 0x80, 0x41, 0x13, 0x37, 0x43]),
-            ssid: "Test",
+    let beacon = BeaconFrame {
+        header: beacon.header,
+        body: BeaconBody {
+            capabilities_info: beacon.capabilities_info,
+            timestamp: beacon.timestamp,
+            beacon_interval: beacon.beacon_interval,
+            elements: ElementChainEnd::new(ssid!("OpenRF")).append(OWETransitionModeElement {
+                bssid: MACAddress::new([0x00, 0x80, 0x41, 0x13, 0x37, 0x43]),
+                ssid: "Test",
+                ..Default::default()
+            }),
             ..Default::default()
-        }),
-        ..Default::default()
-    }
-    .to_management_frame_body();
-    let management_frame = ManagementFrame {
-        header: management_frame.header,
-        body: beacon,
-    }
-    .to_frame();
+        },
+    };
 
-    let mut buf = vec![0x00u8; management_frame.measure_with(&false)];
-    buf.pwrite(management_frame, 0).unwrap();
+    let mut buf = vec![0x00u8; beacon.measure_with(&false)];
+    buf.pwrite(beacon, 0).unwrap();
 
     assert_eq!(buf, NEW_BYTES);
 }

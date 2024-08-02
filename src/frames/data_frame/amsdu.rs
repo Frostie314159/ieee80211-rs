@@ -83,9 +83,7 @@ pub struct AMSDUSubframeIterator<'a> {
 impl<'a> AMSDUSubframeIterator<'a> {
     /// Initializes the iterator with the offset set to zero.
     pub const fn from_bytes(bytes: &'a [u8]) -> Self {
-        Self {
-            bytes: Some(bytes),
-        }
+        Self { bytes: Some(bytes) }
     }
     /// Returns the complete length in bytes.
     pub const fn length_in_bytes(&self) -> usize {
@@ -105,7 +103,7 @@ impl<'a> Iterator for AMSDUSubframeIterator<'a> {
             Some(sub_frame) => {
                 self.bytes = Some(&bytes[offset..]);
                 Some(sub_frame)
-            },
+            }
             None => {
                 self.bytes = None;
                 None

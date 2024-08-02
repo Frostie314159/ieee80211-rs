@@ -47,8 +47,7 @@ fn test_read_elements() {
     assert_eq!(
         elements
             .get_first_element_raw(ElementID::VendorSpecific {
-                oui: [0x00, 0x80, 0x41],
-                subtype: 0
+                prefix: &[0x00, 0x80, 0x41, 0x00]
             })
             .unwrap(),
         RawIEEE80211Element {

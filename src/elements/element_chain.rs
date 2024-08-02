@@ -110,15 +110,10 @@ where
                 },
                 0,
             ),
-            ElementID::VendorSpecific { oui, subtype } => buf.pwrite(
+            ElementID::VendorSpecific { prefix } => buf.pwrite(
                 TypedIEEE80211Element {
                     tlv_type: 0xdd,
-                    payload: VendorSpecificElement {
-                        oui,
-                        subtype,
-                        payload: self.inner,
-                        _phantom: PhantomData,
-                    },
+                    payload: VendorSpecificElement::new_prefixed(prefix, self.inner),
                     _phantom: PhantomData,
                 },
                 0,
@@ -206,15 +201,10 @@ where
                 },
                 &mut offset,
             )?,
-            ElementID::VendorSpecific { oui, subtype } => buf.gwrite(
+            ElementID::VendorSpecific { prefix } => buf.gwrite(
                 TypedIEEE80211Element {
                     tlv_type: 0xdd,
-                    payload: VendorSpecificElement {
-                        oui,
-                        subtype,
-                        payload: self.inner,
-                        _phantom: PhantomData,
-                    },
+                    payload: VendorSpecificElement::new_prefixed(prefix, self.inner),
                     _phantom: PhantomData,
                 },
                 &mut offset,

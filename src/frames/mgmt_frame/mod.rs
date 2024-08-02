@@ -1,99 +1,125 @@
+use core::ops::{Deref, DerefMut};
+
+use body::{
+    ActionBody, AssociationRequestBody, AssociationResponseBody, AuthenticationBody, BeaconBody,
+    DeauthenticationBody, DisassociationBody, ManagementFrameBody, ProbeRequestBody,
+    ProbeResponseBody,
+};
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
-    Pread, Pwrite,
+    Endian, Pread, Pwrite,
 };
 
 use crate::{
-    common::{FCFFlags, FrameControlField, FrameType},
-    data_frame::DataFrameReadPayload,
+    common::{strip_and_validate_fcs, FCFFlags, FrameControlField, FrameType},
     elements::ReadElements,
-    IEEE80211Frame, ToFrame,
+    IEEE80211Frame,
 };
 
-use self::{
-    body::{ManagementFrameBody, ManagementFrameSubtype},
-    header::ManagementFrameHeader,
-};
+use self::header::ManagementFrameHeader;
 
 pub mod body;
 pub mod header;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-/// An IEEE 802.11 Management Frame.
-pub struct ManagementFrame<'a, ElementContainer = ReadElements<'a>, ActionFramePayload = &'a [u8]>
-where
-    ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
-    ActionFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
-{
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+/// A generic management frame.
+pub struct ManagementFrame<Body> {
     pub header: ManagementFrameHeader,
-    pub body: ManagementFrameBody<'a, ElementContainer, ActionFramePayload>,
+    pub body: Body,
 }
-impl<
-        'a,
-        ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
-        ActionFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
-    > ManagementFrame<'a, ElementContainer, ActionFramePayload>
+impl<Body: ManagementFrameBody> IEEE80211Frame for ManagementFrame<Body> {
+    const TYPE: FrameType = FrameType::Management(Body::SUBTYPE);
+    const MATCH_ONLY_TYPE: bool = false;
+}
+impl<Body: MeasureWith<()>> MeasureWith<bool> for ManagementFrame<Body> {
+    fn measure_with(&self, with_fcs: &bool) -> usize {
+        2 + self.header.length_in_bytes()
+            + self.body.measure_with(&())
+            + if *with_fcs { 4 } else { 0 }
+    }
+}
+impl<'a, Body: TryFromCtx<'a, Error = scroll::Error>> TryFromCtx<'a, bool>
+    for ManagementFrame<Body>
 {
-    pub const fn get_fcf(&self) -> FrameControlField {
-        FrameControlField::new()
-            .with_frame_type(FrameType::Management(self.body.get_subtype()))
-            .with_flags(self.header.fcf_flags)
-    }
-}
-impl ManagementFrame<'_> {
-    pub const fn length_in_bytes(&self) -> usize {
-        self.header.length_in_bytes() + self.body.length_in_bytes()
-    }
-}
-impl<
-        'a,
-        ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
-        ActionFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
-    > MeasureWith<()> for ManagementFrame<'a, ElementContainer, ActionFramePayload>
-{
-    fn measure_with(&self, ctx: &()) -> usize {
-        self.header.length_in_bytes() + self.body.measure_with(ctx)
-    }
-}
-impl<'a> TryFromCtx<'a, (ManagementFrameSubtype, FCFFlags)> for ManagementFrame<'a> {
     type Error = scroll::Error;
-    fn try_from_ctx(
-        from: &'a [u8],
-        (subtype, fcf_flags): (ManagementFrameSubtype, FCFFlags),
-    ) -> Result<(Self, usize), Self::Error> {
-        let mut offset = 0;
+    fn try_from_ctx(from: &'a [u8], with_fcs: bool) -> Result<(Self, usize), Self::Error> {
+        // We don't care about the FCF, since the information is already encoded in the type.
+        let mut offset = 1;
 
+        let fcf_flags = FCFFlags::from_bits(from.gread(&mut offset)?);
         let header = from.gread_with(&mut offset, fcf_flags)?;
-        let body = from.gread_with(&mut offset, subtype)?;
+        let body_slice = if with_fcs {
+            strip_and_validate_fcs(from)?
+        } else {
+            from
+        };
+        let body = body_slice.gread(&mut offset)?;
 
         Ok((Self { header, body }, offset))
     }
 }
-impl<
-        'a,
-        ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
-        ActionFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>,
-    > TryIntoCtx for ManagementFrame<'a, ElementContainer, ActionFramePayload>
+impl<Body: TryIntoCtx<Error = scroll::Error> + ManagementFrameBody> TryIntoCtx<bool>
+    for ManagementFrame<Body>
 {
     type Error = scroll::Error;
-    fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
+    fn try_into_ctx(self, buf: &mut [u8], with_fcs: bool) -> Result<usize, Self::Error> {
         let mut offset = 0;
 
+        buf.gwrite_with(
+            FrameControlField::new()
+                .with_frame_type(<Self as IEEE80211Frame>::TYPE)
+                .with_flags(self.header.fcf_flags)
+                .into_bits(),
+            &mut offset,
+            Endian::Little,
+        )?;
         buf.gwrite(self.header, &mut offset)?;
         buf.gwrite(self.body, &mut offset)?;
+        if with_fcs {
+            let fcs = crc32fast::hash(&buf[..offset]);
+            buf.gwrite_with(fcs, &mut offset, Endian::Little)?;
+        }
+
         Ok(offset)
     }
 }
-impl<
-        'a,
-        ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()> + 'a,
-        ActionFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()> + 'a,
-    > ToFrame<'a, ElementContainer, ActionFramePayload, DataFrameReadPayload<'a>>
-    for ManagementFrame<'a, ElementContainer, ActionFramePayload>
-{
-    fn to_frame(
-        self,
-    ) -> IEEE80211Frame<'a, ElementContainer, ActionFramePayload, DataFrameReadPayload<'a>> {
-        IEEE80211Frame::Management(self)
+impl<Body> Deref for ManagementFrame<Body> {
+    type Target = Body;
+    fn deref(&self) -> &Self::Target {
+        &self.body
     }
 }
+impl<Body> DerefMut for ManagementFrame<Body> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.body
+    }
+}
+macro_rules! mgmt_frames {
+    (
+        $(
+            $(
+                #[$frame_meta:meta]
+            )*
+            $frame:ident => $frame_body:ident
+        ),*
+    ) => {
+        $(
+            $(
+                #[$frame_meta]
+            )*
+            pub type $frame<'a, ElementContainer = ReadElements<'a>> = ManagementFrame<$frame_body<'a, ElementContainer>>;
+        )*
+    };
+}
+mgmt_frames! {
+    AssociationRequestFrame => AssociationRequestBody,
+    AssociationResponseFrame => AssociationResponseBody,
+    ProbeRequestFrame => ProbeRequestBody,
+    ProbeResponseFrame => ProbeResponseBody,
+    BeaconFrame => BeaconBody,
+    DisassociationFrame => DisassociationBody,
+    AuthenticationFrame => AuthenticationBody,
+    DeauthenticationFrame => DeauthenticationBody
+}
+pub type ActionFrame<'a, VendorSpecificPayload = &'a [u8]> =
+    ManagementFrame<ActionBody<'a, VendorSpecificPayload>>;
