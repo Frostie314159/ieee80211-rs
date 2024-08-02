@@ -5,9 +5,11 @@ use scroll::{
     Pread, Pwrite,
 };
 
-use crate::common::{DataFrameSubtype, FCFFlags};
+use crate::common::{DataFrameSubtype, FCFFlags, FrameType};
 
 use self::{amsdu::AMSDUSubframeIterator, header::DataFrameHeader};
+
+use super::IEEE80211Frame;
 
 /// This contains types related to aggregate MSDUs.
 pub mod amsdu;
@@ -130,4 +132,8 @@ impl<Payload: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for DataFrame<'_, Pa
         }
         Ok(offset)
     }
+}
+impl<'a, Payload> IEEE80211Frame for DataFrame<'a, Payload> {
+    const TYPE: FrameType = FrameType::Data(DataFrameSubtype::Data);
+    const MATCH_ONLY_TYPE: bool = true;
 }

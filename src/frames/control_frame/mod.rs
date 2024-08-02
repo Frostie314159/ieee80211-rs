@@ -6,6 +6,8 @@ use scroll::{
 
 use crate::common::{ControlFrameSubtype, FCFFlags, FrameControlField, FrameType};
 
+use super::IEEE80211Frame;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 /// This is the body of a control frame.
 pub enum ControlFrame<'a> {
@@ -169,4 +171,8 @@ impl TryIntoCtx for ControlFrame<'_> {
         }
         Ok(offset)
     }
+}
+impl<'a> IEEE80211Frame for ControlFrame<'a> {
+    const TYPE: FrameType = FrameType::Control(ControlFrameSubtype::RTS);
+    const MATCH_ONLY_TYPE: bool = true;
 }
