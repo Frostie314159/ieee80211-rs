@@ -228,3 +228,27 @@ where
         Ok(offset)
     }
 }
+#[macro_export]
+/// Generate an element chain from the provided elements.
+/// 
+/// ```
+/// use ieee80211::{element_chain, ssid, elements::{DSSSParameterSetElement, element_chain::ChainElement}};
+/// 
+/// let _element_chain = element_chain! {
+///     ssid!("Test"),
+///     DSSSParameterSetElement {
+///         current_channel: 1
+///     }
+/// };
+/// ```
+macro_rules! element_chain {
+    (
+        $first_element:expr
+        $(,$element:expr)*
+    ) => {
+        ::ieee80211::elements::element_chain::ElementChainEnd::new($first_element)
+            $(
+                .append($element)
+            )*
+    };
+}
