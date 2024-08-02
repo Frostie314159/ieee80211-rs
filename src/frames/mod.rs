@@ -4,7 +4,7 @@ use crate::common::FrameType;
 pub mod control_frame;
 /// This module contains structs around data frames.
 pub mod data_frame;
-/// This module contains the data frames.
+/// This module contains the data frames.h
 pub mod mgmt_frame;
 
 pub trait IEEE80211Frame {
@@ -16,8 +16,8 @@ macro_rules! match_frames {
     (
         $bytes:expr,
         $(
-            $binding:ident = $frame_type:ty => $block:block
-        ),*
+            $binding:pat = $frame_type:ty => $block:block
+        )*
     ) => {
         {
             use scroll::Pread;
@@ -34,7 +34,7 @@ macro_rules! match_frames {
                         {
                             break 'matched $bytes.pread::<$frame_type>(0).map(|$binding| $block);
                         }
-                    ),*
+                    )*
                     Err(scroll::Error::BadInput {
                         size: 0,
                         msg: "Frame type not matched."
