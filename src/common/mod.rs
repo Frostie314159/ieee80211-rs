@@ -1,10 +1,11 @@
-use core::time::Duration;
+use core::{mem::discriminant, time::Duration};
 
 use bitfield_struct::bitfield;
 use macro_bits::bit;
-use scroll::ctx::{MeasureWith, TryFromCtx, TryIntoCtx};
-
-pub use crate::mgmt_frame::body::ManagementFrameSubtype;
+use scroll::{
+    ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
+    Endian, Pread,
+};
 
 mod subtypes;
 pub use subtypes::*;
@@ -57,6 +58,9 @@ impl FrameType {
             FrameType::Data(subtype) => 0b10 | (subtype.into_bits() << 2),
             FrameType::Unknown(subtype) => 0b11 | (subtype << 2),
         }
+    }
+    pub fn type_matches(&self, other: Self) -> bool {
+        discriminant(self) == discriminant(&other)
     }
 }
 impl From<u16> for FrameType {
@@ -130,5 +134,17 @@ impl TryIntoCtx for Empty {
     type Error = scroll::Error;
     fn try_into_ctx(self, _: &mut [u8], _: ()) -> Result<usize, Self::Error> {
         Ok(0)
+    }
+}
+
+pub(crate) fn strip_and_validate_fcs(bytes: &[u8]) -> Result<&[u8], scroll::Error> {
+    let (slice_without_fcs, fcs) = bytes.split_at(bytes.len() - 4);
+    if fcs.pread_with::<u32>(0, Endian::Little)? == crc32fast::hash(slice_without_fcs) {
+        Ok(slice_without_fcs)
+    } else {
+        Err(scroll::Error::BadInput {
+            size: 0,
+            msg: "FCS check failed.",
+        })
     }
 }

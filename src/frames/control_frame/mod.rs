@@ -4,10 +4,7 @@ use scroll::{
     Endian, Pread, Pwrite,
 };
 
-use crate::{
-    common::{ControlFrameSubtype, Empty, FCFFlags, FrameControlField, FrameType},
-    IEEE80211Frame, ToFrame,
-};
+use crate::common::{ControlFrameSubtype, FCFFlags, FrameControlField, FrameType};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 /// This is the body of a control frame.
@@ -171,10 +168,5 @@ impl TryIntoCtx for ControlFrame<'_> {
             }
         }
         Ok(offset)
-    }
-}
-impl<'a> ToFrame<'a, Empty, Empty, Empty> for ControlFrame<'a> {
-    fn to_frame(self) -> IEEE80211Frame<'a, Empty, Empty, Empty> {
-        IEEE80211Frame::Control(self)
     }
 }

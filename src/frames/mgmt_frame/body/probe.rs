@@ -5,14 +5,9 @@ use scroll::{
     Pread,
 };
 
-use crate::{
-    common::Empty,
-    elements::{ReadElements, SSIDElement},
-};
+use crate::elements::{ReadElements, SSIDElement};
 
-use super::{
-    beacon::ProbeResponseSubtype, BeaconLikeFrameBody, ManagementFrameBody, ToManagementFrameBody,
-};
+use super::{beacon::ProbeResponseSubtype, BeaconLikeFrameBody};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// The body of a probe request.
@@ -60,13 +55,5 @@ impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
         <ElementContainer as TryIntoCtx>::try_into_ctx(self.elements, buf, ctx)
     }
 }
-impl<'a, ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>>
-    ToManagementFrameBody<'a, ElementContainer, Empty> for ProbeRequestBody<'a, ElementContainer>
-{
-    fn to_management_frame_body(self) -> ManagementFrameBody<'a, ElementContainer, Empty> {
-        ManagementFrameBody::ProbeRequest(self)
-    }
-}
-
 pub type ProbeResponseBody<'a, ElementContainer = ReadElements<'a>> =
     BeaconLikeFrameBody<'a, ProbeResponseSubtype, ElementContainer>;

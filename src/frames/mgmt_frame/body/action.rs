@@ -4,10 +4,6 @@ use scroll::{
     Pread, Pwrite,
 };
 
-use crate::common::Empty;
-
-use super::{ManagementFrameBody, ToManagementFrameBody};
-
 serializable_enum! {
     #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
     /// This enum contains the category code specified in the body of an [Action Frame](ActionFrameBody).
@@ -102,13 +98,5 @@ impl<VendorSpecificPayload: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
         // Specifying an Endian is useless here, since it's just one byte.
         data.pwrite(category_code.into_bits(), 0)?;
         Ok(offset)
-    }
-}
-impl<'a, VendorSpecificPayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>>
-    ToManagementFrameBody<'a, Empty, VendorSpecificPayload>
-    for ActionBody<'a, VendorSpecificPayload>
-{
-    fn to_management_frame_body(self) -> ManagementFrameBody<'a, Empty, VendorSpecificPayload> {
-        ManagementFrameBody::Action(self)
     }
 }

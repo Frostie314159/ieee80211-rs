@@ -6,11 +6,9 @@ use scroll::{
 };
 
 use crate::{
-    common::{CapabilitiesInformation, Empty, TU},
+    common::{CapabilitiesInformation, TU},
     elements::{ReadElements, SSIDElement},
 };
-
-use super::{ManagementFrameBody, ToManagementFrameBody};
 
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 pub struct BeaconSubtype;
@@ -104,22 +102,6 @@ impl<'a, ElementContainer: TryIntoCtx<Error = scroll::Error>, Subtype> TryIntoCt
         buf.gwrite(self.elements, &mut offset)?;
 
         Ok(offset)
-    }
-}
-impl<'a, ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>>
-    ToManagementFrameBody<'a, ElementContainer, Empty>
-    for BeaconLikeFrameBody<'a, BeaconSubtype, ElementContainer>
-{
-    fn to_management_frame_body(self) -> ManagementFrameBody<'a, ElementContainer, Empty> {
-        ManagementFrameBody::Beacon(self)
-    }
-}
-impl<'a, ElementContainer: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>>
-    ToManagementFrameBody<'a, ElementContainer, Empty>
-    for BeaconLikeFrameBody<'a, ProbeResponseSubtype, ElementContainer>
-{
-    fn to_management_frame_body(self) -> ManagementFrameBody<'a, ElementContainer, Empty> {
-        ManagementFrameBody::ProbeRespone(self)
     }
 }
 

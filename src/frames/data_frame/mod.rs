@@ -5,10 +5,7 @@ use scroll::{
     Pread, Pwrite,
 };
 
-use crate::{
-    common::{DataFrameSubtype, Empty, FCFFlags},
-    IEEE80211Frame, ToFrame,
-};
+use crate::common::{DataFrameSubtype, FCFFlags};
 
 use self::{amsdu::AMSDUSubframeIterator, header::DataFrameHeader};
 
@@ -132,12 +129,5 @@ impl<Payload: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for DataFrame<'_, Pa
             buf.gwrite(payload, &mut offset)?;
         }
         Ok(offset)
-    }
-}
-impl<'a, DataFramePayload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()> + 'a>
-    ToFrame<'a, Empty, Empty, DataFramePayload> for DataFrame<'a, DataFramePayload>
-{
-    fn to_frame(self) -> IEEE80211Frame<'a, Empty, Empty, DataFramePayload> {
-        IEEE80211Frame::Data(self)
     }
 }
