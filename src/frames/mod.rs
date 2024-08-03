@@ -20,7 +20,7 @@ macro_rules! match_frames {
         )*
     ) => {
         {
-            use scroll::Pread;
+            use ieee80211::scroll::Pread;
             use ieee80211::{common::FrameControlField, IEEE80211Frame};
             use core::mem::discriminant;
 
