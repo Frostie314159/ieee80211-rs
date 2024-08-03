@@ -35,7 +35,7 @@ macro_rules! match_frames {
                             break 'matched $bytes.pread::<$frame_type>(0).map(|$binding| $block);
                         }
                     )*
-                    Err(scroll::Error::BadInput {
+                    Err(ieee80211::scroll::Error::BadInput {
                         size: 0,
                         msg: "Frame type not matched."
                     })
