@@ -1,4 +1,7 @@
-use ieee80211::{match_frames, mgmt_frame::{BeaconFrame, DeauthenticationFrame}};
+use ieee80211::{
+    match_frames,
+    mgmt_frame::{BeaconFrame, DeauthenticationFrame},
+};
 
 fn main() {
     let bytes = include_bytes!("../bins/frames/beacon.bin");
