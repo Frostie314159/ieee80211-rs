@@ -17,7 +17,6 @@ pub fn michael(key: u64, bytes: &[u8]) -> u64 {
     // NOTE: This implementation is partially adapted from https://github.com/torvalds/linux/blob/master/net/mac80211/michael.c
     let (mut l, mut r) = (((key >> 32) as u32).to_be(), (key as u32).to_be());
 
-
     let blocks = bytes.len() / 4;
     let left = bytes.len() % 4;
 

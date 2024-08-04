@@ -260,6 +260,107 @@ pub struct RSNElement<
     pub group_management_cipher_suite: Option<IEEE80211CipherSuiteSelector>,
     pub _phantom: PhantomData<&'a ()>,
 }
+impl<'a, PairwiseCipherSuiteList, AKMList, PMKIDList>
+    RSNElement<'a, PairwiseCipherSuiteList, AKMList, PMKIDList>
+{
+    /// An [RSNElement] equivalent to WPA-Personal.
+    pub const WPA_PERSONAL: RSNElement<
+        'static,
+        [IEEE80211CipherSuiteSelector; 1],
+        [IEEE80211AKMType; 1],
+        [IEEE80211PMKID; 0],
+    > = RSNElement {
+        group_data_cipher_suite: Some(IEEE80211CipherSuiteSelector::Tkip),
+        pairwise_cipher_suite_list: Some([IEEE80211CipherSuiteSelector::Tkip]),
+        akm_list: Some([IEEE80211AKMType::Psk]),
+        rsn_capbilities: None,
+        pmkid_list: None,
+        group_management_cipher_suite: None,
+        _phantom: PhantomData,
+    };
+    /// An [RSNElement] equivalent to WPA/WPA2-Personal.
+    pub const WPA_WPA2_PERSONAL: RSNElement<
+        'static,
+        [IEEE80211CipherSuiteSelector; 2],
+        [IEEE80211AKMType; 1],
+        [IEEE80211PMKID; 0],
+    > = RSNElement {
+        group_data_cipher_suite: Some(IEEE80211CipherSuiteSelector::Tkip),
+        pairwise_cipher_suite_list: Some([
+            IEEE80211CipherSuiteSelector::Tkip,
+            IEEE80211CipherSuiteSelector::Ccmp128,
+        ]),
+        akm_list: Some([IEEE80211AKMType::Psk]),
+        rsn_capbilities: None,
+        pmkid_list: None,
+        group_management_cipher_suite: None,
+        _phantom: PhantomData,
+    };
+    /// An [RSNElement] equivalent to WPA2-Personal.
+    pub const WPA2_PERSONAL: RSNElement<
+        'static,
+        [IEEE80211CipherSuiteSelector; 1],
+        [IEEE80211AKMType; 1],
+        [IEEE80211PMKID; 0],
+    > = RSNElement {
+        group_data_cipher_suite: Some(IEEE80211CipherSuiteSelector::Ccmp128),
+        pairwise_cipher_suite_list: Some([IEEE80211CipherSuiteSelector::Ccmp128]),
+        akm_list: Some([IEEE80211AKMType::Psk]),
+        rsn_capbilities: None,
+        pmkid_list: None,
+        group_management_cipher_suite: None,
+        _phantom: PhantomData,
+    };
+    /// An [RSNElement] equivalent to WPA2/WPA3-Personal.
+    pub const WPA2_WPA3_PERSONAL: RSNElement<
+        'static,
+        [IEEE80211CipherSuiteSelector; 1],
+        [IEEE80211AKMType; 2],
+        [IEEE80211PMKID; 0],
+    > = RSNElement {
+        group_data_cipher_suite: Some(IEEE80211CipherSuiteSelector::Ccmp128),
+        pairwise_cipher_suite_list: Some([IEEE80211CipherSuiteSelector::Ccmp128]),
+        akm_list: Some([IEEE80211AKMType::Psk, IEEE80211AKMType::Sae]),
+        rsn_capbilities: None,
+        pmkid_list: None,
+        group_management_cipher_suite: None,
+        _phantom: PhantomData,
+    };
+    /// An [RSNElement] equivalent to WPA3-Personal.
+    pub const WPA3_PERSONAL: RSNElement<
+        'static,
+        [IEEE80211CipherSuiteSelector; 1],
+        [IEEE80211AKMType; 1],
+        [IEEE80211PMKID; 0],
+    > = RSNElement {
+        group_data_cipher_suite: Some(IEEE80211CipherSuiteSelector::Tkip),
+        pairwise_cipher_suite_list: Some([IEEE80211CipherSuiteSelector::Tkip]),
+        akm_list: Some([IEEE80211AKMType::Sae]),
+        rsn_capbilities: None,
+        pmkid_list: None,
+        group_management_cipher_suite: None,
+        _phantom: PhantomData,
+    };
+    /// An [RSNElement] equivalent to OWE.
+    pub const OWE: RSNElement<
+        'static,
+        [IEEE80211CipherSuiteSelector; 1],
+        [IEEE80211AKMType; 1],
+        [IEEE80211PMKID; 0],
+    > = RSNElement {
+        group_data_cipher_suite: Some(IEEE80211CipherSuiteSelector::Ccmp128),
+        pairwise_cipher_suite_list: Some([IEEE80211CipherSuiteSelector::Ccmp128]),
+        akm_list: Some([IEEE80211AKMType::OpportunisticWirelessEncryption]),
+        rsn_capbilities: Some(
+            RSNCapabilities::new()
+                .with_mfp_enabled(true)
+                .with_mfp_required(true),
+        ),
+        pmkid_list: None,
+        group_management_cipher_suite: Some(IEEE80211CipherSuiteSelector::Ccmp128),
+        _phantom: PhantomData,
+    };
+}
 impl<
         'a,
         LPairwiseCipherSuiteList: IEEE80211List<IEEE80211CipherSuiteSelector, u16> + Clone,
