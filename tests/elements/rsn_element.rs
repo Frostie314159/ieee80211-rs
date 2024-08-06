@@ -27,3 +27,13 @@ gen_element_rw_test!(
     EXPECTED_RSN_ELEMENT,
     EXPECTED_RSN_ELEMENT_BYTES
 );
+#[test]
+fn test_rsn_element_builder() {
+    assert_eq!(
+        RSNElement::WPA2_PERSONAL,
+        RSNElement::new()
+            .with_group_data_cipher_suite(IEEE80211CipherSuiteSelector::Ccmp128)
+            .with_pairwise_cipher_suite_list([IEEE80211CipherSuiteSelector::Ccmp128])
+            .with_akm_list([IEEE80211AKMType::Psk])
+    )
+}

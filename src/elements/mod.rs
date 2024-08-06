@@ -77,7 +77,9 @@ impl ElementID {
 pub trait Element: Sized + MeasureWith<()> + TryIntoCtx<Error = scroll::Error> {
     /// The ID of this element.
     const ELEMENT_ID: ElementID;
-    /// The type returned, by reading this element.bi
+    /// Is the element fragmentable.
+    const FRAGMENTABLE: bool = false;
+    /// The type returned, by reading this element.
     type ReadType<'a>: TryFromCtx<'a, Error = scroll::Error>;
 }
 

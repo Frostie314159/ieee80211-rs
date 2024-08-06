@@ -44,6 +44,7 @@ where
     <T as IntoIterator>::IntoIter: ExactSizeIterator,
     ElementCountType: Integer + Copy + AsPrimitive<usize> + 'static,
     usize: AsPrimitive<ElementCountType>,
+    InnerItem: SizeWith,
 {
     type Iter = T::IntoIter;
     fn element_count(&self) -> ElementCountType {
@@ -53,7 +54,7 @@ where
         self.into_iter()
     }
     fn size_in_bytes(&self) -> usize {
-        size_of::<ElementCountType>() * self.element_count().as_()
+        size_of::<ElementCountType>() + InnerItem::size_with(&()) * self.element_count().as_()
     }
 }
 

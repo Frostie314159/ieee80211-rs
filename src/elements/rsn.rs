@@ -239,6 +239,7 @@ macro_rules! compare_list_option {
 /// # Note
 /// The reason, that all fields after the `version` are wrapped in an [Option] is, that they only appear if there are enough bytes left for them.
 /// This means, that if you want to use the `rsn_capabilities` field, all prior fields need to be [Option::Some] even if they are just default values.
+/// Due to this, it is highly recommended, that you use the `with_` methods, to construct the element.
 /// This is not validated while writing, due to the performance hit, and can cause invalid outputs.
 pub struct RSNElement<
     'a,
@@ -260,9 +261,24 @@ pub struct RSNElement<
     pub group_management_cipher_suite: Option<IEEE80211CipherSuiteSelector>,
     pub _phantom: PhantomData<&'a ()>,
 }
-impl<'a, PairwiseCipherSuiteList, AKMList, PMKIDList>
-    RSNElement<'a, PairwiseCipherSuiteList, AKMList, PMKIDList>
-{
+impl<'a> RSNElement<'a> {
+    /// Create a new empty [RSNElement].
+    pub const fn new() -> RSNElement<
+        'static,
+        [IEEE80211CipherSuiteSelector; 0],
+        [IEEE80211AKMType; 0],
+        [IEEE80211PMKID; 0],
+    > {
+        RSNElement {
+            group_data_cipher_suite: None,
+            pairwise_cipher_suite_list: None,
+            akm_list: None,
+            rsn_capbilities: None,
+            pmkid_list: None,
+            group_management_cipher_suite: None,
+            _phantom: PhantomData,
+        }
+    }
     /// An [RSNElement] equivalent to WPA-Personal.
     pub const WPA_PERSONAL: RSNElement<
         'static,
@@ -333,12 +349,16 @@ impl<'a, PairwiseCipherSuiteList, AKMList, PMKIDList>
         [IEEE80211AKMType; 1],
         [IEEE80211PMKID; 0],
     > = RSNElement {
-        group_data_cipher_suite: Some(IEEE80211CipherSuiteSelector::Tkip),
-        pairwise_cipher_suite_list: Some([IEEE80211CipherSuiteSelector::Tkip]),
+        group_data_cipher_suite: Some(IEEE80211CipherSuiteSelector::Ccmp128),
+        pairwise_cipher_suite_list: Some([IEEE80211CipherSuiteSelector::Ccmp128]),
         akm_list: Some([IEEE80211AKMType::Sae]),
-        rsn_capbilities: None,
-        pmkid_list: None,
-        group_management_cipher_suite: None,
+        rsn_capbilities: Some(
+            RSNCapabilities::new()
+                .with_mfp_enabled(true)
+                .with_mfp_required(true),
+        ),
+        pmkid_list: Some([]),
+        group_management_cipher_suite: Some(IEEE80211CipherSuiteSelector::Ccmp128),
         _phantom: PhantomData,
     };
     /// An [RSNElement] equivalent to OWE.
@@ -360,6 +380,126 @@ impl<'a, PairwiseCipherSuiteList, AKMList, PMKIDList>
         group_management_cipher_suite: Some(IEEE80211CipherSuiteSelector::Ccmp128),
         _phantom: PhantomData,
     };
+}
+impl<PairwiseCipherSuiteList: Default, AKMList: Default, PMKIDList: Default>
+    RSNElement<'static, PairwiseCipherSuiteList, AKMList, PMKIDList>
+{
+    const DEFAULT_CIPHER_SUITE: IEEE80211CipherSuiteSelector =
+        IEEE80211CipherSuiteSelector::Ccmp128;
+    const DEFAULT_RSN_CAPABILITIES: RSNCapabilities = RSNCapabilities::new();
+    /// Add a group data cipher suite to the [RSNElement].
+    pub fn with_group_data_cipher_suite(
+        mut self,
+        group_data_cipher_suite: IEEE80211CipherSuiteSelector,
+    ) -> Self {
+        self.group_data_cipher_suite = Some(group_data_cipher_suite);
+        self
+    }
+    /// Add a pairwise cipher suite to the [RSNElement].
+    /// 
+    /// This overrides all previous fields with a default value, if they are [None].
+    pub fn with_pairwise_cipher_suite_list<InnerPairwiseCipherSuiteList>(
+        self,
+        pairwise_cipher_suite_list: InnerPairwiseCipherSuiteList,
+    ) -> RSNElement<'static, InnerPairwiseCipherSuiteList, AKMList, PMKIDList> {
+        RSNElement {
+            group_data_cipher_suite: self
+                .group_data_cipher_suite
+                .or(Some(Self::DEFAULT_CIPHER_SUITE)),
+            pairwise_cipher_suite_list: Some(pairwise_cipher_suite_list),
+            akm_list: self.akm_list,
+            rsn_capbilities: self.rsn_capbilities,
+            pmkid_list: self.pmkid_list,
+            group_management_cipher_suite: self.group_management_cipher_suite,
+            _phantom: PhantomData,
+        }
+    }
+    /// Add an AKM list to the [RSNElement].
+    /// 
+    /// This overrides all previous fields with a default value, if they are [None].
+    pub fn with_akm_list<InnerAKMList>(
+        self,
+        akm_list: InnerAKMList,
+    ) -> RSNElement<'static, PairwiseCipherSuiteList, InnerAKMList, PMKIDList> {
+        RSNElement {
+            group_data_cipher_suite: self
+                .group_data_cipher_suite
+                .or(Some(Self::DEFAULT_CIPHER_SUITE)),
+            pairwise_cipher_suite_list: self
+                .pairwise_cipher_suite_list
+                .or(Some(PairwiseCipherSuiteList::default())),
+            akm_list: Some(akm_list),
+            rsn_capbilities: self.rsn_capbilities,
+            pmkid_list: self.pmkid_list,
+            group_management_cipher_suite: self.group_management_cipher_suite,
+            _phantom: PhantomData,
+        }
+    }
+    /// Add [RSNCapabilities] to the [RSNElement].
+    /// 
+    /// This overrides all previous fields with a default value, if they are [None].
+    pub fn with_rsn_capabilities(
+        self,
+        rsn_capabilities: RSNCapabilities,
+    ) -> RSNElement<'static, PairwiseCipherSuiteList, AKMList, PMKIDList> {
+        RSNElement {
+            group_data_cipher_suite: self
+                .group_data_cipher_suite
+                .or(Some(Self::DEFAULT_CIPHER_SUITE)),
+            pairwise_cipher_suite_list: self
+                .pairwise_cipher_suite_list
+                .or(Some(PairwiseCipherSuiteList::default())),
+            akm_list: self.akm_list.or(Some(AKMList::default())),
+            rsn_capbilities: Some(rsn_capabilities),
+            pmkid_list: self.pmkid_list,
+            group_management_cipher_suite: self.group_management_cipher_suite,
+            _phantom: PhantomData,
+        }
+    }
+    /// Add a PMKID list to the [RSNElement].
+    /// 
+    /// This overrides all previous fields with a default value, if they are [None].
+    pub fn with_pmkid_list<InnerPMKIDList>(
+        self,
+        pmkid_list: InnerPMKIDList,
+    ) -> RSNElement<'static, PairwiseCipherSuiteList, AKMList, InnerPMKIDList> {
+        RSNElement {
+            group_data_cipher_suite: self
+                .group_data_cipher_suite
+                .or(Some(Self::DEFAULT_CIPHER_SUITE)),
+            pairwise_cipher_suite_list: self
+                .pairwise_cipher_suite_list
+                .or(Some(PairwiseCipherSuiteList::default())),
+            akm_list: self.akm_list.or(Some(AKMList::default())),
+            rsn_capbilities: self
+                .rsn_capbilities
+                .or(Some(Self::DEFAULT_RSN_CAPABILITIES)),
+            pmkid_list: Some(pmkid_list),
+            group_management_cipher_suite: self.group_management_cipher_suite,
+            _phantom: PhantomData,
+        }
+    }
+    /// Add a group management cipher suite to the [RSNElement].
+    /// 
+    /// This overrides all previous fields with a default value, if they are [None].
+    pub fn with_group_management_cipher_suite(
+        self,
+        group_management_cipher_suite: IEEE80211CipherSuiteSelector,
+    ) -> RSNElement<'static, PairwiseCipherSuiteList, AKMList, PMKIDList> {
+        RSNElement {
+            group_data_cipher_suite: self
+                .group_data_cipher_suite
+                .or(Some(Self::DEFAULT_CIPHER_SUITE)),
+            pairwise_cipher_suite_list: self
+                .pairwise_cipher_suite_list
+                .or(Some(PairwiseCipherSuiteList::default())),
+            akm_list: self.akm_list.or(Some(AKMList::default())),
+            rsn_capbilities: self.rsn_capbilities.or(Some(Self::DEFAULT_RSN_CAPABILITIES)),
+            pmkid_list: self.pmkid_list.or(Some(PMKIDList::default())),
+            group_management_cipher_suite: Some(group_management_cipher_suite),
+            _phantom: PhantomData,
+        }
+    }
 }
 impl<
         'a,
@@ -467,11 +607,6 @@ impl<
             } else {
                 0
             }
-            + if let Some(pmkid_list) = &self.pmkid_list {
-                pmkid_list.size_in_bytes()
-            } else {
-                0
-            }
             + if self.group_management_cipher_suite.is_some() {
                 4
             } else {
@@ -503,21 +638,33 @@ where
         buf.gwrite_with(1u16, &mut offset, Endian::Little)?;
         if let Some(group_data_cipher_suite) = self.group_data_cipher_suite {
             buf.gwrite(group_data_cipher_suite, &mut offset)?;
+        } else {
+            return Ok(offset);
         }
         if let Some(pairwise_cipher_suite_list) = self.pairwise_cipher_suite_list {
             write_list!(buf, offset, pairwise_cipher_suite_list);
+        } else {
+            return Ok(offset);
         }
         if let Some(akm_list) = self.akm_list {
             write_list!(buf, offset, akm_list);
+        } else {
+            return Ok(offset);
         }
         if let Some(rsn_capabilities) = self.rsn_capbilities {
             buf.gwrite_with(rsn_capabilities.into_bits(), &mut offset, Endian::Little)?;
+        } else {
+            return Ok(offset);
         }
         if let Some(pmkid_list) = self.pmkid_list {
             write_list!(buf, offset, pmkid_list);
+        } else {
+            return Ok(offset);
         }
         if let Some(group_management_cipher_suite) = self.group_management_cipher_suite {
             buf.gwrite(group_management_cipher_suite, &mut offset)?;
+        } else {
+            return Ok(offset);
         }
 
         Ok(offset)
