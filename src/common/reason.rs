@@ -1,6 +1,7 @@
 use macro_bits::serializable_enum;
 
 serializable_enum! {
+    #[non_exhaustive]
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
     /// An IEEE 802.11 reason code used in certain management frames.
     pub enum IEEE80211Reason: u16 {
