@@ -246,9 +246,12 @@ macro_rules! element_chain {
         $first_element:expr
         $(,$element:expr)*
     ) => {
-        ::ieee80211::elements::element_chain::ElementChainEnd::new($first_element)
+        {
+            use ieee80211::elements::element_chain::ChainElement;
+            ::ieee80211::elements::element_chain::ElementChainEnd::new($first_element)
             $(
                 .append($element)
             )*
+        }
     };
 }
