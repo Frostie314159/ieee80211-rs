@@ -8,7 +8,7 @@ use scroll::{
     Endian, Pread, Pwrite,
 };
 
-use crate::common::{IEEE80211List, IEEE80211ReadList, IEEE_OUI};
+use crate::common::{ReadIterator, IEEE_OUI};
 
 use super::{Element, ElementID};
 
@@ -73,6 +73,7 @@ macro_rules! cipher_suite_selectors {
         }
         impl<'a> TryFromCtx<'a> for $enum_name {
             type Error = scroll::Error;
+            #[inline]
             fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
                 let mut offset = 0;
 
@@ -86,16 +87,18 @@ macro_rules! cipher_suite_selectors {
             }
         }
         impl SizeWith for $enum_name {
+            #[inline]
             fn size_with(_ctx: &()) -> usize {
                 4
             }
         }
         impl TryIntoCtx for $enum_name {
             type Error = scroll::Error;
+            #[inline]
             fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
                 let mut offset = 0;
 
-                buf.gwrite_with(self.oui(), &mut offset, Endian::Little)?;
+                buf.gwrite(self.oui().as_slice(), &mut offset)?;
                 buf.gwrite_with(self.suite_type(), &mut offset, Endian::Little)?;
 
                 Ok(offset)
@@ -206,6 +209,7 @@ pub struct IEEE80211PMKID(pub [u8; 16]);
 
 impl<'a> TryFromCtx<'a> for IEEE80211PMKID {
     type Error = scroll::Error;
+    #[inline]
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         <[u8; 16]>::try_from_ctx(from, Endian::Little)
             .map(|(pmkid, offset)| (IEEE80211PMKID(pmkid), offset))
@@ -213,24 +217,16 @@ impl<'a> TryFromCtx<'a> for IEEE80211PMKID {
 }
 impl TryIntoCtx for IEEE80211PMKID {
     type Error = scroll::Error;
+    #[inline]
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
-        self.0.try_into_ctx(buf, Endian::Little)
+        buf.pwrite(self.0.as_slice(), 0)
     }
 }
 impl SizeWith for IEEE80211PMKID {
+    #[inline]
     fn size_with(_ctx: &()) -> usize {
         16
     }
-}
-
-macro_rules! compare_list_option {
-    ($lhs:expr, $rhs:expr, $field_name:ident) => {
-        match ($lhs.$field_name.as_ref(), $rhs.$field_name.as_ref()) {
-            (Some(lhs), Some(rhs)) => lhs.eq(rhs),
-            (None, None) => true,
-            _ => false,
-        }
-    };
 }
 
 #[derive(Clone, Copy, Debug, Hash)]
@@ -243,9 +239,9 @@ macro_rules! compare_list_option {
 /// This is not validated while writing, due to the performance hit, and can cause invalid outputs.
 pub struct RSNElement<
     'a,
-    PairwiseCipherSuiteList = IEEE80211ReadList<'a, IEEE80211CipherSuiteSelector, u16, 4>,
-    AKMList = IEEE80211ReadList<'a, IEEE80211AKMType, u16, 4>,
-    PMKIDList = IEEE80211ReadList<'a, IEEE80211PMKID, u16, 4>,
+    PairwiseCipherSuiteList = ReadIterator<'a, (), IEEE80211CipherSuiteSelector>,
+    AKMList = ReadIterator<'a, (), IEEE80211AKMType>,
+    PMKIDList = ReadIterator<'a, (), IEEE80211PMKID>,
 > {
     /// The cipher suite used for group addressed data traffic.
     pub group_data_cipher_suite: Option<IEEE80211CipherSuiteSelector>,
@@ -396,7 +392,7 @@ impl<PairwiseCipherSuiteList: Default, AKMList: Default, PMKIDList: Default>
         self
     }
     /// Add a pairwise cipher suite to the [RSNElement].
-    /// 
+    ///
     /// This overrides all previous fields with a default value, if they are [None].
     pub fn with_pairwise_cipher_suite_list<InnerPairwiseCipherSuiteList>(
         self,
@@ -415,7 +411,7 @@ impl<PairwiseCipherSuiteList: Default, AKMList: Default, PMKIDList: Default>
         }
     }
     /// Add an AKM list to the [RSNElement].
-    /// 
+    ///
     /// This overrides all previous fields with a default value, if they are [None].
     pub fn with_akm_list<InnerAKMList>(
         self,
@@ -436,7 +432,7 @@ impl<PairwiseCipherSuiteList: Default, AKMList: Default, PMKIDList: Default>
         }
     }
     /// Add [RSNCapabilities] to the [RSNElement].
-    /// 
+    ///
     /// This overrides all previous fields with a default value, if they are [None].
     pub fn with_rsn_capabilities(
         self,
@@ -457,7 +453,7 @@ impl<PairwiseCipherSuiteList: Default, AKMList: Default, PMKIDList: Default>
         }
     }
     /// Add a PMKID list to the [RSNElement].
-    /// 
+    ///
     /// This overrides all previous fields with a default value, if they are [None].
     pub fn with_pmkid_list<InnerPMKIDList>(
         self,
@@ -480,7 +476,7 @@ impl<PairwiseCipherSuiteList: Default, AKMList: Default, PMKIDList: Default>
         }
     }
     /// Add a group management cipher suite to the [RSNElement].
-    /// 
+    ///
     /// This overrides all previous fields with a default value, if they are [None].
     pub fn with_group_management_cipher_suite(
         self,
@@ -494,21 +490,32 @@ impl<PairwiseCipherSuiteList: Default, AKMList: Default, PMKIDList: Default>
                 .pairwise_cipher_suite_list
                 .or(Some(PairwiseCipherSuiteList::default())),
             akm_list: self.akm_list.or(Some(AKMList::default())),
-            rsn_capbilities: self.rsn_capbilities.or(Some(Self::DEFAULT_RSN_CAPABILITIES)),
+            rsn_capbilities: self
+                .rsn_capbilities
+                .or(Some(Self::DEFAULT_RSN_CAPABILITIES)),
             pmkid_list: self.pmkid_list.or(Some(PMKIDList::default())),
             group_management_cipher_suite: Some(group_management_cipher_suite),
             _phantom: PhantomData,
         }
     }
 }
+macro_rules! compare_list_option {
+    ($lhs:expr, $rhs:expr, $field_name:ident) => {
+        match ($lhs.$field_name.clone(), $rhs.$field_name.clone()) {
+            (Some(lhs), Some(rhs)) => lhs.into_iter().eq(rhs.into_iter()),
+            (None, None) => true,
+            _ => false,
+        }
+    };
+}
 impl<
         'a,
-        LPairwiseCipherSuiteList: IEEE80211List<IEEE80211CipherSuiteSelector, u16> + Clone,
-        LAKMList: IEEE80211List<IEEE80211AKMType, u16> + Clone,
-        LPMKIDList: IEEE80211List<IEEE80211PMKID, u16> + Clone,
-        RPairwiseCipherSuiteList: IEEE80211List<IEEE80211CipherSuiteSelector, u16> + Clone,
-        RAKMList: IEEE80211List<IEEE80211AKMType, u16> + Clone,
-        RPMKIDList: IEEE80211List<IEEE80211PMKID, u16> + Clone,
+        LPairwiseCipherSuiteList: IntoIterator<Item = IEEE80211CipherSuiteSelector> + Clone,
+        LAKMList: IntoIterator<Item = IEEE80211AKMType> + Clone,
+        LPMKIDList: IntoIterator<Item = IEEE80211PMKID> + Clone,
+        RPairwiseCipherSuiteList: IntoIterator<Item = IEEE80211CipherSuiteSelector> + Clone,
+        RAKMList: IntoIterator<Item = IEEE80211AKMType> + Clone,
+        RPMKIDList: IntoIterator<Item = IEEE80211PMKID> + Clone,
     > PartialEq<RSNElement<'a, RPairwiseCipherSuiteList, RAKMList, RPMKIDList>>
     for RSNElement<'a, LPairwiseCipherSuiteList, LAKMList, LPMKIDList>
 {
@@ -536,6 +543,18 @@ impl<'a, PairwiseCipherSuiteList, AKMList, PMKIDList> Default
         }
     }
 }
+macro_rules! read_list {
+    ($rsn_element:expr, $from:expr, $offset:expr, $list_name:ident) => {
+        let Ok(list_length) = $from.gread_with::<u16>(&mut $offset, Endian::Little) else {
+            return Ok(($rsn_element, $offset));
+        };
+        if let Ok(list_bytes) = $from.gread_with(&mut $offset, list_length as usize * 4) {
+            $rsn_element.$list_name = Some(ReadIterator::new(list_bytes));
+        } else {
+            return Ok(($rsn_element, $offset));
+        }
+    };
+}
 impl<'a> TryFromCtx<'a> for RSNElement<'a> {
     type Error = scroll::Error;
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
@@ -553,26 +572,14 @@ impl<'a> TryFromCtx<'a> for RSNElement<'a> {
         } else {
             return Ok((rsn_element, offset));
         }
-        if let Ok(pairwise_cipher_suite_list) = from.gread(&mut offset) {
-            rsn_element.pairwise_cipher_suite_list = Some(pairwise_cipher_suite_list);
-        } else {
-            return Ok((rsn_element, offset));
-        }
-        if let Ok(akm_list) = from.gread(&mut offset) {
-            rsn_element.akm_list = Some(akm_list);
-        } else {
-            return Ok((rsn_element, offset));
-        }
+        read_list!(rsn_element, from, offset, pairwise_cipher_suite_list);
+        read_list!(rsn_element, from, offset, akm_list);
         if let Ok(rsn_capabilities) = from.gread(&mut offset) {
             rsn_element.rsn_capbilities = Some(RSNCapabilities::from_bits(rsn_capabilities));
         } else {
             return Ok((rsn_element, offset));
         }
-        if let Ok(pmkid_list) = from.gread(&mut offset) {
-            rsn_element.pmkid_list = Some(pmkid_list);
-        } else {
-            return Ok((rsn_element, offset));
-        }
+        read_list!(rsn_element, from, offset, pmkid_list);
         if let Ok(group_management_cipher_suite) = from.gread(&mut offset) {
             rsn_element.group_management_cipher_suite = Some(group_management_cipher_suite);
         } else {
@@ -583,9 +590,9 @@ impl<'a> TryFromCtx<'a> for RSNElement<'a> {
     }
 }
 impl<
-        PairwiseCipherSuiteList: IEEE80211List<IEEE80211CipherSuiteSelector, u16>,
-        AKMList: IEEE80211List<IEEE80211AKMType, u16>,
-        PMKIDList: IEEE80211List<IEEE80211PMKID, u16>,
+        PairwiseCipherSuiteList: IntoIterator<Item = IEEE80211CipherSuiteSelector> + Clone,
+        AKMList: IntoIterator<Item = IEEE80211AKMType> + Clone,
+        PMKIDList: IntoIterator<Item = IEEE80211PMKID> + Clone,
     > MeasureWith<()> for RSNElement<'_, PairwiseCipherSuiteList, AKMList, PMKIDList>
 {
     fn measure_with(&self, _ctx: &()) -> usize {
@@ -594,16 +601,16 @@ impl<
         } else {
             0
         } + if let Some(pairwise_cipher_suite_list) = &self.pairwise_cipher_suite_list {
-            pairwise_cipher_suite_list.size_in_bytes()
+            2 + pairwise_cipher_suite_list.clone().into_iter().count() * 4
         } else {
             0
         } + if let Some(akm_list) = &self.akm_list {
-            akm_list.size_in_bytes()
+            2 + akm_list.clone().into_iter().count() * 4
         } else {
             0
         } + if self.rsn_capbilities.is_some() { 2 } else { 0 }
             + if let Some(pmkid_list) = &self.pmkid_list {
-                pmkid_list.size_in_bytes()
+                2 + pmkid_list.clone().into_iter().count() * 4
             } else {
                 0
             }
@@ -616,17 +623,21 @@ impl<
 }
 macro_rules! write_list {
     ($buf:expr, $offset:expr, $list:expr) => {
-        $buf.gwrite($list.element_count(), &mut $offset)?;
-        for element in $list.iter() {
-            $buf.gwrite(element, &mut $offset)?;
+        let offset_at_length_field = $offset;
+        $offset += 2;
+        let mut item_count = 0;
+        for item in $list.into_iter() {
+            $buf.gwrite(item, &mut $offset)?;
+            item_count += 1;
         }
+        $buf.pwrite_with(item_count as u16, offset_at_length_field, Endian::Little)?;
     };
 }
 // The additional `TryIntoCtx` bounds are present, because doing this using an iterator is horribly inefficent.
 impl<
-        PairwiseCipherSuiteList: IEEE80211List<IEEE80211CipherSuiteSelector, u16>,
-        AKMList: IEEE80211List<IEEE80211AKMType, u16>,
-        PMKIDList: IEEE80211List<IEEE80211PMKID, u16>,
+        PairwiseCipherSuiteList: IntoIterator<Item = IEEE80211CipherSuiteSelector>,
+        AKMList: IntoIterator<Item = IEEE80211AKMType>,
+        PMKIDList: IntoIterator<Item = IEEE80211PMKID>,
     > TryIntoCtx for RSNElement<'_, PairwiseCipherSuiteList, AKMList, PMKIDList>
 where
     Self: MeasureWith<()>,
@@ -673,12 +684,7 @@ where
 impl<PairwiseCipherSuiteList, AKMList, PMKIDList> Element
     for RSNElement<'_, PairwiseCipherSuiteList, AKMList, PMKIDList>
 where
-    PairwiseCipherSuiteList: Clone
-        + IEEE80211List<IEEE80211CipherSuiteSelector, u16>
-        + TryIntoCtx<Error = scroll::Error>,
-    AKMList: Clone + IEEE80211List<IEEE80211AKMType, u16> + TryIntoCtx<Error = scroll::Error>,
-    PMKIDList: Clone + IEEE80211List<IEEE80211PMKID, u16> + TryIntoCtx<Error = scroll::Error>,
-    Self: MeasureWith<()>,
+    Self: MeasureWith<()> + TryIntoCtx<Error = scroll::Error>,
 {
     const ELEMENT_ID: ElementID = ElementID::Id(0x30);
     type ReadType<'a> = RSNElement<'a>;

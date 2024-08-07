@@ -13,8 +13,6 @@ mod read_iterator;
 pub use read_iterator::*;
 mod capabilities;
 pub use capabilities::*;
-mod ieee80211_list;
-pub use ieee80211_list::*;
 mod reason;
 pub use reason::*;
 mod status_code;

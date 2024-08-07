@@ -9,7 +9,7 @@ serializable_enum! {
         Ack => 0b01,
         Poll => 0b10,
         AckPoll => 0b11
-    } 
+    }
 }
 
 serializable_enum! {
