@@ -2,6 +2,18 @@ use macro_bits::serializable_enum;
 
 serializable_enum! {
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+    /// The piggy-backed control frame of the data frame.
+    pub enum DataFrameCF: u8 {
+        #[default]
+        None => 0b00,
+        Ack => 0b01,
+        Poll => 0b10,
+        AckPoll => 0b11
+    } 
+}
+
+serializable_enum! {
+    #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
     /// The subtype of the data frame.
     pub enum DataFrameSubtype: u8 {
         #[default]
@@ -23,6 +35,10 @@ serializable_enum! {
     }
 }
 impl DataFrameSubtype {
+    /// Returns the control frame type piggy-backed on to the data frame.   
+    pub const fn data_frame_cf(&self) -> DataFrameCF {
+        DataFrameCF::from_bits(self.into_bits() & 0b0011)
+    }
     /// Check if the data frame is QoS.
     pub const fn is_qos(&self) -> bool {
         matches!(
