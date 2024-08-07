@@ -44,20 +44,6 @@ Serialization and deserialization capabilities were the first thing, that I star
 #### Architecture
 Deserializing an `IEEE80211Frame` will destructure the frame into it's most elementary form. This means, that the fixed fields of - for example - an action frame will all be deserialized. The tagged fields however are not deserialized immediately and remain as an `Elements` struct, which can be used to extract the different element types. At first parsing everything immediately, might seem terribly slow, however this library is zerocopy and the actual processing time is minimal.
 
-#### Benchmarks
-Hardware: Framework 13 with Intel i5 1240p
-| benchmark | time in ns without PGO | time in ns with PGO | notes |
-| -- | -- | -- | -- |
-beacon_read | 57.1 | 26.9 | --
-beacon_write | 46.5 | 53.1 | This is using the element chain approach.
-action_vendor_read | 57 | 26.9 | --
-action_vendor_write | 46 | 33.2 | --
-qos_data_read | 70.2 | 37.1 | --
-qos_data_write | 41.1 | 30.5 | --
-element_chain_write | 71.4 | 63.4 | --
-rsn_read | 7.8 | 8.6 | --
-rsn_write | 59.3 | 52.9 | --
-
 ## Optimization
 This library can benefit greatly from Profile-Guide-Optimization(PGO), which can be used through [cargo-pgo](https://github.com/Kobzol/cargo-pgo). For further details, see the [issue](https://github.com/Frostie314159/ieee80211-rs/issues/3) created by [zamazan4jk](https://github.com/zamazan4ik), so thanks a lot to him.
 
