@@ -414,9 +414,9 @@ checksum = "90ed8c1e510134f979dbc4f070f87d4313098b704861a105fe34231c70a3901c"
 
 [[package]]
 name = "mac-parser"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03000b7293283a7b3efb470ade45ed53a10929ef3a3a828f79f32ae0e2a6d807"
+checksum = "fae66583fa5b9364905b971dce1acdc4e10a41b0a4b638fa1297820772ef5cb1"
 dependencies = [
  "scroll",
 ]
