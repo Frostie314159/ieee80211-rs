@@ -86,6 +86,7 @@ impl<'a> TryFromCtx<'a> for SupportedRatesElement<'a> {
 }
 impl<I: IntoIterator<Item = EncodedRate>> TryIntoCtx for SupportedRatesElement<'_, I> {
     type Error = scroll::Error;
+    #[inline]
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         let mut offset = 0;
 

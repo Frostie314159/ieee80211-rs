@@ -26,10 +26,12 @@ pub struct EncodedRate {
 }
 
 impl EncodedRate {
+    #[inline]
     /// Returns the data rate in kbps.
     pub const fn rate_in_kbps(&self) -> usize {
         self.rate() as usize * 500
     }
+    #[inline]
     /// Creates a rate from it's speed in kbps.
     pub const fn from_rate_in_kbps(rate: usize, is_b: bool) -> Self {
         Self::new().with_rate((rate / 500) as u8).with_is_b(is_b)

@@ -17,6 +17,7 @@ impl<'a> RatesReadIterator<'a> {
 }
 impl<'a> Iterator for RatesReadIterator<'a> {
     type Item = EncodedRate;
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         self.bytes.next().map(EncodedRate)
     }

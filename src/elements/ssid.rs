@@ -88,6 +88,7 @@ impl<SSID: AsRef<str>> MeasureWith<()> for SSIDElement<'_, SSID> {
 }
 impl<'a> TryFromCtx<'a> for SSIDElement<'a> {
     type Error = scroll::Error;
+    #[inline]
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         if from.len() > 32 {
             return Err(scroll::Error::TooBig {
@@ -101,6 +102,7 @@ impl<'a> TryFromCtx<'a> for SSIDElement<'a> {
 }
 impl<SSID: AsRef<str>> TryIntoCtx for SSIDElement<'_, SSID> {
     type Error = scroll::Error;
+    #[inline]
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         buf.pwrite(self.ssid(), 0)
     }

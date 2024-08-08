@@ -12,6 +12,25 @@ use crate::common::{ReadIterator, IEEE_OUI};
 
 use super::{Element, ElementID};
 
+const fn merge_oui_and_suite_type(oui: [u8; 3], suite_type: u8) -> [u8; 4] {
+    let mut cipher_suite_selector = [0x00u8; 4];
+
+    // We can't use copy_from_slice here, since it's not const, due to the mutable reference.
+    cipher_suite_selector[0] = oui[0];
+    cipher_suite_selector[1] = oui[1];
+    cipher_suite_selector[2] = oui[2];
+    cipher_suite_selector[3] = suite_type;
+
+    cipher_suite_selector
+}
+const fn split_cipher_suite_selector(cipher_suite_selector: [u8; 4]) -> ([u8; 3], u8) {
+    let mut oui = [0x00u8; 3];
+    oui[0] = cipher_suite_selector[0];
+    oui[1] = cipher_suite_selector[1];
+    oui[2] = cipher_suite_selector[2];
+    (oui, cipher_suite_selector[3])
+}
+
 macro_rules! cipher_suite_selectors {
     (
         $(
@@ -32,8 +51,7 @@ macro_rules! cipher_suite_selectors {
         #[non_exhaustive]
         $enum_vis enum $enum_name {
             Unknown {
-                oui: [u8; 3],
-                suite_type: u8
+                cipher_suite_selector: [u8; 4]
             },
             $(
                 $(
@@ -43,31 +61,25 @@ macro_rules! cipher_suite_selectors {
             ),*
         }
         impl $enum_name {
-            pub const fn with_oui_and_suite_type(oui: [u8; 3], suite_type: u8) -> Self {
-                match (oui, suite_type) {
+
+            #[inline]
+            pub const fn with_cipher_suite_selector(cipher_suite_selector: [u8; 4]) -> Self {
+                match split_cipher_suite_selector(cipher_suite_selector) {
                     $(
                         ($oui, $cipher_suite_type) => Self::$cipher_suite_name,
                     )*
                     (oui, suite_type) => Self::Unknown {
-                        oui,
-                        suite_type
+                        cipher_suite_selector: merge_oui_and_suite_type(oui, suite_type)
                     }
                 }
             }
-            pub const fn oui(&self) -> [u8; 3] {
-                match self {
+            #[inline]
+            pub const fn cipher_suite_selector(&self) -> [u8; 4] {
+                match *self {
                     $(
-                        Self::$cipher_suite_name => $oui,
+                        Self::$cipher_suite_name => merge_oui_and_suite_type($oui, $cipher_suite_type),
                     )*
-                    Self::Unknown { oui, .. } => *oui
-                }
-            }
-            pub const fn suite_type(&self) -> u8 {
-                match self {
-                    $(
-                        Self::$cipher_suite_name => $cipher_suite_type,
-                    )*
-                    Self::Unknown { suite_type, .. } => *suite_type
+                    Self::Unknown { cipher_suite_selector } => cipher_suite_selector
                 }
             }
         }
@@ -77,11 +89,10 @@ macro_rules! cipher_suite_selectors {
             fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
                 let mut offset = 0;
 
-                let oui = from.gread_with(&mut offset, Endian::Little)?;
-                let suite_type = from.gread_with(&mut offset, Endian::Little)?;
+                let cipher_suite_selector = from.gread_with(&mut offset, Endian::Little)?;
 
                 Ok((
-                    Self::with_oui_and_suite_type(oui, suite_type),
+                    Self::with_cipher_suite_selector(cipher_suite_selector),
                     offset
                 ))
             }
@@ -98,8 +109,7 @@ macro_rules! cipher_suite_selectors {
             fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
                 let mut offset = 0;
 
-                buf.gwrite(self.oui().as_slice(), &mut offset)?;
-                buf.gwrite_with(self.suite_type(), &mut offset, Endian::Little)?;
+                buf.gwrite(self.cipher_suite_selector().as_slice(), &mut offset)?;
 
                 Ok(offset)
             }
@@ -626,7 +636,7 @@ macro_rules! write_list {
         let offset_at_length_field = $offset;
         $offset += 2;
         let mut item_count = 0;
-        for item in $list.into_iter() {
+        for item in $list {
             $buf.gwrite(item, &mut $offset)?;
             item_count += 1;
         }

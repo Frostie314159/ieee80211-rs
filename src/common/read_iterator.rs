@@ -27,6 +27,7 @@ impl<'a, Ctx: Default + Copy, Type: TryFromCtx<'a, Ctx, Error = scroll::Error>> 
     for ReadIterator<'a, Ctx, Type>
 {
     type Item = Type;
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         let bytes = self.bytes?;
         match Type::try_from_ctx(bytes, Ctx::default()) {
