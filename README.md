@@ -42,7 +42,7 @@ This section lists, the range of things handled by this library.
 Serialization and deserialization capabilities were the first thing, that I started implementing and is likely to be the most mature part of the library.
 
 #### Architecture
-Deserializing an `IEEE80211Frame` will destructure the frame into it's most elementary form. This means, that the fixed fields of - for example - an action frame will all be deserialized. The tagged fields however are not deserialized immediately and remain as an `Elements` struct, which can be used to extract the different element types. At first parsing everything immediately, might seem terribly slow, however this library is zerocopy and the actual processing time is minimal.
+Each frame type is represented by it's own type, like the `BeaconFrame`, and can be read and written through [scroll](https://github.com/m4b/scroll). If used in this way, it's the users responsibility to ensure, that the  correct frame type is being read. If you have to handle multiple frame types, you can use the `match_frames!` macro, to handle different frame types.
 
 ## Optimization
 This library can benefit greatly from Profile-Guide-Optimization(PGO), which can be used through [cargo-pgo](https://github.com/Kobzol/cargo-pgo). For further details, see the [issue](https://github.com/Frostie314159/ieee80211-rs/issues/3) created by [zamazan4jk](https://github.com/zamazan4ik), so thanks a lot to him.
