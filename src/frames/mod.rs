@@ -21,17 +21,22 @@ macro_rules! match_frames {
     ) => {
         {
             use ieee80211::scroll::Pread;
-            use ieee80211::{common::FrameControlField, IEEE80211Frame};
+            use ieee80211::{common::{FrameControlField, FrameType}, IEEE80211Frame};
             use core::mem::discriminant;
 
             let fcf = $bytes.pread(0).map(FrameControlField::from_bits);
             if let Ok(fcf) = fcf {
                 'matched: {
                     $(
-                        if
-                            (<$frame_type as IEEE80211Frame>::TYPE == fcf.frame_type()) ||
-                            (<$frame_type as IEEE80211Frame>::MATCH_ONLY_TYPE && <$frame_type as IEEE80211Frame>::TYPE.type_matches(fcf.frame_type()))
-                        {
+                        'matched_inner: {
+                            match (<$frame_type as IEEE80211Frame>::TYPE, fcf.frame_type()) {
+                                (FrameType::Management(lhs), FrameType::Management(rhs)) if lhs == rhs => {}
+                                (FrameType::Control(_), FrameType::Control(_)) => {}
+                                (FrameType::Data(_), FrameType::Data(_)) => {}
+                                _ => {
+                                    break 'matched_inner;
+                                }
+                            }
                             break 'matched $bytes.pread::<$frame_type>(0).map(|$binding| $block);
                         }
                     )*

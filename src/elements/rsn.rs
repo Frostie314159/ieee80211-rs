@@ -364,7 +364,7 @@ impl<'a> RSNElement<'a> {
                 .with_mfp_required(true),
         ),
         pmkid_list: Some([]),
-        group_management_cipher_suite: Some(IEEE80211CipherSuiteSelector::Ccmp128),
+        group_management_cipher_suite: Some(IEEE80211CipherSuiteSelector::BipCmac128),
         _phantom: PhantomData,
     };
     /// An [RSNElement] equivalent to OWE.

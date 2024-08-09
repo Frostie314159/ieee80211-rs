@@ -1,4 +1,5 @@
 use ieee80211::{
+    data_frame::DataFrame,
     match_frames,
     mgmt_frame::{BeaconFrame, DeauthenticationFrame},
 };
@@ -11,6 +12,7 @@ fn main() {
             println!("SSID: {}", beacon_frame.body.ssid().unwrap());
         }
         _ = DeauthenticationFrame => {}
+        _ = DataFrame => {}
     }
     .unwrap();
 }
