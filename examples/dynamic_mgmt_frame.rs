@@ -1,6 +1,4 @@
-//! Dynamic mgmt frame
-//!
-//! This example demonstrates, how to use the [ieee80211:]
+//! This example demonstrates, how to use the [DynamicManagementFrame].
 
 use ieee80211::{common::CapabilitiesInformation, element_chain, elements::{rsn::RSNElement, DSSSParameterSetElement}, mgmt_frame::{body::BeaconBody, header::ManagementFrameHeader, BeaconFrame, DynamicManagementFrame}, ssid, supported_rates};
 use mac_parser::{MACAddress, BROADCAST};
