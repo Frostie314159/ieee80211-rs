@@ -1,3 +1,5 @@
+//! This example demonstrates how to use some of the macros for generating elements.
+
 use ieee80211::{ssid, supported_rates};
 
 fn main() {

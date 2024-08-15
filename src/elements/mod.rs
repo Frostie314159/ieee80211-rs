@@ -1,3 +1,5 @@
+use core::marker::PhantomData;
+
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
     Endian, Pread, Pwrite,
@@ -70,6 +72,16 @@ impl ElementID {
         match *self {
             Self::VendorSpecific { prefix } => Some(prefix),
             _ => None,
+        }
+    }
+    pub const fn element_header_length(&self) -> usize {
+        match self {
+            // One byte ID and one byte length.
+            ElementID::Id(_) => 2,
+            // One byte ID, one byte length and one byte extended ID.
+            ElementID::ExtId(_) => 3,
+            // Two bytes for the regular element header and the length of the vendor specific prefix.
+            ElementID::VendorSpecific { prefix } => 2 + prefix.len(),
         }
     }
 }
@@ -266,5 +278,52 @@ impl TryIntoCtx for ReadElements<'_> {
 impl MeasureWith<()> for ReadElements<'_> {
     fn measure_with(&self, _ctx: &()) -> usize {
         self.bytes.len()
+    }
+}
+
+/// A wrapper for any type implementing the [Element] trait.
+///
+/// This handles all the quirks of writing an element, like extended ID or vendor prefix.
+pub(crate) struct WrappedIEEE80211Element<Inner>(pub Inner);
+impl<Inner: Element> MeasureWith<()> for WrappedIEEE80211Element<Inner> {
+    fn measure_with(&self, ctx: &()) -> usize {
+        // Get the size of the element header and add the length of the body.
+        Inner::ELEMENT_ID.element_header_length() + self.0.measure_with(ctx)
+    }
+}
+impl<Inner: Element> TryIntoCtx<()> for WrappedIEEE80211Element<Inner> {
+    type Error = scroll::Error;
+    fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
+        match Inner::ELEMENT_ID {
+            ElementID::Id(id) => buf.pwrite(
+                TypedIEEE80211Element {
+                    tlv_type: id,
+                    payload: self.0,
+                    _phantom: PhantomData,
+                },
+                0,
+            ),
+            ElementID::ExtId(ext_id) => buf.pwrite(
+                TypedIEEE80211Element {
+                    tlv_type: 0xff,
+                    payload: TypedIEEE80211ExtElement {
+                        ext_id,
+                        payload: self.0,
+                    },
+                    _phantom: PhantomData,
+                },
+                0,
+            ),
+            ElementID::VendorSpecific { prefix } => buf.pwrite(
+                TypedIEEE80211Element {
+                    // Vendor specific elements always have the ID 221 (or 0xdd in hex).
+                    // No idea, how they got that number.
+                    tlv_type: 0xdd,
+                    payload: VendorSpecificElement::new_prefixed(prefix, self.0),
+                    _phantom: PhantomData,
+                },
+                0,
+            ),
+        }
     }
 }

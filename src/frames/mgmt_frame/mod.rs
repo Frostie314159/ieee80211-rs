@@ -12,7 +12,7 @@ use scroll::{
 
 use crate::{
     common::{strip_and_validate_fcs, FCFFlags, FrameControlField, FrameType},
-    elements::ReadElements,
+    elements::{Element, ReadElements, WrappedIEEE80211Element},
     IEEE80211Frame,
 };
 
@@ -26,6 +26,12 @@ pub mod header;
 pub struct ManagementFrame<Body> {
     pub header: ManagementFrameHeader,
     pub body: Body,
+}
+impl<Body: TryIntoCtx<Error = scroll::Error> + ManagementFrameBody> ManagementFrame<Body> {
+    /// Create a [DynamicManagementFrame] from a statically typed one.
+    pub fn into_dynamic<'a>(self, buffer: &'a mut [u8]) -> Result<DynamicManagementFrame<'a>, scroll::Error> {
+        DynamicManagementFrame::new(self, buffer)
+    }
 }
 impl<Body: ManagementFrameBody> IEEE80211Frame for ManagementFrame<Body> {
     const TYPE: FrameType = FrameType::Management(Body::SUBTYPE);
@@ -123,3 +129,47 @@ mgmt_frames! {
 }
 pub type ActionFrame<'a, VendorSpecificPayload = &'a [u8]> =
     ManagementFrame<ActionBody<'a, VendorSpecificPayload>>;
+
+#[derive(Debug, PartialEq, Eq, Hash)]
+/// A dynamic management frame.
+///
+/// This frame allows writing a frame, with a fixed header and set of elements, and dynamically adding [Elements](Element) to it.
+/// One potential use case for this is, generating a [BeaconFrame] and optionally for example a channel switch announcement element.
+pub struct DynamicManagementFrame<'a> {
+    buffer: &'a mut [u8],
+    offset: usize,
+}
+impl<'a> DynamicManagementFrame<'a> {
+    /// Create a new dynamic frame.
+    ///
+    /// This writes the frame into the buffer.
+    pub fn new(
+        frame: impl TryIntoCtx<bool, Error = scroll::Error>,
+        buffer: &'a mut [u8],
+    ) -> Result<Self, scroll::Error> {
+        let offset = buffer.pwrite(frame, 0)?;
+        Ok(Self { buffer, offset })
+    }
+    /// Attach an element to the frame body.
+    ///
+    /// This will return an error, if writing the element failed.
+    pub fn add_element(&mut self, element: impl Element) -> Result<(), scroll::Error> {
+        self.buffer
+            .gwrite(WrappedIEEE80211Element(element), &mut self.offset)?;
+        Ok(())
+    }
+    /// Finish writing the dynamic frame.
+    ///
+    /// # Returns
+    /// If `with_fcs` is `true` and the remaining length of the buffer is less then four, an error will be returned.
+    /// Otherwise, this will always return [Ok].
+    pub fn finish(mut self, with_fcs: bool) -> Result<usize, scroll::Error> {
+        if with_fcs {
+            self.buffer.gwrite(
+                crc32fast::hash(&self.buffer[..self.offset]),
+                &mut self.offset,
+            )?;
+        }
+        Ok(self.offset)
+    }
+}

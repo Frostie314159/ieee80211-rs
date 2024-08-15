@@ -1,3 +1,5 @@
+//! This example demonstrates how to use the element API.
+
 use ieee80211::{
     elements::{rates::SupportedRatesElement, rsn::RSNElement, SSIDElement},
     mgmt_frame::BeaconFrame,

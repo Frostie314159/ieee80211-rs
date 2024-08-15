@@ -1,3 +1,5 @@
+//! This example demonstrates how to use the [match_frames] API.
+
 use ieee80211::{
     data_frame::DataFrame,
     match_frames,

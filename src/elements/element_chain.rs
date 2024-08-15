@@ -15,17 +15,12 @@
 //! ## Disclaimer
 //! There are other crates implementing this concept, like [object-chain](https://crates.io/crates/object-chain) and [typechain](https://crates.io/crates/typechain), however both didn't fit the needs of this project.
 
-use core::marker::PhantomData;
-
 use scroll::{
     ctx::{MeasureWith, TryIntoCtx},
     Endian, Pwrite,
 };
 
-use super::{
-    Element, ElementID, RawIEEE80211Element, TypedIEEE80211Element, TypedIEEE80211ExtElement,
-    VendorSpecificElement,
-};
+use super::{Element, RawIEEE80211Element, WrappedIEEE80211Element};
 
 /// This trait represents a singular element of the chain.
 pub trait ChainElement {
@@ -68,17 +63,12 @@ where
 {
     #[inline]
     fn measure_with(&self, ctx: &()) -> usize {
-        self.inner.measure_with(ctx)
-            + match Inner::ELEMENT_ID {
-                ElementID::Id(_) => 2,
-                ElementID::ExtId(_) => 3,
-                ElementID::VendorSpecific { .. } => 6,
-            }
+        Inner::ELEMENT_ID.element_header_length() + self.inner.measure_with(ctx)
     }
 }
 impl MeasureWith<()> for ElementChainEnd<RawIEEE80211Element<'_>> {
     fn measure_with(&self, _ctx: &()) -> usize {
-        self.inner.slice.len() + 2
+        self.inner.slice.len()
     }
 }
 
@@ -89,36 +79,7 @@ where
     type Error = scroll::Error;
     #[inline]
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
-        // TODO: Move this to shared code somehow.
-        match Inner::ELEMENT_ID {
-            ElementID::Id(id) => buf.pwrite(
-                TypedIEEE80211Element {
-                    tlv_type: id,
-                    payload: self.inner,
-                    _phantom: PhantomData,
-                },
-                0,
-            ),
-            ElementID::ExtId(ext_id) => buf.pwrite(
-                TypedIEEE80211Element {
-                    tlv_type: 0xff,
-                    payload: TypedIEEE80211ExtElement {
-                        ext_id,
-                        payload: self.inner,
-                    },
-                    _phantom: PhantomData,
-                },
-                0,
-            ),
-            ElementID::VendorSpecific { prefix } => buf.pwrite(
-                TypedIEEE80211Element {
-                    tlv_type: 0xdd,
-                    payload: VendorSpecificElement::new_prefixed(prefix, self.inner),
-                    _phantom: PhantomData,
-                },
-                0,
-            ),
-        }
+        buf.pwrite(WrappedIEEE80211Element(self.inner), 0)
     }
 }
 impl TryIntoCtx for ElementChainEnd<RawIEEE80211Element<'_>> {
@@ -154,12 +115,8 @@ where
 {
     #[inline]
     fn measure_with(&self, ctx: &()) -> usize {
-        self.inner.measure_with(ctx)
-            + match Inner::ELEMENT_ID {
-                ElementID::Id(_) => 2,
-                ElementID::ExtId(_) => 3,
-                ElementID::VendorSpecific { .. } => 6,
-            }
+        Inner::ELEMENT_ID.element_header_length()
+            + self.inner.measure_with(ctx)
             + self.next.measure_with(ctx)
     }
 }
@@ -181,35 +138,7 @@ where
     #[inline]
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         let mut offset = 0;
-        match Inner::ELEMENT_ID {
-            ElementID::Id(id) => buf.gwrite(
-                TypedIEEE80211Element {
-                    tlv_type: id,
-                    payload: self.inner,
-                    _phantom: PhantomData,
-                },
-                &mut offset,
-            )?,
-            ElementID::ExtId(ext_id) => buf.gwrite(
-                TypedIEEE80211Element {
-                    tlv_type: 0xff,
-                    payload: TypedIEEE80211ExtElement {
-                        ext_id,
-                        payload: self.inner,
-                    },
-                    _phantom: PhantomData,
-                },
-                &mut offset,
-            )?,
-            ElementID::VendorSpecific { prefix } => buf.gwrite(
-                TypedIEEE80211Element {
-                    tlv_type: 0xdd,
-                    payload: VendorSpecificElement::new_prefixed(prefix, self.inner),
-                    _phantom: PhantomData,
-                },
-                &mut offset,
-            )?,
-        };
+        buf.gwrite(WrappedIEEE80211Element(self.inner), &mut offset)?;
         buf.gwrite(self.next, &mut offset)?;
 
         Ok(offset)

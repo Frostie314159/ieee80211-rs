@@ -1,3 +1,5 @@
+//! This example demonstrates serialisation and deserialisation, with a [BeaconFrame].
+
 use ieee80211::{
     elements::{
         element_chain::{ChainElement, ElementChainEnd},
