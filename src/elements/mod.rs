@@ -284,7 +284,7 @@ impl MeasureWith<()> for ReadElements<'_> {
 /// A wrapper for any type implementing the [Element] trait.
 ///
 /// This handles all the quirks of writing an element, like extended ID or vendor prefix.
-pub(crate) struct WrappedIEEE80211Element<Inner>(Inner);
+pub(crate) struct WrappedIEEE80211Element<Inner>(pub Inner);
 impl<Inner: Element> MeasureWith<()> for WrappedIEEE80211Element<Inner> {
     fn measure_with(&self, ctx: &()) -> usize {
         // Get the size of the element header and add the length of the body.

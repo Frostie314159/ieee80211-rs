@@ -20,9 +20,7 @@ use scroll::{
     Endian, Pwrite,
 };
 
-use super::{
-    Element, RawIEEE80211Element, WrappedIEEE80211Element,
-};
+use super::{Element, RawIEEE80211Element, WrappedIEEE80211Element};
 
 /// This trait represents a singular element of the chain.
 pub trait ChainElement {
@@ -117,7 +115,8 @@ where
 {
     #[inline]
     fn measure_with(&self, ctx: &()) -> usize {
-        Inner::ELEMENT_ID.element_header_length() + self.inner.measure_with(ctx)
+        Inner::ELEMENT_ID.element_header_length()
+            + self.inner.measure_with(ctx)
             + self.next.measure_with(ctx)
     }
 }
