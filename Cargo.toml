@@ -7,6 +7,7 @@ readme = "README.md"
 repository = "https://github.com/Frostie314159/ieee80211-rs"
 description = "A parser for IEEE 802.11 frames."
 authors = ["Frostie314159"]
+rust-version = "1.65.0"
 
 [dependencies]
 bitfield-struct = "0.6.0"
