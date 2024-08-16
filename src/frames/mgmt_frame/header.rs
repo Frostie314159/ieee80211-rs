@@ -9,13 +9,13 @@ use crate::common::{FCFFlags, SequenceControl};
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// A management frame header.
 pub struct ManagementFrameHeader {
+    /// The flags from the [FrameControlField](crate::common::FrameControlField).
     pub fcf_flags: FCFFlags,
-
     pub duration: u16,
     pub receiver_address: MACAddress,
     pub transmitter_address: MACAddress,
     pub bssid: MACAddress,
-    pub frag_seq_info: SequenceControl,
+    pub sequence_control: SequenceControl,
     pub ht_control: Option<[u8; 4]>,
 }
 impl ManagementFrameHeader {
@@ -50,7 +50,7 @@ impl TryFromCtx<'_, FCFFlags> for ManagementFrameHeader {
                 receiver_address,
                 transmitter_address,
                 bssid,
-                frag_seq_info,
+                sequence_control: frag_seq_info,
                 ht_control,
             },
             offset,
@@ -66,7 +66,7 @@ impl TryIntoCtx for ManagementFrameHeader {
         buf.gwrite(self.receiver_address, &mut offset)?;
         buf.gwrite(self.transmitter_address, &mut offset)?;
         buf.gwrite(self.bssid, &mut offset)?;
-        buf.gwrite_with(self.frag_seq_info.into_bits(), &mut offset, Endian::Little)?;
+        buf.gwrite_with(self.sequence_control.into_bits(), &mut offset, Endian::Little)?;
         if let Some(ht_control) = self.ht_control {
             buf.gwrite(ht_control, &mut offset)?;
         }

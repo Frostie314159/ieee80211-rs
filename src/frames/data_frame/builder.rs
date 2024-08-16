@@ -684,7 +684,7 @@ impl<'a, DS: DSField, Category: DataFrameCategory, PayloadType: Copy>
             address_4: self.address_4,
             fcf_flags: self.fcf_flags,
             duration: 0,
-            frag_seq_info: SequenceControl::new(),
+            sequence_control: SequenceControl::new(),
             qos: None,
             ht_control: None,
         };

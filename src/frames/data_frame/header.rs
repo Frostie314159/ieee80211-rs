@@ -14,12 +14,14 @@ use crate::common::*;
 /// To access them use the provided methods.
 pub struct DataFrameHeader {
     // Shared across all headers.
+
     /// Subtype of the frame.
     pub subtype: DataFrameSubtype,
     /// Flags as specified in the [Frame Control Field](crate::common::FrameControlField).
     pub fcf_flags: FCFFlags,
 
     // Actual header from here.
+    
     pub duration: u16,
     /// First address.
     pub address_1: MACAddress,
@@ -28,7 +30,7 @@ pub struct DataFrameHeader {
     /// Third address.
     pub address_3: MACAddress,
     /// Sequence control
-    pub frag_seq_info: SequenceControl,
+    pub sequence_control: SequenceControl,
     /// Potentially fourth address.
     pub address_4: Option<MACAddress>,
     pub qos: Option<[u8; 2]>,
@@ -272,7 +274,7 @@ impl TryFromCtx<'_, (DataFrameSubtype, FCFFlags)> for DataFrameHeader {
                 address_1,
                 address_2,
                 address_3,
-                frag_seq_info,
+                sequence_control: frag_seq_info,
                 address_4,
                 qos,
                 ht_control,
@@ -290,7 +292,7 @@ impl TryIntoCtx for DataFrameHeader {
         buf.gwrite(self.address_1, &mut offset)?;
         buf.gwrite(self.address_2, &mut offset)?;
         buf.gwrite(self.address_3, &mut offset)?;
-        buf.gwrite_with(self.frag_seq_info.into_bits(), &mut offset, Endian::Little)?;
+        buf.gwrite_with(self.sequence_control.into_bits(), &mut offset, Endian::Little)?;
         if let Some(address_4) = self.address_4 {
             buf.gwrite(address_4, &mut offset)?;
         }
