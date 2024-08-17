@@ -180,7 +180,7 @@ macro_rules! element_chain {
                 inner: $first_element
             };
             $(
-                let child = ::ieee80211::elements::element_chain::ElementChainLink {
+                let next = ::ieee80211::elements::element_chain::ElementChainLink {
                     inner: $element,
                     next
                 };
