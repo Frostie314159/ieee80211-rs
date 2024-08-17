@@ -5,7 +5,7 @@ use scroll::{
     Pread, Pwrite,
 };
 
-use crate::common::{DataFrameSubtype, FCFFlags, FrameType};
+use crate::common::{attach_fcs, strip_and_validate_fcs, DataFrameSubtype, FrameType};
 
 use self::{amsdu::AMSDUSubframeIterator, header::DataFrameHeader};
 
@@ -94,15 +94,20 @@ impl<DataFramePayload: MeasureWith<()>> MeasureWith<()> for DataFrame<'_, DataFr
             }
     }
 }
-impl<'a> TryFromCtx<'a, (DataFrameSubtype, FCFFlags)> for DataFrame<'a, DataFrameReadPayload<'a>> {
+impl<'a> TryFromCtx<'a, bool> for DataFrame<'a, DataFrameReadPayload<'a>> {
     type Error = scroll::Error;
     fn try_from_ctx(
         from: &'a [u8],
-        (subtype, fcf_flags): (DataFrameSubtype, FCFFlags),
+        with_fcs: bool,
     ) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
 
-        let header: DataFrameHeader = from.gread_with(&mut offset, (subtype, fcf_flags))?;
+        let from = if with_fcs {
+            strip_and_validate_fcs(from)?
+        } else {
+            from
+        };
+        let header: DataFrameHeader = from.gread(&mut offset)?;
         let payload = if header.subtype.has_payload() {
             let len = from.len() - offset;
             Some(DataFrameReadPayload::Single(
@@ -130,6 +135,7 @@ impl<Payload: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for DataFrame<'_, Pa
         if let Some(payload) = self.payload {
             buf.gwrite(payload, &mut offset)?;
         }
+        attach_fcs(buf, &mut offset)?;
         Ok(offset)
     }
 }

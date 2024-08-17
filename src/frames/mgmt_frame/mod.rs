@@ -11,7 +11,7 @@ use scroll::{
 };
 
 use crate::{
-    common::{strip_and_validate_fcs, FCFFlags, FrameControlField, FrameType},
+    common::{attach_fcs, strip_and_validate_fcs, FCFFlags, FrameControlField, FrameType},
     elements::{Element, ReadElements, WrappedIEEE80211Element},
     IEEE80211Frame,
 };
@@ -44,22 +44,22 @@ impl<Body: MeasureWith<()>> MeasureWith<bool> for ManagementFrame<Body> {
             + if *with_fcs { 4 } else { 0 }
     }
 }
-impl<'a, Body: TryFromCtx<'a, Error = scroll::Error>> TryFromCtx<'a, bool>
+impl<'a, Ctx: Copy, Body: TryFromCtx<'a, Ctx, Error = scroll::Error>> TryFromCtx<'a, (bool, Ctx)>
     for ManagementFrame<Body>
 {
     type Error = scroll::Error;
-    fn try_from_ctx(from: &'a [u8], with_fcs: bool) -> Result<(Self, usize), Self::Error> {
+    fn try_from_ctx(from: &'a [u8], (with_fcs, body_ctx): (bool, Ctx)) -> Result<(Self, usize), Self::Error> {
         // We don't care about the FCF, since the information is already encoded in the type.
         let mut offset = 1;
 
-        let fcf_flags = FCFFlags::from_bits(from.gread(&mut offset)?);
-        let header = from.gread_with(&mut offset, fcf_flags)?;
-        let body_slice = if with_fcs {
+        let from = if with_fcs {
             strip_and_validate_fcs(from)?
         } else {
             from
         };
-        let body = body_slice.gread(&mut offset)?;
+        let fcf_flags = FCFFlags::from_bits(from.gread(&mut offset)?);
+        let header = from.gread_with(&mut offset, fcf_flags)?;
+        let body = from.gread_with(&mut offset, body_ctx)?;
 
         Ok((Self { header, body }, offset))
     }
@@ -82,8 +82,7 @@ impl<Body: TryIntoCtx<Error = scroll::Error> + ManagementFrameBody> TryIntoCtx<b
         buf.gwrite(self.header, &mut offset)?;
         buf.gwrite(self.body, &mut offset)?;
         if with_fcs {
-            let fcs = crc32fast::hash(&buf[..offset]);
-            buf.gwrite_with(fcs, &mut offset, Endian::Little)?;
+            attach_fcs(buf, &mut offset)?;
         }
 
         Ok(offset)

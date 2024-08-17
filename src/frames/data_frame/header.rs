@@ -237,20 +237,24 @@ impl MeasureWith<()> for DataFrameHeader {
         self.length_in_bytes()
     }
 }
-impl TryFromCtx<'_, (DataFrameSubtype, FCFFlags)> for DataFrameHeader {
+impl TryFromCtx<'_> for DataFrameHeader {
     type Error = scroll::Error;
     fn try_from_ctx(
         from: &'_ [u8],
-        (subtype, fcf_flags): (DataFrameSubtype, FCFFlags),
+        _ctx: (),
     ) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
 
+        let fcf = FrameControlField::from_bits(from.gread_with(&mut offset, Endian::Little)?);
+        let FrameType::Data(subtype) = fcf.frame_type() else {
+            return Err(scroll::Error::BadInput { size: offset, msg: "The frame type in the FCF wasn't data." });
+        };
         let duration = from.gread(&mut offset)?;
         let address_1 = from.gread(&mut offset)?;
         let address_2 = from.gread(&mut offset)?;
         let address_3 = from.gread(&mut offset)?;
         let frag_seq_info = SequenceControl::from_bits(from.gread(&mut offset)?);
-        let address_4 = if fcf_flags.to_ds() && fcf_flags.from_ds() {
+        let address_4 = if fcf.flags().to_ds() && fcf.flags().from_ds() {
             Some(from.gread(&mut offset)?)
         } else {
             None
@@ -260,7 +264,7 @@ impl TryFromCtx<'_, (DataFrameSubtype, FCFFlags)> for DataFrameHeader {
         } else {
             None
         };
-        let ht_control = if fcf_flags.order() {
+        let ht_control = if fcf.flags().order() {
             Some(from.gread(&mut offset)?)
         } else {
             None
@@ -269,7 +273,7 @@ impl TryFromCtx<'_, (DataFrameSubtype, FCFFlags)> for DataFrameHeader {
         Ok((
             Self {
                 subtype,
-                fcf_flags,
+                fcf_flags: fcf.flags(),
                 duration,
                 address_1,
                 address_2,

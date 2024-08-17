@@ -146,3 +146,8 @@ pub(crate) fn strip_and_validate_fcs(bytes: &[u8]) -> Result<&[u8], scroll::Erro
         })
     }
 }
+
+pub(crate) fn attach_fcs(buf: &mut [u8], offset: &mut usize) -> Result<usize, scroll::Error> {
+    let fcs = crc32fast::hash(&buf[..*offset]);
+    buf.gwrite_with(fcs, offset, Endian::Little)
+}
