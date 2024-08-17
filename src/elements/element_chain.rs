@@ -176,16 +176,11 @@ macro_rules! element_chain {
         $(,$element:expr)*
     ) => {
         {
-            let next = ::ieee80211::elements::element_chain::ElementChainEnd {
-                inner: $first_element
-            };
+            use ieee80211::elements::element_chain::ChainElement;
+            ::ieee80211::elements::element_chain::ElementChainEnd::new($first_element)
             $(
-                let next = ::ieee80211::elements::element_chain::ElementChainLink {
-                    inner: $element,
-                    next
-                };
+                .append($element)
             )*
-            next
         }
     };
 }
