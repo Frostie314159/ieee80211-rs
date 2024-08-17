@@ -4,7 +4,7 @@ use bitfield_struct::bitfield;
 use macro_bits::bit;
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
-    Endian, Pread,
+    Endian, Pread, Pwrite,
 };
 
 mod subtypes;
