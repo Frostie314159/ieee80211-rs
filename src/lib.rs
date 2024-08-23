@@ -28,11 +28,10 @@ mod frames;
 pub use frames::*;
 
 pub use const_soft_float;
+pub use mac_parser;
 pub use macro_bits;
 pub use scroll;
-pub use mac_parser;
 
 #[cfg(feature = "crypto")]
 /// Implementations of cryptographic primitives.
 pub mod crypto;
-
