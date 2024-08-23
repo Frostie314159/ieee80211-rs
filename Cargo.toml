@@ -34,3 +34,4 @@ harness = false
 alloc = []
 crypto = ["dep:pbkdf2", "dep:hmac", "dep:sha1"]
 default = ["crypto"]
+std = ["alloc", "scroll/std"]
