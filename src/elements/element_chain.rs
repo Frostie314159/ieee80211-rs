@@ -171,16 +171,27 @@ where
 /// };
 /// ```
 macro_rules! element_chain {
+    () => {
+        ::ieee80211::common::Empty
+    };
+    ($element:expr) => {
+        {
+            use ieee80211::elements::element_chain::{ChainElement, ElementChainEnd};
+            ElementChainEnd {
+                inner: $element
+            }
+        }
+    };
     (
-        $first_element:expr
-        $(,$element:expr)*
+        $current_element:expr
+        $(,$element:expr)+
     ) => {
         {
-            use ieee80211::elements::element_chain::ChainElement;
-            ::ieee80211::elements::element_chain::ElementChainEnd::new($first_element)
-            $(
-                .append($element)
-            )*
+            use ieee80211::elements::element_chain::{ChainElement, ElementChainLink};
+            ElementChainLink {
+                inner: $current_element,
+                next: ::ieee80211::element_chain! ($($element),*)
+            }
         }
     };
 }

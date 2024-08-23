@@ -6,6 +6,8 @@ use ieee80211::{
 };
 
 mod dsss_parameter_set;
+#[allow(unused)]
+mod element_chain;
 mod ibss_parameter_set;
 mod rsn_element;
 mod ssid;
