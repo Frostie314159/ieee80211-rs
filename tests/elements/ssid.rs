@@ -5,7 +5,7 @@ use crate::gen_element_rw_test;
 // We can't test the [ssid] macro, since rust doesn't support expected build failures.
 // This isn't doesn't really matter, since it's short enough to audit by hand.
 
-const EXPECTED_SSID_STRING: &str = "OpenRF";
+const EXPECTED_SSID_STRING: &str = "Test";
 const EXPECTED_SSID_ELEMENT: SSIDElement<&str> = ssid!(EXPECTED_SSID_STRING);
 const EXPECTED_SSID_ELEMENT_BYTES: &[u8] = EXPECTED_SSID_STRING.as_bytes();
 const WILDCARD_SSID_ELEMENT: SSIDElement<&str> = ssid!("");

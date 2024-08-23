@@ -21,7 +21,7 @@ const INITIAL_BYTES: &[u8] = &[
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, // Timestamp
     0x04, 0x00, // Beacon interval
     0x00, 0x00, // Capabilities
-    0x00, 0x06, // Element header
+    0x00, 0x06, // SSID header
     b'L', b'a', b'm', b'b', b'd', b'a', // SSID,
     0xdd, 0x0f, 0x50, 0x6f, 0x9a, 0x1c, // OWE element header
     0x00, 0x80, 0x41, 0x13, 0x37, 0x43, 0x04, b'T', b'e', b's', b't',
@@ -36,10 +36,10 @@ const NEW_BYTES: &[u8] = &[
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, // Timestamp
     0x04, 0x00, // Beacon interval
     0x00, 0x00, // Capabilities
-    0x00, 0x06, // TLV header
-    b'O', b'p', b'e', b'n', b'R', b'F', // SSID
-    0xdd, 0x0f, 0x50, 0x6f, 0x9a, 0x1c, // OWE element header
-    0x00, 0x80, 0x41, 0x13, 0x37, 0x43, 0x04, b'T', b'e', b's', b't',
+    0x00, 0x04, // SSID header
+    b'T', b'e', b's', b't', // SSID
+    0xdd, 0x12, 0x50, 0x6f, 0x9a, 0x1c, // OWE element header
+    0x00, 0x80, 0x41, 0x13, 0x37, 0x43, 0x07, b'O', b'W', b'E', b'T', b'e', b's', b't',
 ];
 
 fn main() {
@@ -61,9 +61,9 @@ fn main() {
             capabilities_info: beacon.capabilities_info,
             timestamp: beacon.timestamp,
             beacon_interval: beacon.beacon_interval,
-            elements: ElementChainEnd::new(ssid!("OpenRF")).append(OWETransitionModeElement {
+            elements: ElementChainEnd::new(ssid!("Test")).append(OWETransitionModeElement {
                 bssid: MACAddress::new([0x00, 0x80, 0x41, 0x13, 0x37, 0x43]),
-                ssid: "Test",
+                ssid: "OWETest",
                 ..Default::default()
             }),
             ..Default::default()
