@@ -66,7 +66,11 @@ impl TryIntoCtx for ManagementFrameHeader {
         buf.gwrite(self.receiver_address, &mut offset)?;
         buf.gwrite(self.transmitter_address, &mut offset)?;
         buf.gwrite(self.bssid, &mut offset)?;
-        buf.gwrite_with(self.sequence_control.into_bits(), &mut offset, Endian::Little)?;
+        buf.gwrite_with(
+            self.sequence_control.into_bits(),
+            &mut offset,
+            Endian::Little,
+        )?;
         if let Some(ht_control) = self.ht_control {
             buf.gwrite(ht_control, &mut offset)?;
         }

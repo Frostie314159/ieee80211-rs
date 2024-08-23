@@ -1,6 +1,14 @@
 //! This example demonstrates, how to use the [DynamicManagementFrame].
 
-use ieee80211::{common::CapabilitiesInformation, element_chain, elements::{rsn::RSNElement, DSSSParameterSetElement}, mgmt_frame::{body::BeaconBody, header::ManagementFrameHeader, BeaconFrame, DynamicManagementFrame}, ssid, supported_rates};
+use ieee80211::{
+    common::CapabilitiesInformation,
+    element_chain,
+    elements::{rsn::RSNElement, DSSSParameterSetElement},
+    mgmt_frame::{
+        body::BeaconBody, header::ManagementFrameHeader, BeaconFrame, DynamicManagementFrame,
+    },
+    ssid, supported_rates,
+};
 use mac_parser::{MACAddress, BROADCAST};
 
 const MAC_ADDRESS: MACAddress = MACAddress::new([0x00, 0x80, 0x41, 0x13, 0x37, 0x42]);
@@ -34,11 +42,14 @@ fn main() {
                 }
             },
             ..Default::default()
-        }
+        },
     };
     let mut buf = [0u8; 300];
-    let mut dynamic_frame = DynamicManagementFrame::new(fixed_beacon_frame, buf.as_mut_slice()).unwrap();
-    dynamic_frame.add_element(RSNElement::WPA2_PERSONAL).unwrap();
+    let mut dynamic_frame =
+        DynamicManagementFrame::new(fixed_beacon_frame, buf.as_mut_slice()).unwrap();
+    dynamic_frame
+        .add_element(RSNElement::WPA2_PERSONAL)
+        .unwrap();
     let written_length = dynamic_frame.finish(false).unwrap();
     let frame = &buf[..written_length];
     println!("Frame bytes: {frame:02x?}");

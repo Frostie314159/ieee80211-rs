@@ -96,10 +96,7 @@ impl<DataFramePayload: MeasureWith<()>> MeasureWith<()> for DataFrame<'_, DataFr
 }
 impl<'a> TryFromCtx<'a, bool> for DataFrame<'a, DataFrameReadPayload<'a>> {
     type Error = scroll::Error;
-    fn try_from_ctx(
-        from: &'a [u8],
-        with_fcs: bool,
-    ) -> Result<(Self, usize), Self::Error> {
+    fn try_from_ctx(from: &'a [u8], with_fcs: bool) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
 
         let from = if with_fcs {

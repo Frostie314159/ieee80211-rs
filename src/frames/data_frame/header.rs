@@ -14,14 +14,12 @@ use crate::common::*;
 /// To access them use the provided methods.
 pub struct DataFrameHeader {
     // Shared across all headers.
-
     /// Subtype of the frame.
     pub subtype: DataFrameSubtype,
     /// Flags as specified in the [Frame Control Field](crate::common::FrameControlField).
     pub fcf_flags: FCFFlags,
 
     // Actual header from here.
-    
     pub duration: u16,
     /// First address.
     pub address_1: MACAddress,
@@ -239,15 +237,15 @@ impl MeasureWith<()> for DataFrameHeader {
 }
 impl TryFromCtx<'_> for DataFrameHeader {
     type Error = scroll::Error;
-    fn try_from_ctx(
-        from: &'_ [u8],
-        _ctx: (),
-    ) -> Result<(Self, usize), Self::Error> {
+    fn try_from_ctx(from: &'_ [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
 
         let fcf = FrameControlField::from_bits(from.gread_with(&mut offset, Endian::Little)?);
         let FrameType::Data(subtype) = fcf.frame_type() else {
-            return Err(scroll::Error::BadInput { size: offset, msg: "The frame type in the FCF wasn't data." });
+            return Err(scroll::Error::BadInput {
+                size: offset,
+                msg: "The frame type in the FCF wasn't data.",
+            });
         };
         let duration = from.gread(&mut offset)?;
         let address_1 = from.gread(&mut offset)?;
@@ -296,7 +294,11 @@ impl TryIntoCtx for DataFrameHeader {
         buf.gwrite(self.address_1, &mut offset)?;
         buf.gwrite(self.address_2, &mut offset)?;
         buf.gwrite(self.address_3, &mut offset)?;
-        buf.gwrite_with(self.sequence_control.into_bits(), &mut offset, Endian::Little)?;
+        buf.gwrite_with(
+            self.sequence_control.into_bits(),
+            &mut offset,
+            Endian::Little,
+        )?;
         if let Some(address_4) = self.address_4 {
             buf.gwrite(address_4, &mut offset)?;
         }

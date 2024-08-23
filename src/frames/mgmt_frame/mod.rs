@@ -29,7 +29,10 @@ pub struct ManagementFrame<Body> {
 }
 impl<Body: TryIntoCtx<Error = scroll::Error> + ManagementFrameBody> ManagementFrame<Body> {
     /// Create a [DynamicManagementFrame] from a statically typed one.
-    pub fn into_dynamic<'a>(self, buffer: &'a mut [u8]) -> Result<DynamicManagementFrame<'a>, scroll::Error> {
+    pub fn into_dynamic<'a>(
+        self,
+        buffer: &'a mut [u8],
+    ) -> Result<DynamicManagementFrame<'a>, scroll::Error> {
         DynamicManagementFrame::new(self, buffer)
     }
 }
@@ -48,7 +51,10 @@ impl<'a, Ctx: Copy, Body: TryFromCtx<'a, Ctx, Error = scroll::Error>> TryFromCtx
     for ManagementFrame<Body>
 {
     type Error = scroll::Error;
-    fn try_from_ctx(from: &'a [u8], (with_fcs, body_ctx): (bool, Ctx)) -> Result<(Self, usize), Self::Error> {
+    fn try_from_ctx(
+        from: &'a [u8],
+        (with_fcs, body_ctx): (bool, Ctx),
+    ) -> Result<(Self, usize), Self::Error> {
         // We don't care about the FCF, since the information is already encoded in the type.
         let mut offset = 1;
 

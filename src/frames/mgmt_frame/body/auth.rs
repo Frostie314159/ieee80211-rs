@@ -12,7 +12,7 @@ use crate::{
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// This is the body of an authentication frame.
-/// 
+///
 /// # Note
 /// This is currently only valid for open system authentication, since I haven't worked out a good way for other options yet.
 pub struct AuthenticationBody<'a, ElementContainer = ReadElements<'a>> {
