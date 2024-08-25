@@ -29,10 +29,10 @@ pub struct ManagementFrame<Body> {
 }
 impl<Body: TryIntoCtx<Error = scroll::Error> + ManagementFrameBody> ManagementFrame<Body> {
     /// Create a [DynamicManagementFrame] from a statically typed one.
-    pub fn into_dynamic<'a>(
+    pub fn into_dynamic(
         self,
-        buffer: &'a mut [u8],
-    ) -> Result<DynamicManagementFrame<'a>, scroll::Error> {
+        buffer: &mut [u8],
+    ) -> Result<DynamicManagementFrame<'_>, scroll::Error> {
         DynamicManagementFrame::new(self, buffer)
     }
 }

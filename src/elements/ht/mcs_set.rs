@@ -123,7 +123,7 @@ pub fn generate_supported_rx_mcs_set<I: IntoIterator<Item = bool>>(mcs_indices: 
     supported_rx_mcs_set
 }
 #[macro_export]
-/// Generate the supported rx MCS set array from the MCS indices at compile time.
+/// Generate the supported RX MCS set array from the MCS indices at compile time.
 ///
 /// This macro also validates, that there are no duplicates and that the MCS indices are in the range of 0..77.
 /// It supports either individual listing of indices or an exclusive range.

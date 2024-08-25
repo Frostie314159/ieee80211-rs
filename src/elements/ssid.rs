@@ -8,7 +8,7 @@ use scroll::{
 use super::{Element, ElementID};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-/// A SSID tlv.
+/// The SSID element holds the human-readable identifier of a BSS.
 ///
 /// The SSID isn't public, since if we check the length at initialization, we won't have to do checks while serializing.
 pub struct SSIDElement<'a, SSID = &'a str> {
@@ -117,15 +117,21 @@ impl<S: AsRef<str>> AsRef<str> for SSIDElement<'_, S> {
     }
 }
 #[macro_export]
-/// Generate an SSID element, while performing all validation at compile time.
+/// Generate an [SSIDElement], while performing all validation at compile time.
 ///
 /// This macro requires, that the passed parameter is either a literal or a const and must be a `&str`.
-///
 /// ```
 /// use ieee80211::ssid;
 ///
 /// let ssid_element = ssid!("OpenRF");
 /// assert_eq!(ssid_element.ssid(), "OpenRF");
+/// ```
+/// If the provided literal is longer than 32 bytes, the macro will panic at compile time.
+///
+/// ```compile_fail
+/// use ieee80211::ssid;
+///
+/// let _ssid_element = ssid!("Some unreasonably long SSID, for whatever reason.");
 /// ```
 macro_rules! ssid {
     ($ssid:expr) => {{

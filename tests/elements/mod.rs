@@ -9,9 +9,10 @@ mod dsss_parameter_set;
 #[allow(unused)]
 mod element_chain;
 mod ibss_parameter_set;
-mod rsn_element;
+mod rsn;
 mod ssid;
 mod supported_rates;
+mod tim;
 
 #[macro_export]
 macro_rules! gen_element_rw_test {

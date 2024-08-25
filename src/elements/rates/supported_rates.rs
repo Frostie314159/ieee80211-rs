@@ -105,7 +105,7 @@ impl<I: IntoIterator<Item = EncodedRate> + Clone> Element for SupportedRatesElem
 }
 
 #[macro_export]
-/// This macro generates an [EncodedRate].
+/// Generate an [EncodedRate].
 ///
 /// ```
 /// use ieee80211::{rate, elements::rates::EncodedRate};

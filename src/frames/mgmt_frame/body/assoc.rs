@@ -6,7 +6,7 @@ use scroll::{
 };
 
 use crate::{
-    common::{CapabilitiesInformation, IEEE80211StatusCode},
+    common::{AssociationID, CapabilitiesInformation, IEEE80211StatusCode},
     elements::ReadElements,
 };
 
@@ -76,7 +76,7 @@ impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
 pub struct AssociationResponseBody<'a, ElementContainer = ReadElements<'a>> {
     pub capabilities_info: CapabilitiesInformation,
     pub status_code: IEEE80211StatusCode,
-    pub association_id: u16,
+    pub association_id: AssociationID,
     pub elements: ElementContainer,
     pub _phantom: PhantomData<&'a ()>,
 }
@@ -94,7 +94,13 @@ impl<'a> TryFromCtx<'a> for AssociationResponseBody<'a> {
             CapabilitiesInformation::from_bits(from.gread_with(&mut offset, Endian::Little)?);
         let status_code =
             IEEE80211StatusCode::from_bits(from.gread_with(&mut offset, Endian::Little)?);
-        let association_id = from.gread_with(&mut offset, Endian::Little)?;
+        let association_id = AssociationID::new_checked(
+            from.gread_with(&mut offset, Endian::Little)?,
+        )
+        .ok_or(scroll::Error::BadInput {
+            size: offset,
+            msg: "Association ID is out of bounds.",
+        })?;
         let elements = from.gread(&mut offset)?;
 
         Ok((
@@ -129,7 +135,7 @@ impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
             Endian::Little,
         )?;
         buf.gwrite_with(self.status_code.into_bits(), &mut offset, Endian::Little)?;
-        buf.gwrite_with(self.association_id, &mut offset, Endian::Little)?;
+        buf.gwrite_with(self.association_id.into_bits(), &mut offset, Endian::Little)?;
         buf.gwrite(self.elements, &mut offset)?;
 
         Ok(offset)

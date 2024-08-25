@@ -36,6 +36,8 @@ const MULTI_ELEMENT_CHAIN: ElementChainLink<
 #[test]
 fn test_element_chain() {
     let chain: ElementChainEnd<SSIDElement> = ElementChainEnd::new(SSID_ELEMENT);
-    let chain: ElementChainLink<SSIDElement, ElementChainEnd<SupportedRatesElement<[EncodedRate; 2]>>> =
-        chain.append(supported_rates![1, 1.5 B]);
+    let chain: ElementChainLink<
+        SSIDElement,
+        ElementChainEnd<SupportedRatesElement<[EncodedRate; 2]>>,
+    > = chain.append(supported_rates![1, 1.5 B]);
 }
