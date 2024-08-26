@@ -37,7 +37,10 @@ macro_rules! match_frames {
                                     break 'matched_inner;
                                 }
                             }
-                            break 'matched $bytes.pread::<$frame_type>(0).map(|$binding| $block);
+                            break 'matched match $bytes.pread::<$frame_type>(0) {
+                                Ok($binding) => Ok($block),
+                                Err(err) => Err(err)
+                            };
                         }
                     )*
                     Err(ieee80211::scroll::Error::BadInput {
