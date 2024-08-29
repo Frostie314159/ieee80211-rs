@@ -2,10 +2,12 @@ use core::marker::PhantomData;
 
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
-    Pread, Pwrite,
+    Endian, Pread, Pwrite,
 };
 
-use crate::common::{attach_fcs, strip_and_validate_fcs, DataFrameSubtype, FrameType};
+use crate::common::{
+    attach_fcs, strip_and_validate_fcs, DataFrameSubtype, FrameControlField, FrameType,
+};
 
 use self::{amsdu::AMSDUSubframeIterator, header::DataFrameHeader};
 
@@ -127,6 +129,14 @@ impl<Payload: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for DataFrame<'_, Pa
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         let mut offset = 0;
 
+        buf.gwrite_with(
+            FrameControlField::new()
+                .with_frame_type(<Self as IEEE80211Frame>::TYPE)
+                .with_flags(self.header.fcf_flags)
+                .into_bits(),
+            &mut offset,
+            Endian::Little,
+        )?;
         buf.gwrite(self.header, &mut offset)?;
         if let Some(payload) = self.payload {
             buf.gwrite(payload, &mut offset)?;
@@ -138,4 +148,29 @@ impl<Payload: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for DataFrame<'_, Pa
 impl<'a, Payload> IEEE80211Frame for DataFrame<'a, Payload> {
     const TYPE: FrameType = FrameType::Data(DataFrameSubtype::Data);
     const MATCH_ONLY_TYPE: bool = true;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    extern crate std;
+
+    #[test]
+    fn test_data_frame_roundtrip() {
+        let buffer = [
+            0x48u8, 0x03, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xE8, 0x65, 0xD4, 0xCB,
+            0x74, 0x19, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x60, 0x94, 0xE8, 0x65, 0xD4, 0xCB,
+            0x74, 0x1C, 0x26, 0xB9, 0x0D, 0x02, 0x7D, 0x13, 0x00, 0x00, 0x01, 0xE8, 0x65, 0xD4,
+            0xCB, 0x74, 0x1C, 0x00, 0x00, 0x26, 0xB9, 0x00, 0x00, 0x00, 0x00,
+        ];
+
+        let frame = buffer.pread::<DataFrame>(0).unwrap();
+
+        let mut buf_to = [0u8; 100];
+
+        buf_to.pwrite(frame, 0).unwrap();
+
+        std::println!("{:?}", buf_to);
+    }
 }
