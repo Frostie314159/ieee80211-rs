@@ -9,7 +9,7 @@
 //!
 //! ## Example
 //! This example demonstrates the different ways to construct a [TIMElement].
-//! Only one way of using [tim_bitmap] is demonstrated here, but there are more examples in it's own documentation.
+//! Only one way of using [tim_bitmap](crate::tim_bitmap) is demonstrated here, but there are more examples in it's own documentation.
 //! The use of [TIMBitmap::new_raw]
 //! ```
 //! use ieee80211::{elements::tim::{TIMElement, TIMBitmap}, tim_bitmap, aid};

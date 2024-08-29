@@ -13,7 +13,6 @@ use super::IEEE80211Frame;
 
 /// This contains types related to aggregate MSDUs.
 pub mod amsdu;
-/// This is a type state based data frame builder.
 pub mod builder;
 /// This contains the header.
 pub mod header;

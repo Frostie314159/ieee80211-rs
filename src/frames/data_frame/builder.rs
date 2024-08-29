@@ -1,3 +1,36 @@
+//! This module contains a type state based builder for data frames.
+//!
+//! The type state prevents the user from setting addresses, which aren't valid for the configuration.
+//! ## Usage
+//! To create a [DataFrame] with the builder you can use the following scheme:
+//! 1. Create a [DataFrameBuilder] with [new](DataFrameBuilder::new)
+//! 2. Specify `ToDS` and `FromDS`, using [neither_to_nor_from_ds](DataFrameBuilder::neither_to_nor_from_ds), [to_ds](DataFrameBuilder::to_ds), [from_ds](DataFrameBuilder::from_ds) or [to_and_from_ds](DataFrameBuilder::to_and_from_ds).
+//! 3. Specify a category, using [category_data](DataFrameBuilder::category_data), [category_data_null](DataFrameBuilder::category_data_null), [category_qos](DataFrameBuilder::category_qos) or [category_qos_null](DataFrameBuilder::category_qos_null). These are equivalent to [DataFrameCF], just as type state.
+//!     3.5. If your selected category is not [DataNull] or [QoSNull], specify a payload using [payload](DataFrameBuilder::payload) or [payload_amsdu](DataFrameBuilder::payload_amsdu).
+//! 4. Specify your addresses using [destination_address](DataFrameBuilder::destination_address), [source_address](DataFrameBuilder::source_address) and [bssid](DataFrameBuilder::bssid).
+//! 5. Call [build](DataFrameBuilder::build).
+//! ## Example
+//! In this example, we build a frame, addressed to the AP.
+//! ```
+//! use ieee80211::{mac_parser::MACAddress, data_frame::builder::*};
+//!
+//! // It's from the NSA's MAC range. I'm sure they won't need it...
+//! const OUR_MAC_ADDRESS: MACAddress = MACAddress::new([0x00, 0x20, 0x91, 0x13, 0x37, 0x00]);
+//! const AP_MAC_ADDRESS: MACAddress = MACAddress::new([0x00, 0x20, 0x91, 0x13, 0x37, 0x01]);
+//!
+//! // There would be an LLC header here, but we don't have an implementation for that yet.
+//! const PAYLOAD: &[u8] = &[0xde, 0xad, 0xbe, 0xef];
+//!
+//! let _data_frame = DataFrameBuilder::new()
+//!     .from_ds()
+//!     .category_data()
+//!     .payload(PAYLOAD)
+//!     .destination_address(AP_MAC_ADDRESS)
+//!     .source_address(OUR_MAC_ADDRESS)
+//!     .bssid(AP_MAC_ADDRESS)
+//!     .build();
+//! ```
+
 use core::marker::PhantomData;
 use mac_parser::MACAddress;
 use scroll::ctx::TryIntoCtx;
@@ -111,30 +144,6 @@ impl<'a> DataFrameBuilderInner<'a, (), (), (), (), (), (), ()> {
         self,
     ) -> DataFrameBuilderInner<'a, ToAndFromDS, (), (), (), (), (), ()> {
         self.change_type_state()
-    }
-    pub const fn more_fragments(mut self) -> Self {
-        self.fcf_flags = self.fcf_flags.with_more_fragments(true);
-        self
-    }
-    pub const fn retry(mut self) -> Self {
-        self.fcf_flags = self.fcf_flags.with_retry(true);
-        self
-    }
-    pub const fn power_management(mut self) -> Self {
-        self.fcf_flags = self.fcf_flags.with_pwr_mgmt(true);
-        self
-    }
-    pub const fn more_data(mut self) -> Self {
-        self.fcf_flags = self.fcf_flags.with_more_data(true);
-        self
-    }
-    pub const fn protected(mut self) -> Self {
-        self.fcf_flags = self.fcf_flags.with_protected(true);
-        self
-    }
-    pub const fn order(mut self) -> Self {
-        self.fcf_flags = self.fcf_flags.with_order(true);
-        self
     }
 }
 impl<'a, DS> DataFrameBuilderInner<'a, DS, (), (), (), (), (), ()> {
@@ -316,15 +325,15 @@ impl<
         NeitherToNorFromDS,
         Category,
         PayloadType,
-        MACAddress,
+        Address1,
         Address2,
-        Address3,
+        MACAddress,
         (),
     > {
         DataFrameBuilderInner {
-            address_1: bssid,
+            address_1: self.address_1,
             address_2: self.address_2,
-            address_3: self.address_3,
+            address_3: bssid,
             address_4: self.address_4,
             payload: self.payload,
             fcf_flags: self.fcf_flags,
@@ -662,6 +671,34 @@ impl<
         }
     }
 }
+impl<'a, DS, Category, Payload, Address1, Address2, Address3, Address4>
+    DataFrameBuilderInner<'a, DS, Category, Payload, Address1, Address2, Address3, Address4>
+{
+    pub const fn more_fragments(mut self) -> Self {
+        self.fcf_flags = self.fcf_flags.with_more_fragments(true);
+        self
+    }
+    pub const fn retry(mut self) -> Self {
+        self.fcf_flags = self.fcf_flags.with_retry(true);
+        self
+    }
+    pub const fn power_management(mut self) -> Self {
+        self.fcf_flags = self.fcf_flags.with_pwr_mgmt(true);
+        self
+    }
+    pub const fn more_data(mut self) -> Self {
+        self.fcf_flags = self.fcf_flags.with_more_data(true);
+        self
+    }
+    pub const fn protected(mut self) -> Self {
+        self.fcf_flags = self.fcf_flags.with_protected(true);
+        self
+    }
+    pub const fn order(mut self) -> Self {
+        self.fcf_flags = self.fcf_flags.with_order(true);
+        self
+    }
+}
 impl<'a, DS: DSField, Category: DataFrameCategory, PayloadType: Copy>
     DataFrameBuilderInner<
         'a,
@@ -695,6 +732,30 @@ impl<'a, DS: DSField, Category: DataFrameCategory, PayloadType: Copy>
         }
     }
 }
+impl<'a, DS: DSField, Category: DataFrameCategory, PayloadType: Copy>
+    DataFrameBuilderInner<'a, DS, Category, PayloadType, MACAddress, MACAddress, MACAddress, ()>
+{
+    #[inline]
+    pub const fn build(self) -> DataFrame<'a, PayloadType> {
+        let header = DataFrameHeader {
+            subtype: DataFrameSubtype::from_bits(Category::UPPER_TWO_BITS << 2),
+            address_1: self.address_1,
+            address_2: self.address_2,
+            address_3: self.address_3,
+            address_4: None,
+            fcf_flags: self.fcf_flags,
+            duration: 0,
+            sequence_control: SequenceControl::new(),
+            qos: None,
+            ht_control: None,
+        };
+        DataFrame::<'a, PayloadType> {
+            header,
+            payload: self.payload,
+            _phantom: PhantomData,
+        }
+    }
+}
 impl<'a> Default for DataFrameBuilder<'a> {
     fn default() -> Self {
         Self::new()
@@ -706,6 +767,14 @@ pub type DataFrameBuilder<'a> = DataFrameBuilderInner<'a, (), (), (), (), (), ()
 fn test() {
     use crate::frames::data_frame::amsdu::AMSDUSubframe;
     use mac_parser::ZERO;
+    let _data_frame = DataFrameBuilder::new()
+        .neither_to_nor_from_ds()
+        .category_data()
+        .payload::<&[u8]>(&[])
+        .destination_address(ZERO)
+        .source_address(ZERO)
+        .bssid(ZERO)
+        .build();
     let _data_frame = DataFrameBuilder::new()
         .to_and_from_ds()
         .category_qos()
