@@ -21,6 +21,7 @@ use self::header::ManagementFrameHeader;
 pub mod body;
 pub mod header;
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// A generic management frame.
 pub struct ManagementFrame<Body> {

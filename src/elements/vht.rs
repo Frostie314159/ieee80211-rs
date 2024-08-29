@@ -11,8 +11,9 @@ use scroll::{
 
 use super::{Element, ElementID};
 
-#[bitfield(u32)]
+#[bitfield(u32, defmt = cfg(feature = "defmt"))]
 #[derive(PartialEq, Eq, Hash)]
+/// General information about the capabilites of the STA's VHT PHY.
 pub struct VHTCapabilitiesInfo {
     #[bits(2)]
     pub maximum_mpdu_length: u8,
@@ -79,8 +80,9 @@ serializable_enum! {
     }
 }
 #[derive(Clone, Copy, Default, PartialEq, Eq, Hash)]
-pub struct VHTMCSAndNSSSet(u16);
-impl VHTMCSAndNSSSet {
+/// The combinations of VHT-MCSs and spatial streams supported by the STA's VHT PHY.
+pub struct VHTMCSMap(u16);
+impl VHTMCSMap {
     pub const fn from_bits(bits: u16) -> Self {
         Self(bits)
     }
@@ -113,7 +115,7 @@ impl VHTMCSAndNSSSet {
         )
     }
 }
-impl Debug for VHTMCSAndNSSSet {
+impl Debug for VHTMCSMap {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_list().entries(self.vht_mcs_support_iter()).finish()
     }
@@ -122,13 +124,13 @@ impl Debug for VHTMCSAndNSSSet {
 #[derive(PartialEq, Eq, Hash)]
 pub struct SupportedVHTMCSAndNSSSet {
     #[bits(16)]
-    pub rx_vht_mcs_map: VHTMCSAndNSSSet,
+    pub rx_vht_mcs_map: VHTMCSMap,
     #[bits(13)]
     pub rx_highest_supported_long_gi_data_rate: u16,
     #[bits(3)]
     pub maximum_nsts_total: u8,
     #[bits(16)]
-    pub tx_vht_mcs_map: VHTMCSAndNSSSet,
+    pub tx_vht_mcs_map: VHTMCSMap,
     #[bits(13)]
     pub tx_highest_supported_long_gi_data_rate: u16,
     pub vht_extended_nss_bw_capable: bool,
@@ -137,7 +139,7 @@ pub struct SupportedVHTMCSAndNSSSet {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-/// The VHT capabilities supported by the STA.
+/// The capabilities of the STA's VHT PHY.
 pub struct VHTCapabilitiesElement {
     pub vht_capabilities_info: VHTCapabilitiesInfo,
     pub supported_vht_mcs_and_nss_set: SupportedVHTMCSAndNSSSet,
@@ -200,7 +202,7 @@ pub struct VHTOperationElement {
     pub channel_bandwidth: ChannelWidth,
     pub channel_center_frequency_segment_0: u8,
     pub channel_center_frequency_segment_1: u8,
-    pub basic_vht_mcs_and_nss_set: VHTMCSAndNSSSet,
+    pub basic_vht_mcs_and_nss_set: VHTMCSMap,
 }
 impl TryFromCtx<'_> for VHTOperationElement {
     type Error = scroll::Error;
@@ -211,7 +213,7 @@ impl TryFromCtx<'_> for VHTOperationElement {
         let channel_center_frequency_segment_0 = from.gread(&mut offset)?;
         let channel_center_frequency_segment_1 = from.gread(&mut offset)?;
         let basic_vht_mcs_and_nss_set =
-            VHTMCSAndNSSSet::from_bits(from.gread_with(&mut offset, Endian::Little)?);
+            VHTMCSMap::from_bits(from.gread_with(&mut offset, Endian::Little)?);
 
         Ok((
             Self {

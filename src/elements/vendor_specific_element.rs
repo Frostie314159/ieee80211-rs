@@ -7,6 +7,7 @@ use scroll::{
 
 use super::{Element, ElementID};
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// The vendor specific element carries information, which is not defined in IEEE 802.11, but rather by individual vendors.
 ///
@@ -77,6 +78,8 @@ impl<'a> Element for VendorSpecificElement<'a> {
     type ReadType<'b> = VendorSpecificElement<'b>;
 }
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 /// A payload of a [VendorSpecificElement], prefixed with an identifier.
 ///
 /// This is mostly used internaly, but is also required, if you want to implement your own vendor specific element outside this crate.

@@ -7,6 +7,7 @@ use scroll::{
 
 use crate::common::*;
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// A generic data frame header.
 ///

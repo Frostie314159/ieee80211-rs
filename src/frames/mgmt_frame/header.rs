@@ -6,6 +6,7 @@ use scroll::{
 
 use crate::common::{FCFFlags, SequenceControl};
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// A management frame header.
 pub struct ManagementFrameHeader {

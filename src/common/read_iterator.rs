@@ -23,6 +23,28 @@ impl<'a, Ctx: Default + Copy, Type: TryFromCtx<'a, Ctx, Error = scroll::Error> +
         f.debug_list().entries(*self).finish()
     }
 }
+#[cfg(feature = "defmt")]
+impl<
+        'a,
+        Ctx: Default + Copy,
+        Type: TryFromCtx<'a, Ctx, Error = scroll::Error> + defmt::Format + Copy,
+    > defmt::Format for ReadIterator<'a, Ctx, Type>
+{
+    fn format(&self, fmt: defmt::Formatter) {
+        let mut iter = self.clone();
+        defmt::write!(fmt, "[");
+
+        if let Some(first) = iter.next() {
+            // We treat the first element differently, since the loop below prepends the comma to every element.
+            defmt::write!(fmt, "{}", first);
+            for next in iter {
+                defmt::write!(fmt, ", {}", next);
+            }
+        }
+
+        defmt::write!(fmt, "]");
+    }
+}
 impl<'a, Ctx: Default + Copy, Type: TryFromCtx<'a, Ctx, Error = scroll::Error>> Iterator
     for ReadIterator<'a, Ctx, Type>
 {

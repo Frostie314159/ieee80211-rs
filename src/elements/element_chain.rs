@@ -31,10 +31,11 @@ pub trait ChainElement {
     fn append<T>(self, value: T) -> Self::Appended<T>;
 }
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 /// This is the end of a chain.
 ///
 /// Counterintuitively it's the point where you create a new chain.
-#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 pub struct ElementChainEnd<Inner> {
     /// The last element of the chain.
     pub inner: Inner,
@@ -89,8 +90,9 @@ impl TryIntoCtx for ElementChainEnd<RawIEEE80211Element<'_>> {
     }
 }
 
-/// A link in the element chain.
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
+/// A link in the element chain.
 pub struct ElementChainLink<Inner, Child: ChainElement> {
     /// The current element.
     pub inner: Inner,

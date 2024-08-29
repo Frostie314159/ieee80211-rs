@@ -32,8 +32,9 @@ pub mod element_chain;
 pub type RawIEEE80211Element<'a> = RawTLV<'a, u8, u8>;
 type TypedIEEE80211Element<Payload> = TLV<u8, u8, u8, Payload>;
 
-/// An element identifier.
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+/// An element identifier.
 pub enum ElementID {
     /// A normal ID.
     Id(u8),
@@ -96,10 +97,11 @@ pub trait Element: Sized + MeasureWith<()> + TryIntoCtx<Error = scroll::Error> {
     type ReadType<'a>: TryFromCtx<'a, Error = scroll::Error>;
 }
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 /// A raw extension element containing just a slice.
 ///
 /// This is mostly for internal use, while reading.
-#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 pub struct RawIEEE80211ExtElement<'a> {
     pub ext_id: u8,
     pub slice: &'a [u8],
@@ -131,10 +133,11 @@ impl TryIntoCtx for RawIEEE80211ExtElement<'_> {
     }
 }
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 /// A typed extension element.
 ///
 /// This is mainly used for writing.
-#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 pub struct TypedIEEE80211ExtElement<Payload> {
     pub ext_id: u8,
     pub payload: Payload,
@@ -169,13 +172,14 @@ impl<Payload: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for TypedIEEE80211Ex
     }
 }
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 /// A container, which contains the elements of a frame.
 ///
 /// It can be used to extract different elements from the body of a frame.
 /// If the element type you're looking for, is already implemented, you can use the [Self::get_first_element] and [Self::get_matching_elements] functions to extract them.
 /// These functions will automatically parse the elements and take the type of the element as a generic parameter.
 /// If the element type isn't implemented yet, you can still extract it using the [Self::get_first_element_raw] and [Self::get_matching_elements_raw] functions, which return [RawIEEE80211Elements](RawIEEE80211Element).
-#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 pub struct ReadElements<'bytes> {
     pub bytes: &'bytes [u8],
 }
@@ -281,6 +285,8 @@ impl MeasureWith<()> for ReadElements<'_> {
     }
 }
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 /// A wrapper for any type implementing the [Element] trait.
 ///
 /// This handles all the quirks of writing an element, like extended ID or vendor prefix.

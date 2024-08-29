@@ -1,4 +1,4 @@
-use core::marker::PhantomData;
+use core::{fmt::Display, marker::PhantomData};
 
 use mac_parser::MACAddress;
 use scroll::{
@@ -9,6 +9,16 @@ use scroll::{
 use crate::common::WIFI_ALLIANCE_OUI;
 
 use super::{Element, ElementID};
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Pread, Pwrite)]
+/// Information about the band and channel, on which the AP in OWE mode is operating.
+pub struct BandAndChannelInfo {
+    /// The band is encoded as a global operating class.
+    pub band: u8,
+    /// This is the channel number in the band specified by [Self::band].
+    pub channel: u8,
+}
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// The OWE transition mode element describes the characteristics of the second BSS operating in OWE-only mode.
@@ -24,8 +34,22 @@ pub struct OWETransitionModeElement<'a, SSID = &'a str> {
     pub ssid: SSID,
     /// Information about the band and operating channel.
     /// This is only present, if the OWE BSS operates on a different channel.
-    pub band_and_channel_info: Option<(u8, u8)>,
+    pub band_and_channel_info: Option<BandAndChannelInfo>,
     pub _phantom: PhantomData<&'a ()>,
+}
+impl<SSID: AsRef<str>> Display for OWETransitionModeElement<'_, SSID> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let mut binding = f.debug_struct("OWETransitionModeElement");
+        let debug_struct = binding
+            .field("bssid", &self.bssid)
+            .field("ssid", &self.ssid.as_ref());
+        if let Some(ref band_and_channel_info) = self.band_and_channel_info {
+            debug_struct.field("band_and_channel_info", band_and_channel_info)
+        } else {
+            debug_struct
+        }
+        .finish()
+    }
 }
 impl<'a> TryFromCtx<'a> for OWETransitionModeElement<'a> {
     type Error = scroll::Error;
@@ -35,11 +59,7 @@ impl<'a> TryFromCtx<'a> for OWETransitionModeElement<'a> {
         let bssid = from.gread(&mut offset)?;
         let ssid_len = from.gread::<u8>(&mut offset)? as usize;
         let ssid = from.gread_with(&mut offset, StrCtx::Length(ssid_len))?;
-        let band_and_channel_info = if from.len() - offset >= 2 {
-            Some((from.gread(&mut offset)?, from.gread(&mut offset)?))
-        } else {
-            None
-        };
+        let band_and_channel_info = from.gread(&mut offset).ok();
 
         Ok((
             Self {
@@ -71,9 +91,8 @@ impl<SSID: AsRef<str>> TryIntoCtx for OWETransitionModeElement<'_, SSID> {
         buf.gwrite(self.bssid, &mut offset)?;
         buf.gwrite(self.ssid.as_ref().len() as u8, &mut offset)?;
         buf.gwrite(self.ssid.as_ref(), &mut offset)?;
-        if let Some((band_info, channel_info)) = self.band_and_channel_info {
-            buf.gwrite(band_info, &mut offset)?;
-            buf.gwrite(channel_info, &mut offset)?;
+        if let Some(band_and_channel_info) = self.band_and_channel_info {
+            buf.gwrite(band_and_channel_info, &mut offset)?;
         }
 
         Ok(offset)

@@ -9,6 +9,7 @@ use crate::common::TU;
 
 use super::{Element, ElementID};
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
 /// The IBSS Parameter Set element contains the set of parameters necessary to support an IBSS.
 pub struct IBSSParameterSetElement {

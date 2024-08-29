@@ -1,6 +1,7 @@
 use macro_bits::serializable_enum;
 
 serializable_enum! {
+    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum ManagementFrameSubtype: u8 {
         AssociationRequest => 0b0000,

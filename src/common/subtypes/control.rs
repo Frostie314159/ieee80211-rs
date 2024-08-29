@@ -1,6 +1,7 @@
 use macro_bits::serializable_enum;
 
 serializable_enum! {
+    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     /// This is the subtype of a control frame.
     ///

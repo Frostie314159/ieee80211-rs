@@ -13,6 +13,7 @@ serializable_enum! {
     }
 }
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 /// This the body of an action frame.
 pub enum ActionBody<'a, VendorSpecificPayload = &'a [u8]> {

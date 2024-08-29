@@ -2,6 +2,7 @@ use macro_bits::serializable_enum;
 
 serializable_enum! {
     #[non_exhaustive]
+    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
     pub enum IEEE80211AuthenticationAlgorithmNumber: u16 {
         #[default]

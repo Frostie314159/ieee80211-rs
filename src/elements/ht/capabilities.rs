@@ -10,6 +10,7 @@ use crate::elements::{Element, ElementID};
 use super::SupportedMCSSet;
 
 serializable_enum! {
+    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
     /// Spatial multiplexing power save mode.
     pub enum SmPwSave: u8 {
@@ -20,7 +21,7 @@ serializable_enum! {
         Disabled => 3
     }
 }
-#[bitfield(u16)]
+#[bitfield(u16, defmt = cfg(feature = "defmt"))]
 #[derive(PartialEq, Eq, Hash)]
 /// HT related capabilities info.
 pub struct HTCapabilitiesInfo {
@@ -65,6 +66,7 @@ pub struct HTCapabilitiesInfo {
 }
 
 serializable_enum! {
+    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
     /// The maximum length of an A-MPDU.
     pub enum MAXAMpduLength: u8 {
@@ -81,6 +83,7 @@ serializable_enum! {
 }
 
 serializable_enum! {
+    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
     /// Minimum time between the start of adjacent MPDUs in A-MPDU, measured in µs.
     pub enum MpduDensity: u8 {
@@ -95,7 +98,7 @@ serializable_enum! {
         Sixteen => 7
     }
 }
-#[bitfield(u8)]
+#[bitfield(u8, defmt = cfg(feature = "defmt"))]
 #[derive(PartialEq, Eq, Hash)]
 /// Parameters for A-MPDU operation.
 pub struct AMpduParameters {
@@ -110,7 +113,7 @@ pub struct AMpduParameters {
     #[bits(3)]
     __: u8,
 }
-#[bitfield(u16)]
+#[bitfield(u16, defmt = cfg(feature = "defmt"))]
 #[derive(PartialEq, Eq, Hash)]
 /// Extended HT capabilities
 pub struct HTExtendedCapabilities {
@@ -127,6 +130,7 @@ pub struct HTExtendedCapabilities {
     __: u8,
 }
 serializable_enum! {
+    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
     /// The level of support for beamforming calibration.
     pub enum BeamformingCalibration: u8 {
@@ -138,6 +142,7 @@ serializable_enum! {
     }
 }
 serializable_enum! {
+    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
     /// The level of support for beamforming feedback.
     pub enum BeamformingFeedback: u8 {
@@ -149,6 +154,7 @@ serializable_enum! {
     }
 }
 serializable_enum! {
+    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
     /// The level of support for grouping.
     pub enum GroupingCapability: u8 {
@@ -159,7 +165,7 @@ serializable_enum! {
         GroupsOfTwoAndFour => 3
     }
 }
-#[bitfield(u32)]
+#[bitfield(u32, defmt = cfg(feature = "defmt"))]
 #[derive(PartialEq, Eq, Hash)]
 /// Capabilities related to transmit beamforming.
 pub struct TransmitBeamformingCapabilities {
@@ -223,7 +229,7 @@ pub struct TransmitBeamformingCapabilities {
     #[bits(3)]
     __: u8,
 }
-#[bitfield(u8)]
+#[bitfield(u8, defmt = cfg(feature = "defmt"))]
 #[derive(PartialEq, Eq, Hash)]
 /// The Antenna Selection capability of the STA.
 pub struct ASELCapability {
@@ -243,6 +249,7 @@ pub struct ASELCapability {
     pub transmit_sounding_ppdus_capable: bool,
     pub reserved: bool,
 }
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// The [HTCapabilitiesElement] contains information about the HT capbilities of the STA.
 pub struct HTCapabilitiesElement {

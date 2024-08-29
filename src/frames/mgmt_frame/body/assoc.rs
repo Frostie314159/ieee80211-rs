@@ -10,8 +10,9 @@ use crate::{
     elements::ReadElements,
 };
 
-/// This is the body of an association request frame.
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+/// This is the body of an association request frame.
 pub struct AssociationRequestBody<'a, ElementContainer = ReadElements<'a>> {
     pub capabilities_info: CapabilitiesInformation,
     pub listen_interval: u16,
@@ -71,8 +72,9 @@ impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
     }
 }
 
-/// This is the body of an association response frame.
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+/// This is the body of an association response frame.
 pub struct AssociationResponseBody<'a, ElementContainer = ReadElements<'a>> {
     pub capabilities_info: CapabilitiesInformation,
     pub status_code: IEEE80211StatusCode,

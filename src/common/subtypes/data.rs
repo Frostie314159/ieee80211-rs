@@ -1,6 +1,7 @@
 use macro_bits::serializable_enum;
 
 serializable_enum! {
+    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
     /// The piggy-backed control frame of the data frame.
     pub enum DataFrameCF: u8 {
@@ -13,6 +14,7 @@ serializable_enum! {
 }
 
 serializable_enum! {
+    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
     /// The subtype of the data frame.
     pub enum DataFrameSubtype: u8 {

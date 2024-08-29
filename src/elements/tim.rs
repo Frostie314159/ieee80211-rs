@@ -269,7 +269,7 @@ impl<Bitmap: Deref<Target = [u8]>> TIMBitmap<Bitmap> {
     ///
     /// # Note
     /// AID zero isn't included, since it isn't a valid [AssociationID].
-    pub fn aid_iter(&self) -> Option<impl IntoIterator<Item = AssociationID> + '_> {
+    pub fn aid_iter(&self) -> Option<impl Iterator<Item = AssociationID> + '_> {
         self.partial_virtual_bitmap.as_deref().map(|bytes| {
             (1..(bytes.len() * 8)).filter_map(|aid| {
                 if check_bit!(bytes[aid / 8], bit!(aid % 8)) {
@@ -294,6 +294,21 @@ impl<Bitmap: Deref<Target = [u8]>> Display for TIMBitmap<Bitmap> {
             &mut debug_list
         }
         .finish()
+    }
+}
+#[cfg(feature = "defmt")]
+impl<Bitmap: Deref<Target = [u8]>> defmt::Format for TIMBitmap<Bitmap> {
+    fn format(&self, fmt: defmt::Formatter) {
+        if let Some(mut aid_iter) = self.aid_iter() {
+            if let Some(first) = aid_iter.next() {
+                defmt::write!(fmt, "[{}", first.aid());
+                for aid in aid_iter {
+                    defmt::write!(fmt, ", {}", aid.aid());
+                }
+                defmt::write!(fmt, "]")
+            }
+        }
+        defmt::write!(fmt, "[]")
     }
 }
 impl<LhsBitmap: Deref<Target = [u8]>, RhsBitmap: Deref<Target = [u8]>>
@@ -503,6 +518,18 @@ impl<Bitmap: Deref<Target = [u8]>> Display for TIMElement<'_, Bitmap> {
             debug_struct
         }
         .finish()
+    }
+}
+#[cfg(feature = "defmt")]
+impl<Bitmap: Deref<Target = [u8]>> defmt::Format for TIMElement<'_, Bitmap> {
+    fn format(&self, fmt: defmt::Formatter) {
+        defmt::write!(
+            fmt,
+            "TIMElement {{ dtim_count: {}, dtim_period: {}, bitmap: {} }}",
+            self.dtim_count,
+            self.dtim_period,
+            self.bitmap
+        )
     }
 }
 impl<LhsBitmap: Deref<Target = [u8]>, RhsBitmap: Deref<Target = [u8]>>

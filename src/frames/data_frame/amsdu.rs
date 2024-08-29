@@ -4,8 +4,10 @@ use scroll::{
     Endian, Pread, Pwrite,
 };
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-/// A singe subframe from an aggregate MSDU.
+/// A single subframe from an aggregate MSDU.
+///
 /// The payload is generic, to avoid the need for an intermediate step when writing.
 /// It can be any type, which implements [`TryIntoCtx<Ctx = (), Error = scroll::Error>`](TryIntoCtx).
 pub struct AMSDUSubframe<Payload> {
@@ -72,8 +74,10 @@ impl<Payload: TryIntoCtx<Error = scroll::Error> + MeasureWith<()>> TryIntoCtx
     }
 }
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-/// An iterator over the sub frames of an A-MSDU.
+/// An iterator over the subframes of an A-MSDU.
+///
 /// This internally keeps the bytes slice and the offset and returns [Some] until [scroll] returns an error.
 /// This has the side effect, that if an error is encoutered while reading, the iterator may stop early, even if data is still left.
 pub struct AMSDUSubframeIterator<'a> {
@@ -111,8 +115,10 @@ impl<'a> Iterator for AMSDUSubframeIterator<'a> {
         }
     }
 }
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// This can be used for writing an aggregate MSDU.
+///
 /// The generic paramter can be any type, which implements [IntoIterator].
 /// It can only be written.
 pub struct AMSDUPayload<Frames> {
@@ -141,17 +147,14 @@ impl<'a, Frames: IntoIterator<Item = &'a Payload> + Clone, Payload: MeasureWith<
             .sum()
     }
 }
-impl<
-        'a,
-        Frames: IntoIterator<Item = &'a Payload>,
-        Payload: Copy + TryIntoCtx<Error = scroll::Error> + 'a,
-    > TryIntoCtx for AMSDUPayload<Frames>
+impl<Frames: IntoIterator<Item = Payload>, Payload: Copy + TryIntoCtx<Error = scroll::Error>>
+    TryIntoCtx for AMSDUPayload<Frames>
 {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         let mut offset = 0;
         for sub_frame in self.sub_frames.into_iter() {
-            buf.gwrite(*sub_frame, &mut offset)?;
+            buf.gwrite(sub_frame, &mut offset)?;
         }
         Ok(offset)
     }

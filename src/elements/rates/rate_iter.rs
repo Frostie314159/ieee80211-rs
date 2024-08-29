@@ -4,6 +4,7 @@ use crate::common::ReadIterator;
 
 use super::EncodedRate;
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct RatesReadIterator<'a> {
     pub(crate) bytes: ReadIterator<'a, Endian, u8>,

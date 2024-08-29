@@ -1,6 +1,6 @@
 use bitfield_struct::bitfield;
 
-#[bitfield(u16)]
+#[bitfield(u16, defmt = cfg(feature = "defmt"))]
 #[derive(PartialEq, Eq, Hash)]
 /// This bitfield contains the capabilities of the sender.
 pub struct CapabilitiesInformation {
