@@ -50,6 +50,7 @@ pub mod type_state {
     pub trait NoPayload {}
     macro_rules! data_frame_category {
         ($category_name:ident, $trait_name:ident, $upper_two_bits:expr) => {
+            #[doc(hidden)]
             pub struct $category_name;
             impl DataFrameCategory for $category_name {
                 const UPPER_TWO_BITS: u8 = $upper_two_bits;
@@ -465,7 +466,7 @@ impl<
         source_address: MACAddress,
     ) -> DataFrameBuilderInner<
         'a,
-        NeitherToNorFromDS,
+        ToDS,
         Category,
         PayloadType,
         Address1,
