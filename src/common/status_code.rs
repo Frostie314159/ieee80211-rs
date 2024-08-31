@@ -2,6 +2,7 @@ use macro_bits::serializable_enum;
 
 serializable_enum! {
     #[non_exhaustive]
+    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
     /// An IEEE 802.11 status code used in certain management frames.
     pub enum IEEE80211StatusCode: u16 {

@@ -10,6 +10,7 @@ use crate::{
     elements::ReadElements,
 };
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// This is the body of an authentication frame.
 ///

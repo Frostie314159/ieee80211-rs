@@ -30,6 +30,7 @@ pub const TU: Duration = Duration::from_micros(1024);
 pub const IEEE_OUI: [u8; 3] = [0x00, 0x0f, 0xac];
 pub const WIFI_ALLIANCE_OUI: [u8; 3] = [0x50, 0x6f, 0x9a];
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 /// The frame type of an IEEE 802.11 frame.
 pub enum FrameType {
@@ -75,7 +76,7 @@ impl From<FrameType> for u16 {
 }
 
 /// These are the flags included in the frame control field.
-#[bitfield(u8)]
+#[bitfield(u8, defmt = cfg(feature = "defmt"))]
 #[derive(PartialEq, Eq, Hash)]
 pub struct FCFFlags {
     /// This frame is going to the distribution system.
@@ -95,7 +96,7 @@ pub struct FCFFlags {
     // TODO: Docs
     pub order: bool,
 }
-#[bitfield(u16)]
+#[bitfield(u16, defmt = cfg(feature = "defmt"))]
 #[derive(PartialEq, Eq, Hash)]
 /// This is the frame control field, which is at the beginning of every frame.
 pub struct FrameControlField {
@@ -106,7 +107,7 @@ pub struct FrameControlField {
     #[bits(8)]
     pub flags: FCFFlags,
 }
-#[bitfield(u16)]
+#[bitfield(u16, defmt = cfg(feature = "defmt"))]
 #[derive(PartialEq, Eq, Hash)]
 /// This is information about the sequence number and the potential fragment number.
 pub struct SequenceControl {
@@ -116,8 +117,9 @@ pub struct SequenceControl {
     pub sequence_number: u16,
 }
 
-/// An empty type, used for filling empty generics.
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
+/// An empty type, used for filling empty generics.
 pub struct Empty;
 impl<'a> TryFromCtx<'a> for Empty {
     type Error = scroll::Error;

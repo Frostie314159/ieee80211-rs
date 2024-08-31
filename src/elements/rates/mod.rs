@@ -11,7 +11,7 @@ pub use extended_supported_rates::*;
 mod rate_iter;
 pub use rate_iter::RatesReadIterator;
 
-#[bitfield(u8)]
+#[bitfield(u8, defmt = cfg(feature = "defmt"))]
 #[derive(PartialEq, Eq, Hash)]
 /// Data rate encoded as specified in IEEE 802.11.
 pub struct EncodedRate {

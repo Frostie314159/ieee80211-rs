@@ -14,7 +14,7 @@ use scroll::{
 /// No Tx MCS set is defined | true | true | 0 | false
 /// The Tx MCS set is defined to be equal to the Rx MCS set | true | false | 0 | false
 /// The Tx MCS set may differ from the Rx MCS set | true | true | * | *
-#[bitfield(u32)]
+#[bitfield(u32, defmt = cfg(feature = "defmt"))]
 #[derive(PartialEq, Eq, Hash)]
 pub struct SupportedMCSSetFlags {
     /// The highest supported data rate.
@@ -50,6 +50,7 @@ impl SupportedMCSSetFlags {
         self.is_tx_mcs_undefined() && self.tx_rx_mcs_set_not_equal()
     }
 }
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// The MCS Set supported by the transmitter.
 ///

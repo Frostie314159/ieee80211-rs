@@ -9,6 +9,7 @@ use crate::elements::{Element, ElementID};
 
 use super::{EncodedRate, RatesReadIterator};
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Default, Hash)]
 /// An element containing rates supported by the peer.
 ///

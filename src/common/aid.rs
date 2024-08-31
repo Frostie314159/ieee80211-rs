@@ -50,6 +50,12 @@ impl Debug for AssociationID {
         f.write_fmt(format_args!("{}", self.aid()))
     }
 }
+#[cfg(feature = "defmt")]
+impl defmt::Format for AssociationID {
+    fn format(&self, fmt: defmt::Formatter) {
+        defmt::write!(fmt, "{}", self.aid())
+    }
+}
 #[macro_export]
 /// Generate a new [AssociationID], while performing all checks at compile-time.
 ///

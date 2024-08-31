@@ -1,6 +1,6 @@
 //! This module contains support for the RSN element.
 
-use core::marker::PhantomData;
+use core::{fmt::Display, marker::PhantomData};
 
 use bitfield_struct::bitfield;
 use scroll::{
@@ -117,6 +117,7 @@ macro_rules! cipher_suite_selectors {
     };
 }
 cipher_suite_selectors! {
+    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
     /// The cipher suites.
     pub enum IEEE80211CipherSuiteSelector {
@@ -137,6 +138,7 @@ cipher_suite_selectors! {
     }
 }
 cipher_suite_selectors! {
+    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
     /// The authentication and key-management type.
     pub enum IEEE80211AKMType {
@@ -169,7 +171,7 @@ cipher_suite_selectors! {
     }
 }
 
-#[bitfield(u16)]
+#[bitfield(u16, defmt = cfg(feature = "defmt"))]
 #[derive(PartialEq, Eq, Hash)]
 /// The specific capabilities of the transmitting STA.
 pub struct RSNCapabilities {
@@ -216,7 +218,17 @@ impl RSNCapabilities {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// This is a temporary fix until <https://github.com/m4b/scroll/pull/99> and <https://github.com/m4b/scroll/pull/100> get merged.
 pub struct IEEE80211PMKID(pub [u8; 16]);
-
+impl Display for IEEE80211PMKID {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_fmt(format_args!("{:16x}", u128::from_be_bytes(self.0)))
+    }
+}
+#[cfg(feature = "defmt")]
+impl defmt::Format for IEEE80211PMKID {
+    fn format(&self, fmt: defmt::Formatter) {
+        defmt::write!(fmt, "{=u128:x}", u128::from_be_bytes(self.0))
+    }
+}
 impl<'a> TryFromCtx<'a> for IEEE80211PMKID {
     type Error = scroll::Error;
     #[inline]
@@ -239,6 +251,7 @@ impl SizeWith for IEEE80211PMKID {
     }
 }
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Hash)]
 /// The RSN element contains information about the security characteristics of a BSS.
 ///

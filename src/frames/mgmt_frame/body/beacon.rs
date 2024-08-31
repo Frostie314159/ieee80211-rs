@@ -1,4 +1,4 @@
-use core::{marker::PhantomData, time::Duration};
+use core::{fmt::Debug, marker::PhantomData, time::Duration};
 
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
@@ -18,9 +18,15 @@ pub struct ProbeResponseSubtype;
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 /// This is a generic body of a beacon like frame. This includes beacons and probe responses.
 pub struct BeaconLikeFrameBody<'a, Subtype, ElementContainer = ReadElements<'a>> {
+    /// The amount of µs since the BSS was started.
+    /// Use [Self::timestamp_as_duration] to get a [Duration].
     pub timestamp: u64,
+    /// The time that passes, between two consecutive beacons in [TU]s.
+    /// This is almost always set to `100 TUs`, which is 102.4 ms.
     pub beacon_interval: u16,
+    /// The capabilities of the BSS.
     pub capabilities_info: CapabilitiesInformation,
+    /// These are the tagged parameters in the frame body.
     pub elements: ElementContainer,
     pub _phantom: PhantomData<(&'a (), Subtype)>,
 }
@@ -32,17 +38,42 @@ impl<'a, Subtype> BeaconLikeFrameBody<'a, Subtype> {
         2 + // Capabilities information
         self.elements.bytes.len()
     }
-}
-impl<'a, Subtype> BeaconLikeFrameBody<'a, Subtype> {
-    pub const fn beacon_interval_as_duration(&self) -> Duration {
-        Duration::from_micros(self.beacon_interval as u64 * TU.as_micros() as u64)
-    }
     /// Extract the SSID from the elements.
     pub fn ssid(&self) -> Option<&'a str> {
         // SSID should be the first TLV.
         self.elements
             .get_first_element::<SSIDElement>()
             .map(SSIDElement::take_ssid)
+    }
+}
+impl<Subtype, ElementContainer> BeaconLikeFrameBody<'_, Subtype, ElementContainer> {
+    /// Returns the [Self::beacon_interval] as a [Duration],
+    pub const fn beacon_interval_as_duration(&self) -> Duration {
+        Duration::from_micros(self.beacon_interval as u64 * TU.as_micros() as u64)
+    }
+    /// Returns the [Self::timestamp] as a [Duration].
+    pub const fn timestamp_as_duration(&self) -> Duration {
+        Duration::from_micros(self.timestamp)
+    }
+}
+#[cfg(feature = "defmt")]
+impl<Subtype, ElementContainer: defmt::Format> defmt::Format
+    for BeaconLikeFrameBody<'_, Subtype, ElementContainer>
+{
+    fn format(&self, fmt: defmt::Formatter) {
+        defmt::write!(
+            fmt,
+            "BeaconLikeFrameBody {{ 
+                timestamp: {=u64:us}, 
+                beacon_interval: {=u32:us}, 
+                capabilities_info: {}, 
+                elements: {}
+            }}",
+            self.timestamp,
+            (self.beacon_interval as u32 * TU.as_micros() as u32),
+            self.capabilities_info,
+            self.elements
+        )
     }
 }
 /* impl<LhsElements, RhsElements, Subtype> PartialEq<BeaconLikeFrameBody<RhsElements, Subtype>>

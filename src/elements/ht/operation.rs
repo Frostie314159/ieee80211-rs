@@ -10,6 +10,7 @@ use crate::elements::{Element, ElementID};
 use super::SupportedMCSSet;
 
 serializable_enum! {
+    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
     /// The offset of the secondary channel from the primary.
     ///
@@ -33,6 +34,7 @@ serializable_enum! {
 }
 
 serializable_enum! {
+    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
     pub enum HTProtectionMode: u8 {
         #[default]
@@ -47,7 +49,7 @@ serializable_enum! {
     }
 }
 
-#[bitfield(u64)]
+#[bitfield(u64, defmt = cfg(feature = "defmt"))]
 #[derive(PartialEq, Eq, Hash)]
 /// Information about the operation of an HT-STA.
 pub struct HTOperationInformation {
@@ -84,6 +86,7 @@ pub struct HTOperationInformation {
     __: u64,
 }
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// The operation of HT STAs in the BSS is controlled by the HT Operation element.
 pub struct HTOperationElement {

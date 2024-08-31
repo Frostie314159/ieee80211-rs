@@ -7,11 +7,13 @@ use scroll::{
 
 use crate::{common::IEEE80211Reason, elements::ReadElements};
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// A frame sent to disassociate from a BSS.
 pub struct DisassociationBody<'a, ElementContainer = ReadElements<'a>> {
     /// The reason for the disassociation.
     pub reason: IEEE80211Reason,
+    /// These are the tagged parameters of the frame body.
     pub elements: ElementContainer,
     pub _phantom: PhantomData<&'a ()>,
 }

@@ -7,11 +7,13 @@ use scroll::{
 
 use crate::{common::IEEE80211Reason, elements::ReadElements};
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// This is the body of a deauthentication frame.
 pub struct DeauthenticationBody<'a, ElementContainer = ReadElements<'a>> {
     /// The reason for the deauthentication.
     pub reason: IEEE80211Reason,
+    /// These are the tagged parameters of the frame body.
     pub elements: ElementContainer,
     pub _phantom: PhantomData<&'a ()>,
 }

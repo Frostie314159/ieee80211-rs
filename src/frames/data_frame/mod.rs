@@ -19,6 +19,7 @@ pub mod builder;
 /// This contains the header.
 pub mod header;
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 /// This is the payload of a data frame.
 /// The payload can be either one chunk or multiple aggregate MSDU subframes.
@@ -63,6 +64,7 @@ impl TryIntoCtx for DataFrameReadPayload<'_> {
     }
 }
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// This is a data frame. The individual subtypes don't have there own seperate structs, since the only difference is the header.
 pub struct DataFrame<'a, DataFramePayload = DataFrameReadPayload<'a>> {

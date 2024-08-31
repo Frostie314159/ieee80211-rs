@@ -5,6 +5,7 @@ use scroll::{
 
 use super::{Element, ElementID};
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// The DSSS Parameter Set element contains information to allow channel number identification for STAs.
 pub struct DSSSParameterSetElement {

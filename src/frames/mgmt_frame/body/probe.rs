@@ -9,9 +9,11 @@ use crate::elements::{ReadElements, SSIDElement};
 
 use super::{beacon::ProbeResponseSubtype, BeaconLikeFrameBody};
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 /// The body of a probe request.
 pub struct ProbeRequestBody<'a, ElementContainer = ReadElements<'a>> {
+    /// These are the tagged parameters of the frame body.
     pub elements: ElementContainer,
     pub _phantom: PhantomData<&'a ()>,
 }

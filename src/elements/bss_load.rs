@@ -5,6 +5,7 @@ use scroll::{
 
 use super::{Element, ElementID};
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 /// The BSS Load element contains information on the current STA population and traffic levels in the BSS.
 pub struct BSSLoadElement {

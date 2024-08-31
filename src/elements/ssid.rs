@@ -1,4 +1,4 @@
-use core::marker::PhantomData;
+use core::{fmt::Display, marker::PhantomData};
 
 use scroll::{
     ctx::{MeasureWith, StrCtx, TryFromCtx, TryIntoCtx},
@@ -81,9 +81,24 @@ impl<SSID: AsRef<str>> SSIDElement<'_, SSID> {
         self.ssid().len()
     }
 }
-impl<SSID: AsRef<str>> MeasureWith<()> for SSIDElement<'_, SSID> {
-    fn measure_with(&self, _ctx: &()) -> usize {
-        self.length_in_bytes()
+impl<SSID: AsRef<str>> Element for SSIDElement<'_, SSID> {
+    const ELEMENT_ID: ElementID = ElementID::Id(0x00);
+    type ReadType<'a> = SSIDElement<'a>;
+}
+impl<SSID: AsRef<str>> AsRef<str> for SSIDElement<'_, SSID> {
+    fn as_ref(&self) -> &str {
+        self.ssid()
+    }
+}
+impl<SSID: AsRef<str>> Display for SSIDElement<'_, SSID> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.ssid.as_ref())
+    }
+}
+#[cfg(feature = "defmt")]
+impl<SSID: AsRef<str>> defmt::Format for SSIDElement<'_, SSID> {
+    fn format(&self, fmt: defmt::Formatter) {
+        self.ssid.as_ref().format(fmt)
     }
 }
 impl<'a> TryFromCtx<'a> for SSIDElement<'a> {
@@ -100,20 +115,16 @@ impl<'a> TryFromCtx<'a> for SSIDElement<'a> {
             .map(|(ssid, len)| (Self::new_unchecked(ssid), len))
     }
 }
+impl<SSID: AsRef<str>> MeasureWith<()> for SSIDElement<'_, SSID> {
+    fn measure_with(&self, _ctx: &()) -> usize {
+        self.length_in_bytes()
+    }
+}
 impl<SSID: AsRef<str>> TryIntoCtx for SSIDElement<'_, SSID> {
     type Error = scroll::Error;
     #[inline]
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         buf.pwrite(self.ssid(), 0)
-    }
-}
-impl<SSID: AsRef<str>> Element for SSIDElement<'_, SSID> {
-    const ELEMENT_ID: ElementID = ElementID::Id(0x00);
-    type ReadType<'a> = SSIDElement<'a>;
-}
-impl<S: AsRef<str>> AsRef<str> for SSIDElement<'_, S> {
-    fn as_ref(&self) -> &str {
-        self.ssid()
     }
 }
 #[macro_export]
