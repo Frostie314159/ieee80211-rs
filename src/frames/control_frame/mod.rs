@@ -174,5 +174,4 @@ impl TryIntoCtx for ControlFrame<'_> {
 }
 impl<'a> IEEE80211Frame for ControlFrame<'a> {
     const TYPE: FrameType = FrameType::Control(ControlFrameSubtype::RTS);
-    const MATCH_ONLY_TYPE: bool = true;
 }

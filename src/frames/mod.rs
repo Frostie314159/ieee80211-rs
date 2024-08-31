@@ -6,9 +6,11 @@ pub mod control_frame;
 pub mod data_frame;
 pub mod mgmt_frame;
 
+/// A trait implemented by all frames in this crate.
+/// 
+/// It is used for providing information about a frame.
 pub trait IEEE80211Frame {
     const TYPE: FrameType;
-    const MATCH_ONLY_TYPE: bool;
 }
 #[macro_export]
 /// This macro allows matching a strongly typed frame from a byte slice.

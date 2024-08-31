@@ -152,5 +152,4 @@ impl<Payload: TryIntoCtx<Error = scroll::Error>> TryIntoCtx<bool> for DataFrame<
 }
 impl<'a, Payload> IEEE80211Frame for DataFrame<'a, Payload> {
     const TYPE: FrameType = FrameType::Data(DataFrameSubtype::Data);
-    const MATCH_ONLY_TYPE: bool = true;
 }
