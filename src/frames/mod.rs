@@ -4,7 +4,6 @@ use crate::common::FrameType;
 pub mod control_frame;
 /// This module contains structs around data frames.
 pub mod data_frame;
-/// This module contains the data frames.
 pub mod mgmt_frame;
 
 pub trait IEEE80211Frame {

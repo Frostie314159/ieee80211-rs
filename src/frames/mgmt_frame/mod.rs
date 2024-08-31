@@ -1,3 +1,24 @@
+//! This module implements support management frames.
+//!
+//! ## What are management frames?
+//! Within IEEE 802.11 managment frames are a type of MPDU, that are - as the name suggests - used for the management of the link between two STAs.
+//! This includes association, authentication, BSS presence announcement through beacons and much more.
+//! Unlike control and data frames, all management frames have the same fixed header format, which is followed by a body determined by the subtype.
+//! Almost all of these bodies contain some fixed values followed by a series of so called elements, which are Type-Length-Value encoded fields, allowing for backwards compatible extension.
+//!
+//! ## How does this implementation work?
+//! Implementing management frames cleanly is an architectural challenge, since the bodies have different lengths.
+//! An approach we used previously, was to have an enum of all possible frame types, which came with horrific looking code and having to add more and more generic parameters.
+//! The current (and hopefully final) approach is, that we have a [struct](ManagementFrame), which contains the header and is generic over the body.
+//! It implements checking and attaching the fcs along with some other handy features, like conversion to a [DynamicManagementFrame].
+//! Types like [BeaconFrame] are just type aliases, for a [ManagementFrame] with a specific body.
+//! For documentation on the specific bodies, see the docs in [body].
+//!
+//! ## Usage
+//! Like all other frames, management frames can be matched using [match_frames](crate::match_frames).
+//! Direct RW through [Pread] and [Pwrite] is also available.
+//! For the specific usage of elements, see the docs in [elements](crate::elements).
+
 use core::ops::{Deref, DerefMut};
 
 use body::{
@@ -138,6 +159,7 @@ pub type ActionFrame<'a, VendorSpecificPayload = &'a [u8]> =
 ///
 /// This frame allows writing a frame, with a fixed header and set of elements, and dynamically adding [Elements](Element) to it.
 /// One potential use case for this is, generating a [BeaconFrame] and optionally for example a channel switch announcement element.
+/// For an example see `examples/dynamic_mgmt_frame.rs`.
 pub struct DynamicManagementFrame<'a> {
     buffer: &'a mut [u8],
     offset: usize,
