@@ -135,15 +135,18 @@ impl<'a> DataFrameBuilderInner<'a, (), (), (), (), (), (), ()> {
     ) -> DataFrameBuilderInner<'a, NeitherToNorFromDS, (), (), (), (), (), ()> {
         self.change_type_state()
     }
-    pub const fn to_ds(self) -> DataFrameBuilderInner<'a, ToDS, (), (), (), (), (), ()> {
+    pub const fn to_ds(mut self) -> DataFrameBuilderInner<'a, ToDS, (), (), (), (), (), ()> {
+        self.fcf_flags = self.fcf_flags.with_to_ds(true);
         self.change_type_state()
     }
-    pub const fn from_ds(self) -> DataFrameBuilderInner<'a, FromDS, (), (), (), (), (), ()> {
+    pub const fn from_ds(mut self) -> DataFrameBuilderInner<'a, FromDS, (), (), (), (), (), ()> {
+        self.fcf_flags = self.fcf_flags.with_from_ds(true);
         self.change_type_state()
     }
     pub const fn to_and_from_ds(
-        self,
+        mut self,
     ) -> DataFrameBuilderInner<'a, ToAndFromDS, (), (), (), (), (), ()> {
+        self.fcf_flags = self.fcf_flags.with_to_ds(true).with_from_ds(true);
         self.change_type_state()
     }
 }
@@ -464,16 +467,8 @@ impl<
     pub const fn source_address(
         self,
         source_address: MACAddress,
-    ) -> DataFrameBuilderInner<
-        'a,
-        ToDS,
-        Category,
-        PayloadType,
-        Address1,
-        MACAddress,
-        Address3,
-        (),
-    > {
+    ) -> DataFrameBuilderInner<'a, ToDS, Category, PayloadType, Address1, MACAddress, Address3, ()>
+    {
         DataFrameBuilderInner {
             address_1: self.address_1,
             address_2: source_address,
