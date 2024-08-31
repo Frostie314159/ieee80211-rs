@@ -17,7 +17,7 @@ pub trait IEEE80211Frame {
 /// 
 /// # Note
 /// When using control flow operators inside this macro, you'll have to rely on named blocks, due to the internal implementation.
-/// If anyone knows a better way of doing this efficiently, please let me know.
+/// If anyone knows a better way of doing this efficiently and without named blocks, please let me know.
 macro_rules! match_frames {
     (
         $bytes:expr,
