@@ -130,8 +130,8 @@ impl<'a> AMSDUPayload<&'a [AMSDUSubframe<&'a [u8]>]> {
         size
     }
 }
-impl<'a, Frames: IntoIterator<Item = &'a Payload> + Clone, Payload: MeasureWith<()> + 'a>
-    MeasureWith<()> for AMSDUPayload<Frames>
+impl<Frames: IntoIterator<Item = Payload> + Clone, Payload: MeasureWith<()>> MeasureWith<()>
+    for AMSDUPayload<Frames>
 {
     fn measure_with(&self, _ctx: &()) -> usize {
         self.sub_frames
@@ -141,17 +141,14 @@ impl<'a, Frames: IntoIterator<Item = &'a Payload> + Clone, Payload: MeasureWith<
             .sum()
     }
 }
-impl<
-        'a,
-        Frames: IntoIterator<Item = &'a Payload>,
-        Payload: Copy + TryIntoCtx<Error = scroll::Error> + 'a,
-    > TryIntoCtx for AMSDUPayload<Frames>
+impl<Frames: IntoIterator<Item = Payload>, Payload: Copy + TryIntoCtx<Error = scroll::Error>>
+    TryIntoCtx for AMSDUPayload<Frames>
 {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         let mut offset = 0;
         for sub_frame in self.sub_frames.into_iter() {
-            buf.gwrite(*sub_frame, &mut offset)?;
+            buf.gwrite(sub_frame, &mut offset)?;
         }
         Ok(offset)
     }

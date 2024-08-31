@@ -42,9 +42,7 @@ impl<Body: ManagementFrameBody> IEEE80211Frame for ManagementFrame<Body> {
 }
 impl<Body: MeasureWith<()>> MeasureWith<bool> for ManagementFrame<Body> {
     fn measure_with(&self, with_fcs: &bool) -> usize {
-        2 + self.header.length_in_bytes()
-            + self.body.measure_with(&())
-            + if *with_fcs { 4 } else { 0 }
+        self.header.length_in_bytes() + self.body.measure_with(&()) + if *with_fcs { 4 } else { 0 }
     }
 }
 impl<'a, Ctx: Copy, Body: TryFromCtx<'a, Ctx, Error = scroll::Error>> TryFromCtx<'a, (bool, Ctx)>

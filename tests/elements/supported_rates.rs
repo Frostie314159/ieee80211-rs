@@ -3,7 +3,7 @@ use ieee80211::{
     extended_supported_rates, rate, supported_rates,
 };
 
-use crate::gen_element_rw_test;
+use crate::roundtrip_test;
 
 const EXPECTED_RATE: EncodedRate = rate!(1.5 B);
 const EXPECTED_ENCODED_RATE: u8 = 0x83;
@@ -58,13 +58,13 @@ fn test_supported_rates_misc() {
         "Creating an extended supported rates element, with invalid rates, succeeded."
     );
 }
-gen_element_rw_test!(
+roundtrip_test!(
     test_supported_rates_rw,
     SupportedRatesElement,
     EXPECTED_SUPPORTED_RATES,
     EXPECTED_SUPPORTED_RATES_BYTES
 );
-gen_element_rw_test!(
+roundtrip_test!(
     test_extended_supported_rates_rw,
     ExtendedSupportedRatesElement,
     EXPECTED_EXTENDED_SUPPORTED_RATES,

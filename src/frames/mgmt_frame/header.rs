@@ -12,15 +12,19 @@ pub struct ManagementFrameHeader {
     /// The flags from the [FrameControlField](crate::common::FrameControlField).
     pub fcf_flags: FCFFlags,
     pub duration: u16,
+    /// The address of the receiving STA.
     pub receiver_address: MACAddress,
+    /// The address of the transmitting STA.
     pub transmitter_address: MACAddress,
+    /// The BSSID is the address of the BSS.
+    /// In an infrastructure network, the address of the AP is equal to the BSSID.
     pub bssid: MACAddress,
     pub sequence_control: SequenceControl,
     pub ht_control: Option<[u8; 4]>,
 }
 impl ManagementFrameHeader {
     pub const fn length_in_bytes(&self) -> usize {
-        let mut size = 2 + 6 + 6 + 6 + 2;
+        let mut size = 2 + 2 + 6 + 6 + 6 + 2;
         if self.ht_control.is_some() {
             size += 4;
         }

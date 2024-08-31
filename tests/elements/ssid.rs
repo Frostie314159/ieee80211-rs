@@ -1,6 +1,6 @@
 use ieee80211::{elements::SSIDElement, ssid};
 
-use crate::gen_element_rw_test;
+use crate::roundtrip_test;
 
 // We can't test the [ssid] macro, since rust doesn't support expected build failures.
 // This isn't doesn't really matter, since it's short enough to audit by hand.
@@ -12,7 +12,7 @@ const WILDCARD_SSID_ELEMENT: SSIDElement<&str> = ssid!("");
 // One byte too long.
 const INVALID_SSID_STRING: &str = "Lorem ipsum dolor sit amet augue.";
 
-gen_element_rw_test!(
+roundtrip_test!(
     test_ssid_element_rw,
     SSIDElement,
     EXPECTED_SSID_ELEMENT,

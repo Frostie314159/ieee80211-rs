@@ -13,13 +13,10 @@ use crate::common::*;
 /// The address fields are unnamed, since their meaning is context dependent.
 /// To access them use the provided methods.
 pub struct DataFrameHeader {
-    // Shared across all headers.
     /// Subtype of the frame.
     pub subtype: DataFrameSubtype,
     /// Flags as specified in the [Frame Control Field](crate::common::FrameControlField).
     pub fcf_flags: FCFFlags,
-
-    // Actual header from here.
     pub duration: u16,
     /// First address.
     pub address_1: MACAddress,
@@ -45,7 +42,8 @@ impl DataFrameHeader {
     ///
     /// This can be used in const contexts.
     pub const fn length_in_bytes(&self) -> usize {
-        let mut size = 2 + 6 + 6 + 6 + 2;
+        // The size of the FCF is added here.
+        let mut size = 2 + 2 + 6 + 6 + 6 + 2;
         if self.address_4.is_some() {
             size += 6;
         }

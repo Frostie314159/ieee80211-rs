@@ -4,7 +4,7 @@ use ieee80211::elements::rsn::{
     IEEE80211AKMType, IEEE80211CipherSuiteSelector, RSNCapabilities, RSNElement, IEEE80211PMKID,
 };
 
-use crate::gen_element_rw_test;
+use crate::roundtrip_test;
 
 const EXPECTED_RSN_ELEMENT: RSNElement<
     [IEEE80211CipherSuiteSelector; 1],
@@ -21,7 +21,7 @@ const EXPECTED_RSN_ELEMENT: RSNElement<
 };
 const EXPECTED_RSN_ELEMENT_BYTES: &[u8] = include_bytes!("../../bins/elements/rsn.bin");
 
-gen_element_rw_test!(
+roundtrip_test!(
     test_rsn_element_rw,
     RSNElement,
     EXPECTED_RSN_ELEMENT,

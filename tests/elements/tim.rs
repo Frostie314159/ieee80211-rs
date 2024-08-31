@@ -6,7 +6,7 @@ use ieee80211::{
     tim_bitmap,
 };
 
-use crate::gen_element_rw_test;
+use crate::roundtrip_test;
 
 const EXPECTED_TIM_ELEMENT: TIMElement<ConstBitmap> = TIMElement {
     dtim_count: 2,
@@ -16,7 +16,7 @@ const EXPECTED_TIM_ELEMENT: TIMElement<ConstBitmap> = TIMElement {
 };
 const EXPECTED_TIM_ELEMENT_BYTES: &[u8] = &[0x02, 0x03, 0x01, 0x01, 0x30];
 
-gen_element_rw_test!(
+roundtrip_test!(
     test_tim_element_rw,
     TIMElement,
     EXPECTED_TIM_ELEMENT,

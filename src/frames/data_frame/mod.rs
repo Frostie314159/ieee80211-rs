@@ -85,14 +85,15 @@ impl DataFrame<'_> {
             }
     }
 }
-impl<DataFramePayload: MeasureWith<()>> MeasureWith<()> for DataFrame<'_, DataFramePayload> {
-    fn measure_with(&self, ctx: &()) -> usize {
+impl<DataFramePayload: MeasureWith<()>> MeasureWith<bool> for DataFrame<'_, DataFramePayload> {
+    fn measure_with(&self, with_fcs: &bool) -> usize {
         self.header.length_in_bytes()
             + if let Some(payload) = self.payload.as_ref() {
-                payload.measure_with(ctx)
+                payload.measure_with(&())
             } else {
                 0
             }
+            + if *with_fcs { 4 } else { 0 }
     }
 }
 impl<'a> TryFromCtx<'a, bool> for DataFrame<'a, DataFrameReadPayload<'a>> {
@@ -124,9 +125,9 @@ impl<'a> TryFromCtx<'a, bool> for DataFrame<'a, DataFrameReadPayload<'a>> {
         ))
     }
 }
-impl<Payload: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for DataFrame<'_, Payload> {
+impl<Payload: TryIntoCtx<Error = scroll::Error>> TryIntoCtx<bool> for DataFrame<'_, Payload> {
     type Error = scroll::Error;
-    fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
+    fn try_into_ctx(self, buf: &mut [u8], with_fcs: bool) -> Result<usize, Self::Error> {
         let mut offset = 0;
 
         buf.gwrite_with(
@@ -141,36 +142,13 @@ impl<Payload: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for DataFrame<'_, Pa
         if let Some(payload) = self.payload {
             buf.gwrite(payload, &mut offset)?;
         }
-        attach_fcs(buf, &mut offset)?;
+        if with_fcs {
+            attach_fcs(buf, &mut offset)?;
+        }
         Ok(offset)
     }
 }
 impl<'a, Payload> IEEE80211Frame for DataFrame<'a, Payload> {
     const TYPE: FrameType = FrameType::Data(DataFrameSubtype::Data);
     const MATCH_ONLY_TYPE: bool = true;
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    extern crate std;
-
-    #[test]
-    fn test_data_frame_roundtrip() {
-        let buffer = [
-            0x48u8, 0x03, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xE8, 0x65, 0xD4, 0xCB,
-            0x74, 0x19, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x60, 0x94, 0xE8, 0x65, 0xD4, 0xCB,
-            0x74, 0x1C, 0x26, 0xB9, 0x0D, 0x02, 0x7D, 0x13, 0x00, 0x00, 0x01, 0xE8, 0x65, 0xD4,
-            0xCB, 0x74, 0x1C, 0x00, 0x00, 0x26, 0xB9, 0x00, 0x00, 0x00, 0x00,
-        ];
-
-        let frame = buffer.pread::<DataFrame>(0).unwrap();
-
-        let mut buf_to = [0u8; 100];
-
-        buf_to.pwrite(frame, 0).unwrap();
-
-        std::println!("{:?}", buf_to);
-    }
 }
