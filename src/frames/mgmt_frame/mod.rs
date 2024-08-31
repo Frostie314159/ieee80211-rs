@@ -16,10 +16,9 @@ use crate::{
     IEEE80211Frame,
 };
 
-use self::header::ManagementFrameHeader;
-
 pub mod body;
-pub mod header;
+mod header;
+pub use header::ManagementFrameHeader;
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]

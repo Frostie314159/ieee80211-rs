@@ -4,9 +4,7 @@ use ieee80211::{
     common::CapabilitiesInformation,
     element_chain,
     elements::{rsn::RSNElement, DSSSParameterSetElement},
-    mgmt_frame::{
-        body::BeaconBody, header::ManagementFrameHeader, BeaconFrame, DynamicManagementFrame,
-    },
+    mgmt_frame::{body::BeaconBody, BeaconFrame, DynamicManagementFrame, ManagementFrameHeader},
     ssid, supported_rates,
 };
 use mac_parser::{MACAddress, BROADCAST};

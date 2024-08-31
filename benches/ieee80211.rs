@@ -5,7 +5,7 @@ use ieee80211::{
         rsn::RSNElement,
         ElementID, ReadElements,
     },
-    mgmt_frame::{body::BeaconBody, header::ManagementFrameHeader, ActionFrame, BeaconFrame},
+    mgmt_frame::{body::BeaconBody, ActionFrame, BeaconFrame, ManagementFrameHeader},
     ssid, supported_rates,
 };
 use scroll::{Pread, Pwrite};
