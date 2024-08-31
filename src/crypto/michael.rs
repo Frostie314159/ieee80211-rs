@@ -1,6 +1,7 @@
 fn xswap(l: u32) -> u32 {
     ((l & 0xff00ff00) >> 8) | ((l & 0x00ff00ff) << 8)
 }
+/// Compute the michael block function.
 pub fn michael_block_function(l: u32, r: u32) -> (u32, u32) {
     let mut r = r ^ l.rotate_left(17);
     let mut l = l.wrapping_add(r);
