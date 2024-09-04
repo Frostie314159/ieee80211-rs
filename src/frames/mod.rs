@@ -7,20 +7,21 @@ pub mod data_frame;
 pub mod mgmt_frame;
 
 /// A trait implemented by all frames in this crate.
-/// 
+///
 /// It is used for providing information about a frame.
 pub trait IEEE80211Frame {
     const TYPE: FrameType;
 }
 #[macro_export]
 /// This macro allows matching a strongly typed frame from a byte slice.
-/// 
+///
 /// # Note
 /// When using control flow operators inside this macro, you'll have to rely on named blocks, due to the internal implementation.
 /// If anyone knows a better way of doing this efficiently and without named blocks, please let me know.
 macro_rules! match_frames {
     (
         $bytes:expr,
+        $(with_fcs: $ctx:expr,)?
         $(
             $binding:pat = $frame_type:ty => $block:block
         )*
@@ -29,6 +30,17 @@ macro_rules! match_frames {
             use ieee80211::scroll::Pread;
             use ieee80211::{common::{FrameControlField, FrameType}, IEEE80211Frame};
             use core::mem::discriminant;
+
+            const WITH_FCS: bool = {
+                let mut with_fcs = false;
+
+                $(
+                    let _ = $ctx;
+                    with_fcs = true;
+                )?
+
+                with_fcs
+            };
 
             let fcf = $bytes.pread(0).map(FrameControlField::from_bits);
             if let Ok(fcf) = fcf {
@@ -43,7 +55,7 @@ macro_rules! match_frames {
                                     break 'matched_inner;
                                 }
                             }
-                            break 'matched match $bytes.pread::<$frame_type>(0) {
+                            break 'matched match $bytes.pread_with::<$frame_type>(0, WITH_FCS) {
                                 Ok($binding) => Ok($block),
                                 Err(err) => Err(err)
                             };

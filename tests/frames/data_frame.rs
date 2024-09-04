@@ -23,7 +23,7 @@ fn test_data_frame_rw() {
     let read = EXPECTED_BYTES.pread_with::<DataFrame>(0, false).unwrap();
     assert_eq!(read.header, EXPECTED_DATA_FRAME.header);
     let Some(DataFrameReadPayload::Single(payload)) = read.payload else {
-        unreachable!()
+        panic!("Data frame payload wasn't single.");
     };
     assert_eq!(payload, EXPECTED_DATA_FRAME.payload.unwrap());
 

@@ -65,14 +65,11 @@ impl<Body: MeasureWith<()>> MeasureWith<bool> for ManagementFrame<Body> {
         self.header.length_in_bytes() + self.body.measure_with(&()) + if *with_fcs { 4 } else { 0 }
     }
 }
-impl<'a, Ctx: Copy, Body: TryFromCtx<'a, Ctx, Error = scroll::Error>> TryFromCtx<'a, (bool, Ctx)>
+impl<'a, Body: TryFromCtx<'a, (), Error = scroll::Error>> TryFromCtx<'a, bool>
     for ManagementFrame<Body>
 {
     type Error = scroll::Error;
-    fn try_from_ctx(
-        from: &'a [u8],
-        (with_fcs, body_ctx): (bool, Ctx),
-    ) -> Result<(Self, usize), Self::Error> {
+    fn try_from_ctx(from: &'a [u8], with_fcs: bool) -> Result<(Self, usize), Self::Error> {
         // We don't care about the FCF, since the information is already encoded in the type.
         let mut offset = 1;
 
@@ -83,7 +80,7 @@ impl<'a, Ctx: Copy, Body: TryFromCtx<'a, Ctx, Error = scroll::Error>> TryFromCtx
         };
         let fcf_flags = FCFFlags::from_bits(from.gread(&mut offset)?);
         let header = from.gread_with(&mut offset, fcf_flags)?;
-        let body = from.gread_with(&mut offset, body_ctx)?;
+        let body = from.gread(&mut offset)?;
 
         Ok((Self { header, body }, offset))
     }
