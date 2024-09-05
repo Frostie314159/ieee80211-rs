@@ -23,6 +23,8 @@ mod auth_algo_num;
 pub use auth_algo_num::*;
 mod aid;
 pub use aid::*;
+mod sig;
+pub use sig::*;
 
 /// This is one **T**ime **U**nit, which equalls 1024µs.
 pub const TU: Duration = Duration::from_micros(1024);
