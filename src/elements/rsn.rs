@@ -12,7 +12,7 @@ use crate::common::{ReadIterator, IEEE_OUI};
 
 use super::{Element, ElementID};
 
-const fn merge_oui_and_suite_type(oui: [u8; 3], suite_type: u8) -> [u8; 4] {
+const fn merge_oui_and_suite_type(oui: [u8; 3], suite_type: u8) -> u32 {
     let mut cipher_suite_selector = [0x00u8; 4];
 
     // We can't use copy_from_slice here, since it's not const, due to the mutable reference.
@@ -21,9 +21,10 @@ const fn merge_oui_and_suite_type(oui: [u8; 3], suite_type: u8) -> [u8; 4] {
     cipher_suite_selector[2] = oui[2];
     cipher_suite_selector[3] = suite_type;
 
-    cipher_suite_selector
+    u32::from_le_bytes(cipher_suite_selector)
 }
-const fn split_cipher_suite_selector(cipher_suite_selector: [u8; 4]) -> ([u8; 3], u8) {
+const fn split_cipher_suite_selector(cipher_suite_selector: u32) -> ([u8; 3], u8) {
+    let cipher_suite_selector = cipher_suite_selector.to_le_bytes();
     let mut oui = [0x00u8; 3];
     oui[0] = cipher_suite_selector[0];
     oui[1] = cipher_suite_selector[1];
@@ -51,7 +52,7 @@ macro_rules! cipher_suite_selectors {
         #[non_exhaustive]
         $enum_vis enum $enum_name {
             Unknown {
-                cipher_suite_selector: [u8; 4]
+                cipher_suite_selector: u32
             },
             $(
                 $(
@@ -63,7 +64,7 @@ macro_rules! cipher_suite_selectors {
         impl $enum_name {
 
             #[inline]
-            pub const fn with_cipher_suite_selector(cipher_suite_selector: [u8; 4]) -> Self {
+            pub const fn with_cipher_suite_selector(cipher_suite_selector: u32) -> Self {
                 match split_cipher_suite_selector(cipher_suite_selector) {
                     $(
                         ($oui, $cipher_suite_type) => Self::$cipher_suite_name,
@@ -74,7 +75,7 @@ macro_rules! cipher_suite_selectors {
                 }
             }
             #[inline]
-            pub const fn cipher_suite_selector(&self) -> [u8; 4] {
+            pub const fn cipher_suite_selector(&self) -> u32 {
                 match *self {
                     $(
                         Self::$cipher_suite_name => merge_oui_and_suite_type($oui, $cipher_suite_type),
@@ -109,7 +110,7 @@ macro_rules! cipher_suite_selectors {
             fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
                 let mut offset = 0;
 
-                buf.gwrite(self.cipher_suite_selector().as_slice(), &mut offset)?;
+                buf.gwrite_with(self.cipher_suite_selector(), &mut offset, Endian::Little)?;
 
                 Ok(offset)
             }
@@ -646,21 +647,20 @@ impl<
 }
 macro_rules! write_list {
     ($buf:expr, $offset:expr, $list:expr) => {
-        let offset_at_length_field = $offset;
         $offset += 2;
-        let mut item_count = 0;
-        for item in $list {
-            $buf.gwrite(item, &mut $offset)?;
-            item_count += 1;
-        }
-        $buf.pwrite_with(item_count as u16, offset_at_length_field, Endian::Little)?;
+        let list_length = $buf.gwrite($list, &mut $offset)?;
+        $buf.pwrite_with(
+            list_length as u16 / 4,
+            $offset - list_length - 2,
+            Endian::Little,
+        )?;
     };
 }
 // The additional `TryIntoCtx` bounds are present, because doing this using an iterator is horribly inefficent.
 impl<
-        PairwiseCipherSuiteList: IntoIterator<Item = IEEE80211CipherSuiteSelector>,
-        AKMList: IntoIterator<Item = IEEE80211AKMType>,
-        PMKIDList: IntoIterator<Item = IEEE80211PMKID>,
+        PairwiseCipherSuiteList: TryIntoCtx<(), Error = scroll::Error>,
+        AKMList: TryIntoCtx<(), Error = scroll::Error>,
+        PMKIDList: TryIntoCtx<(), Error = scroll::Error>,
     > TryIntoCtx for RSNElement<'_, PairwiseCipherSuiteList, AKMList, PMKIDList>
 where
     Self: MeasureWith<()>,
