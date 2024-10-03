@@ -3,7 +3,7 @@
 use ieee80211::{ssid, supported_rates, tim_bitmap};
 
 fn main() {
-    let _ssid = ssid!("OpenRF");
+    let _ssid = ssid!("Test");
     let _rates = supported_rates![
         1 B,
         1.5 B,
