@@ -25,6 +25,7 @@ impl AssociationID {
 
     /// Creates a new [AssociationID] and performs bounds checks.
     pub const fn new_checked(aid: u16) -> Option<Self> {
+        let aid = aid & (!0xc000); // Mask away the two highest bits.
         if aid >= Self::MIN_AID && aid <= Self::MAX_AID {
             Some(Self::new().with_internal_aid(aid))
         } else {

@@ -1,5 +1,6 @@
 #![deny(unused)]
 
+mod aid;
 #[cfg(feature = "crypto")]
 mod crypto;
 mod elements;
