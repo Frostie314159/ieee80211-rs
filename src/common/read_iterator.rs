@@ -1,6 +1,9 @@
 use core::{fmt::Debug, marker::PhantomData};
 
-use scroll::ctx::{MeasureWith, TryFromCtx};
+use scroll::{
+    ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
+    Pwrite,
+};
 
 #[derive(Clone, Copy, Default, PartialEq, Eq, Hash)]
 /// An iterator recursively parsing data from a byte slice, until there's no more left.
@@ -14,6 +17,17 @@ impl<'a, Ctx, Type> ReadIterator<'a, Ctx, Type> {
             bytes: Some(bytes),
             _phantom: PhantomData,
         }
+    }
+}
+impl<Ctx, Type> TryIntoCtx for ReadIterator<'_, Ctx, Type> {
+    type Error = scroll::Error;
+    fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
+        buf.pwrite(self.bytes.unwrap_or_default(), 0)
+    }
+}
+impl<Ctx, Type> MeasureWith<()> for ReadIterator<'_, Ctx, Type> {
+    fn measure_with(&self, _ctx: &()) -> usize {
+        self.bytes.unwrap_or_default().len()
     }
 }
 impl<'a, Ctx: Default + Copy, Type: TryFromCtx<'a, Ctx, Error = scroll::Error> + Debug + Copy> Debug
