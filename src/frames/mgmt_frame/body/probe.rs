@@ -7,7 +7,7 @@ use scroll::{
 
 use crate::elements::{ReadElements, SSIDElement};
 
-use super::{beacon::ProbeResponseSubtype, BeaconLikeFrameBody};
+use super::{beacon::ProbeResponseSubtype, BeaconLikeBody};
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
@@ -58,4 +58,4 @@ impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
     }
 }
 pub type ProbeResponseBody<'a, ElementContainer = ReadElements<'a>> =
-    BeaconLikeFrameBody<'a, ProbeResponseSubtype, ElementContainer>;
+    BeaconLikeBody<'a, ProbeResponseSubtype, ElementContainer>;

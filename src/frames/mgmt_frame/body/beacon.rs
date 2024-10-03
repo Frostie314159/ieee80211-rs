@@ -17,7 +17,7 @@ pub struct ProbeResponseSubtype;
 
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 /// This is a generic body of a beacon like frame. This includes beacons and probe responses.
-pub struct BeaconLikeFrameBody<'a, Subtype, ElementContainer = ReadElements<'a>> {
+pub struct BeaconLikeBody<'a, Subtype, ElementContainer = ReadElements<'a>> {
     /// The amount of µs since the BSS was started.
     /// Use [Self::timestamp_as_duration] to get a [Duration].
     pub timestamp: u64,
@@ -30,7 +30,7 @@ pub struct BeaconLikeFrameBody<'a, Subtype, ElementContainer = ReadElements<'a>>
     pub elements: ElementContainer,
     pub _phantom: PhantomData<(&'a (), Subtype)>,
 }
-impl<'a, Subtype> BeaconLikeFrameBody<'a, Subtype> {
+impl<'a, Subtype> BeaconLikeBody<'a, Subtype> {
     /// Returns the total length in bytes.
     pub const fn length_in_bytes(&'a self) -> usize {
         8 + // Timestamp
@@ -46,7 +46,7 @@ impl<'a, Subtype> BeaconLikeFrameBody<'a, Subtype> {
             .map(SSIDElement::take_ssid)
     }
 }
-impl<Subtype, ElementContainer> BeaconLikeFrameBody<'_, Subtype, ElementContainer> {
+impl<Subtype, ElementContainer> BeaconLikeBody<'_, Subtype, ElementContainer> {
     /// Returns the [Self::beacon_interval] as a [Duration],
     pub const fn beacon_interval_as_duration(&self) -> Duration {
         Duration::from_micros(self.beacon_interval as u64 * TU.as_micros() as u64)
@@ -58,7 +58,7 @@ impl<Subtype, ElementContainer> BeaconLikeFrameBody<'_, Subtype, ElementContaine
 }
 #[cfg(feature = "defmt")]
 impl<Subtype, ElementContainer: defmt::Format> defmt::Format
-    for BeaconLikeFrameBody<'_, Subtype, ElementContainer>
+    for BeaconLikeBody<'_, Subtype, ElementContainer>
 {
     fn format(&self, fmt: defmt::Formatter) {
         defmt::write!(
@@ -87,13 +87,13 @@ impl<Subtype, ElementContainer: defmt::Format> defmt::Format
     }
 } */
 impl<'a, ElementContainer: MeasureWith<()>, Subtype> MeasureWith<()>
-    for BeaconLikeFrameBody<'a, Subtype, ElementContainer>
+    for BeaconLikeBody<'a, Subtype, ElementContainer>
 {
     fn measure_with(&self, ctx: &()) -> usize {
         12 + self.elements.measure_with(ctx)
     }
 }
-impl<'a, Subtype: 'a> TryFromCtx<'a> for BeaconLikeFrameBody<'a, Subtype> {
+impl<'a, Subtype: 'a> TryFromCtx<'a> for BeaconLikeBody<'a, Subtype> {
     type Error = scroll::Error;
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
@@ -117,7 +117,7 @@ impl<'a, Subtype: 'a> TryFromCtx<'a> for BeaconLikeFrameBody<'a, Subtype> {
     }
 }
 impl<'a, ElementContainer: TryIntoCtx<Error = scroll::Error>, Subtype> TryIntoCtx
-    for BeaconLikeFrameBody<'a, Subtype, ElementContainer>
+    for BeaconLikeBody<'a, Subtype, ElementContainer>
 {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
@@ -138,6 +138,6 @@ impl<'a, ElementContainer: TryIntoCtx<Error = scroll::Error>, Subtype> TryIntoCt
 
 /// The body of a beacon frame.
 ///
-/// This is derived from a [generic type](BeaconLikeFrameBody) over beacon like frames, since Beacons and Probe Responses have exactly the same frame format.
+/// This is derived from a [generic type](BeaconLikeBody) over beacon like frames, since Beacons and Probe Responses have exactly the same frame format.
 pub type BeaconBody<'a, ElementContainer = ReadElements<'a>> =
-    BeaconLikeFrameBody<'a, BeaconSubtype, ElementContainer>;
+    BeaconLikeBody<'a, BeaconSubtype, ElementContainer>;
