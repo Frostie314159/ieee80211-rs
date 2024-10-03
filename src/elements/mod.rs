@@ -1,3 +1,7 @@
+//! This module contains the elements, which are found in the body of some frames.
+//!
+//! If an element only consists of one struct, like the [SSID](SSIDElement), they are re-exported, otherwise they get their own module.
+
 use core::marker::PhantomData;
 
 use scroll::{
