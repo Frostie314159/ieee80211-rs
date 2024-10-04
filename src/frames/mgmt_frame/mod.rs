@@ -22,8 +22,8 @@
 use core::ops::{Deref, DerefMut};
 
 use body::{
-    ActionBody, AssociationRequestBody, AssociationResponseBody, AuthenticationBody, BeaconBody,
-    DeauthenticationBody, DisassociationBody, ManagementFrameBody, ProbeRequestBody,
+    action::RawActionBody, AssociationRequestBody, AssociationResponseBody, AuthenticationBody,
+    BeaconBody, DeauthenticationBody, DisassociationBody, ManagementFrameBody, ProbeRequestBody,
     ProbeResponseBody,
 };
 use scroll::{
@@ -147,8 +147,7 @@ mgmt_frames! {
     AuthenticationFrame => AuthenticationBody,
     DeauthenticationFrame => DeauthenticationBody
 }
-pub type ActionFrame<'a, VendorSpecificPayload = &'a [u8]> =
-    ManagementFrame<ActionBody<'a, VendorSpecificPayload>>;
+pub type RawActionFrame<'a> = ManagementFrame<RawActionBody<'a>>;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 /// A dynamic management frame.

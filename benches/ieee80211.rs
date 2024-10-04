@@ -5,7 +5,7 @@ use ieee80211::{
         rsn::RSNElement,
         ElementID, ReadElements,
     },
-    mgmt_frame::{body::BeaconBody, ActionFrame, BeaconFrame, ManagementFrameHeader},
+    mgmt_frame::{body::BeaconBody, BeaconFrame, ManagementFrameHeader, RawActionFrame},
     ssid, supported_rates,
 };
 use scroll::{Pread, Pwrite};
@@ -34,7 +34,7 @@ macro_rules! gen_frame_benchmark {
 }
 // gen_frame_benchmark!(qos_data);
 gen_frame_benchmark!(beacon, BeaconFrame);
-gen_frame_benchmark!(action_vendor, ActionFrame);
+gen_frame_benchmark!(action_vendor, RawActionFrame);
 pub fn element_chain(criterion: &mut Criterion) {
     let frame = BeaconFrame {
         header: ManagementFrameHeader::default(),

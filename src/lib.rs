@@ -20,8 +20,6 @@ extern crate alloc;
 
 /// This is a collection of commonly used types.
 pub mod common;
-/// This module contains the elements, which are found in the body of some frames.
-/// If an element only consists of one struct, like the [SSID](elements::SSIDElement), they are re-exported, otherwise they get their own module.
 pub mod elements;
 mod frames;
 

@@ -3,7 +3,7 @@
 use ieee80211::{
     data_frame::DataFrame,
     match_frames,
-    mgmt_frame::{BeaconFrame, DeauthenticationFrame},
+    mgmt_frame::{body::action::RawVendorSpecificActionFrame, BeaconFrame, DeauthenticationFrame},
 };
 
 fn main() {
@@ -15,6 +15,8 @@ fn main() {
         }
         _ = DeauthenticationFrame => {}
         _ = DataFrame => {}
+        // You can even match specific action frames.
+        _ = RawVendorSpecificActionFrame => {}
     }
     .unwrap();
 }
