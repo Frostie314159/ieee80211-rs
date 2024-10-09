@@ -73,7 +73,9 @@ impl<Payload: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for VendorSpecificEl
         Ok(offset)
     }
 }
-impl<'a> Element for VendorSpecificElement<'a> {
+impl<'a, Payload: MeasureWith<()> + TryIntoCtx<Error = scroll::Error>> Element
+    for VendorSpecificElement<'a, Payload>
+{
     const ELEMENT_ID: ElementID = ElementID::Id(0xdd);
     type ReadType<'b> = VendorSpecificElement<'b>;
 }
