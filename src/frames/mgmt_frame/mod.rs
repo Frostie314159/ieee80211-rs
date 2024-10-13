@@ -59,6 +59,9 @@ impl<Body: TryIntoCtx<Error = scroll::Error> + ManagementFrameBody> ManagementFr
 }
 impl<Body: ManagementFrameBody> IEEE80211Frame for ManagementFrame<Body> {
     const TYPE: FrameType = FrameType::Management(Body::SUBTYPE);
+    fn read_action_body_matches(action_body: RawActionBody<'_>) -> bool {
+        Body::read_action_body_matches(action_body)
+    }
 }
 impl<Body: MeasureWith<()>> MeasureWith<bool> for ManagementFrame<Body> {
     fn measure_with(&self, with_fcs: &bool) -> usize {

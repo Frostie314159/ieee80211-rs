@@ -1,8 +1,10 @@
 use mac_parser::MACAddress;
-use mgmt_frame::body::action::RawActionBody;
-use scroll::{Endian, Pread};
+use mgmt_frame::{body::action::RawActionBody, RawActionFrame};
+use scroll::{ctx::TryFromCtx, Endian, Pread};
 
-use crate::common::{strip_and_validate_fcs, FrameControlField, FrameType, SequenceControl};
+use crate::common::{
+    strip_and_validate_fcs, FrameControlField, FrameType, ManagementFrameSubtype, SequenceControl,
+};
 
 /// Support for control frames.
 pub mod control_frame;
@@ -24,6 +26,9 @@ pub trait IEEE80211Frame {
         false
     }
 }
+/// A generic IEEE 802.11 frame.
+///
+/// This allows extraction of certain fields, without knowing the actual type.
 pub struct GenericFrame<'a> {
     bytes: &'a [u8],
 }
@@ -104,14 +109,41 @@ impl<'a> GenericFrame<'a> {
             None
         }
     }
+    /// Check if the frame type matches.
+    pub fn matches<Frame: IEEE80211Frame>(&self) -> bool {
+        let fcf = self.frame_control_field();
+        match (fcf.frame_type(), Frame::TYPE) {
+            (FrameType::Control(_), FrameType::Control(_))
+            | (FrameType::Data(_), FrameType::Data(_)) => true,
+            _ if fcf.frame_type() == Frame::TYPE => match Frame::TYPE {
+                FrameType::Management(ManagementFrameSubtype::Action)
+                | FrameType::Management(ManagementFrameSubtype::ActionNoACK) => {
+                    let Ok(raw_action_frame) = self.bytes.pread_with::<RawActionFrame>(0, false)
+                    else {
+                        return false;
+                    };
+                    Frame::read_action_body_matches(raw_action_frame.body)
+                }
+                _ => false,
+            },
+            _ => false,
+        }
+    }
+    /// Parse this generic frame to a typed one.
+    pub fn parse_to_typed<Frame: IEEE80211Frame + TryFromCtx<'a, bool, Error = scroll::Error>>(
+        &self,
+    ) -> Option<Result<Frame, scroll::Error>> {
+        if self.matches::<Frame>() {
+            Some(self.bytes.pread_with(0, false))
+        } else {
+            None
+        }
+    }
 }
 #[macro_export]
 /// This macro allows matching a strongly typed frame from a byte slice.
 ///
 /// # Notes
-/// When using control flow operators inside this macro, you'll have to rely on named blocks, due to the internal implementation.
-/// If anyone knows a better way of doing this efficiently and without named blocks, please let me know.
-///
 /// If you match for action frames in this macro and include a [RawActionFrame](crate::mgmt_frame::RawActionFrame), it will always be matched for an action frame, as long as there are no strongly typed action frames before it.
 macro_rules! match_frames {
     (
@@ -122,10 +154,7 @@ macro_rules! match_frames {
         )+
     ) => {
         {
-            use ieee80211::scroll::Pread;
-            use ieee80211::{common::{FrameControlField, FrameType, ManagementFrameSubtype}, IEEE80211Frame, mgmt_frame::RawActionFrame};
-            use core::mem::discriminant;
-
+            use ieee80211::GenericFrame;
             const WITH_FCS: bool = {
                 let mut with_fcs = false;
 
@@ -136,55 +165,26 @@ macro_rules! match_frames {
 
                 with_fcs
             };
-
-            const ACTION_FRAME_MATCHED: bool = {
-                let mut action_frame_matched = false;
-
-                $(
-                    action_frame_matched |= matches!(
-                        <$frame_type as IEEE80211Frame>::TYPE,
-                        FrameType::Management(ManagementFrameSubtype::Action)
-                    );
-                )*
-
-                action_frame_matched
-            };
-            let fcf = $bytes.pread(0).map(FrameControlField::from_bits);
-            if let Ok(fcf) = fcf {
-
-                'matched: {
-                    let parsed_action_frame =
-                        if ACTION_FRAME_MATCHED && matches!(fcf.frame_type(), FrameType::Management(ManagementFrameSubtype::Action)) {
-                            match $bytes.pread_with::<RawActionFrame>(0, WITH_FCS) {
-                                Ok(action_frame) => Some(action_frame),
-                                Err(err) => break 'matched Err(err)
-                            }
-                        } else {
-                            None
-                        };
+            let generic_frame = GenericFrame::new($bytes, WITH_FCS);
+            assert!(generic_frame.is_ok());
+            match generic_frame {
+                Ok(generic_frame) => {
+                    if false {
+                        unreachable!()
+                    }
                     $(
-                        'matched_inner: {
-                            match (<$frame_type as IEEE80211Frame>::TYPE, fcf.frame_type()) {
-                                (FrameType::Management(lhs), FrameType::Management(rhs)) if lhs == rhs => {}
-                                (FrameType::Control(_), FrameType::Control(_)) => {}
-                                (FrameType::Data(_), FrameType::Data(_)) => {}
-                                _ => {
-                                    break 'matched_inner;
-                                }
-                            }
-                            break 'matched match $bytes.pread_with::<$frame_type>(0, WITH_FCS) {
+                        else if let Some(frame_res) = generic_frame.parse_to_typed::<$frame_type>() {
+                            match frame_res {
                                 Ok($binding) => Ok($block),
                                 Err(err) => Err(err)
-                            };
+                            }
                         }
                     )*
-                    Err(ieee80211::scroll::Error::BadInput {
-                        size: 0,
-                        msg: "Frame type not matched."
-                    })
+                    else {
+                        Err(scroll::Error::BadInput { size: 0, msg: "Frame type not matched." })
+                    }
                 }
-            } else {
-                Err(fcf.unwrap_err())
+                Err(err) => Err(err)
             }
         }
     };

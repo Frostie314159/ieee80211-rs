@@ -1,6 +1,9 @@
 use ieee80211::{
     match_frames,
-    mgmt_frame::body::action::{CategoryCode, RawVendorSpecificActionFrame},
+    mgmt_frame::{
+        body::action::{CategoryCode, RawVendorSpecificActionFrame},
+        RawActionFrame,
+    },
 };
 
 #[test]
