@@ -22,3 +22,12 @@ serializable_enum! {
         CFEndAck => 0b1111
     }
 }
+impl ControlFrameSubtype {
+    /// Check if the subtype has a second address.
+    pub const fn has_address_2(&self) -> bool {
+        matches!(
+            self,
+            Self::PSPoll | Self::CFEnd | Self::BlockAckRequest | Self::BlockAck
+        )
+    }
+}

@@ -20,7 +20,7 @@ use scroll::{
 mod vendor;
 pub use vendor::{
     append_vendor_action_header, strip_and_check_vendor_action_header, RawVendorSpecificActionBody,
-    RawVendorSpecificActionFrame,
+    RawVendorSpecificActionFrame, VENDOR_SPECIFIC_ACTION_HEADER_LENGTH,
 };
 
 serializable_enum! {
@@ -49,6 +49,17 @@ pub trait ActionBody {
 pub struct RawActionBody<'a> {
     pub category_code: CategoryCode,
     pub payload: &'a [u8],
+}
+impl RawActionBody<'_> {
+    /// Check if the action frame is vendor specific and oui match.
+    pub fn is_vendor_and_matches(&self, oui: [u8; 3]) -> bool {
+        self.category_code == CategoryCode::VendorSpecific
+            && self
+                .payload
+                .pread::<[u8; 3]>(0)
+                .map(|read_oui| read_oui == oui)
+                .unwrap_or_default()
+    }
 }
 impl<'a> TryFromCtx<'a> for RawActionBody<'a> {
     type Error = scroll::Error;

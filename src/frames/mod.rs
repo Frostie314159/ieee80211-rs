@@ -1,6 +1,8 @@
+use mac_parser::MACAddress;
 use mgmt_frame::body::action::RawActionBody;
+use scroll::{Endian, Pread};
 
-use crate::common::FrameType;
+use crate::common::{strip_and_validate_fcs, FrameControlField, FrameType, SequenceControl};
 
 /// Support for control frames.
 pub mod control_frame;
@@ -20,6 +22,87 @@ pub trait IEEE80211Frame {
     /// For all non-action management frames, this will always return false.
     fn read_action_body_matches(_action_body: RawActionBody<'_>) -> bool {
         false
+    }
+}
+pub struct GenericFrame<'a> {
+    bytes: &'a [u8],
+}
+impl<'a> GenericFrame<'a> {
+    /// Create a new [GenericFrame].
+    ///
+    /// If `with_fcs` is true, the fcs will be validated and internally stripped from the bytes
+    /// slice.
+    pub fn new(bytes: &'a [u8], with_fcs: bool) -> Result<Self, scroll::Error> {
+        let bytes = if with_fcs {
+            strip_and_validate_fcs(bytes)?
+        } else {
+            bytes
+        };
+        if bytes.len() < 10 {
+            return Err(scroll::Error::BadInput {
+                size: 0,
+                msg: "Byte slice for generic frame was shorter than 10.",
+            });
+        }
+        Ok(Self { bytes })
+    }
+    /// Get the frame control field.
+    ///
+    /// This can't fail, since all frames have this and we validate it's presence when creating a
+    /// [GenericFrame].
+    pub fn frame_control_field(&self) -> FrameControlField {
+        FrameControlField::from_bits(self.bytes.pread_with(0, Endian::Little).unwrap())
+    }
+    /// Get the duration.
+    ///
+    /// This can't fail, since all frames have this and we validate it's presence when creating a
+    /// [GenericFrame].
+    pub fn duration(&self) -> u16 {
+        self.bytes.pread_with(2, Endian::Little).unwrap()
+    }
+    /// Get the first address.
+    ///
+    /// This can't fail, since all frames have this and we validate it's presence when creating a
+    /// [GenericFrame].
+    pub fn address_1(&self) -> MACAddress {
+        self.bytes.pread(4).unwrap()
+    }
+    /// Get the second address.
+    ///
+    /// This may return [None], if the frame type doesn't have a second address, or the byte slice
+    /// ends early.
+    pub fn address_2(&self) -> Option<MACAddress> {
+        if self.frame_control_field().frame_type().has_address_2() {
+            self.bytes.pread(10).ok()
+        } else {
+            None
+        }
+    }
+    /// Get the second address.
+    ///
+    /// This may return [None], if the frame type doesn't have a third address, or the byte slice
+    /// ends early.
+    pub fn address_3(&self) -> Option<MACAddress> {
+        if self.frame_control_field().frame_type().has_address_3() {
+            self.bytes.pread(16).ok()
+        } else {
+            None
+        }
+    }
+    /// Get the second address.
+    ///
+    /// This may return [None], if the frame type doesn't have a sequence control field, or the byte slice
+    /// ends early.
+    pub fn sequence_control(&self) -> Option<SequenceControl> {
+        if self
+            .frame_control_field()
+            .frame_type()
+            .has_sequence_control()
+        {
+            self.bytes.pread(22).map(SequenceControl::from_bits).ok()
+        } else {
+            None
+        }
     }
 }
 #[macro_export]

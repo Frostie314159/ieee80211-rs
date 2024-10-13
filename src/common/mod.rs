@@ -62,8 +62,25 @@ impl FrameType {
             FrameType::Unknown(subtype) => 0b11 | (subtype << 2),
         }
     }
+    /// Check if just the frame type matches.
     pub fn type_matches(&self, other: Self) -> bool {
         discriminant(self) == discriminant(&other)
+    }
+    /// Checks if the frame type has a sequence control field.
+    pub const fn has_sequence_control(&self) -> bool {
+        matches!(self, FrameType::Data(_) | FrameType::Management(_))
+    }
+    /// Checks if the frame type has a second address.
+    pub const fn has_address_2(&self) -> bool {
+        match self {
+            Self::Data(_) | Self::Management(_) => true,
+            Self::Control(subtype) => subtype.has_address_2(),
+            _ => false,
+        }
+    }
+    /// Checks if the frame type has a third address.
+    pub const fn has_address_3(&self) -> bool {
+        matches!(self, Self::Data(_) | Self::Management(_))
     }
 }
 impl From<u16> for FrameType {

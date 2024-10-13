@@ -1,6 +1,10 @@
 //! This module contains the elements, which are found in the body of some frames.
 //!
 //! If an element only consists of one struct, like the [SSID](SSIDElement), they are re-exported, otherwise they get their own module.
+//! IMPORTANT NOTE: All element types do NOT write their header themselves, since they are expected
+//! to be inside of a container, like [element_chain], which write this header for them. If you
+//! want to include just one element in the body of a frame, you can either create an element chain
+//! of length one, or use [Element::wrap].
 
 use core::marker::PhantomData;
 
@@ -99,6 +103,10 @@ pub trait Element: Sized + MeasureWith<()> + TryIntoCtx<Error = scroll::Error> {
     const FRAGMENTABLE: bool = false;
     /// The type returned, by reading this element.
     type ReadType<'a>: TryFromCtx<'a, Error = scroll::Error>;
+    /// Wrap this element in a [WrappedIEEE80211Element], so the header will be written out.
+    fn wrap(self) -> WrappedIEEE80211Element<Self> {
+        WrappedIEEE80211Element(self)
+    }
 }
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -294,7 +302,7 @@ impl MeasureWith<()> for ReadElements<'_> {
 /// A wrapper for any type implementing the [Element] trait.
 ///
 /// This handles all the quirks of writing an element, like extended ID or vendor prefix.
-pub(crate) struct WrappedIEEE80211Element<Inner>(pub Inner);
+pub struct WrappedIEEE80211Element<Inner>(pub Inner);
 impl<Inner: Element> MeasureWith<()> for WrappedIEEE80211Element<Inner> {
     fn measure_with(&self, ctx: &()) -> usize {
         // Get the size of the element header and add the length of the body.

@@ -32,7 +32,7 @@ use scroll::{
 };
 
 use crate::{
-    common::{attach_fcs, strip_and_validate_fcs, FCFFlags, FrameControlField, FrameType},
+    common::{attach_fcs, strip_and_validate_fcs, FrameControlField, FrameType},
     elements::{Element, ReadElements, WrappedIEEE80211Element},
     IEEE80211Frame,
 };
@@ -71,15 +71,21 @@ impl<'a, Body: TryFromCtx<'a, (), Error = scroll::Error>> TryFromCtx<'a, bool>
     type Error = scroll::Error;
     fn try_from_ctx(from: &'a [u8], with_fcs: bool) -> Result<(Self, usize), Self::Error> {
         // We don't care about the FCF, since the information is already encoded in the type.
-        let mut offset = 1;
+        let mut offset = 0;
 
         let from = if with_fcs {
             strip_and_validate_fcs(from)?
         } else {
             from
         };
-        let fcf_flags = FCFFlags::from_bits(from.gread(&mut offset)?);
-        let header = from.gread_with(&mut offset, fcf_flags)?;
+        let fcf = FrameControlField::from_bits(from.gread_with(&mut offset, Endian::Little)?);
+        if !matches!(fcf.frame_type(), FrameType::Management(_)) {
+            return Err(scroll::Error::BadInput {
+                size: offset,
+                msg: "Frame type wasn't management.",
+            });
+        }
+        let header = from.gread_with(&mut offset, fcf.flags())?;
         let body = from.gread(&mut offset)?;
 
         Ok((Self { header, body }, offset))

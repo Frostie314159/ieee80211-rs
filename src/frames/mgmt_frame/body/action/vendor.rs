@@ -54,7 +54,7 @@ impl<Payload: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         let mut offset = 0;
 
-        append_vendor_action_header(buf, self.oui)?;
+        append_vendor_action_header(buf, &mut offset, self.oui)?;
         buf.gwrite(self.payload, &mut offset)?;
 
         Ok(offset)
@@ -70,13 +70,14 @@ pub type RawVendorSpecificActionFrame<'a, Payload = &'a [u8]> =
     ManagementFrame<RawVendorSpecificActionBody<'a, Payload>>;
 
 /// This appends the vendor specific action frame header (including the category code) to the buffer.
-pub fn append_vendor_action_header(buf: &mut [u8], oui: [u8; 3]) -> Result<usize, scroll::Error> {
-    let mut offset = 0;
-
-    buf.gwrite(CategoryCode::VendorSpecific.into_bits(), &mut offset)?;
-    buf.gwrite(oui.as_slice(), &mut offset)?;
-
-    Ok(offset)
+pub fn append_vendor_action_header(
+    buf: &mut [u8],
+    offset: &mut usize,
+    oui: [u8; 3],
+) -> Result<(), scroll::Error> {
+    buf.gwrite(CategoryCode::VendorSpecific.into_bits(), offset)?;
+    buf.gwrite(oui.as_slice(), offset)?;
+    Ok(())
 }
 /// Checks the category code and OUI, of the supplied vendor specific action frame body, and advances the `offset`.
 pub fn strip_and_check_vendor_action_header(
@@ -98,3 +99,5 @@ pub fn strip_and_check_vendor_action_header(
     }
     Ok(())
 }
+/// The length of the header of a vendor specific action frame body.
+pub const VENDOR_SPECIFIC_ACTION_HEADER_LENGTH: usize = 4;
