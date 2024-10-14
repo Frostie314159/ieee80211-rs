@@ -124,7 +124,7 @@ impl<'a> GenericFrame<'a> {
                     };
                     Frame::read_action_body_matches(raw_action_frame.body)
                 }
-                _ => false,
+                _ => true,
             },
             _ => false,
         }
@@ -154,7 +154,7 @@ macro_rules! match_frames {
         )+
     ) => {
         {
-            use ieee80211::GenericFrame;
+            use ieee80211::{GenericFrame, scroll};
             const WITH_FCS: bool = {
                 let mut with_fcs = false;
 
