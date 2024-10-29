@@ -86,8 +86,8 @@ impl<Subtype, ElementContainer: defmt::Format> defmt::Format
             && self.elements
     }
 } */
-impl<'a, ElementContainer: MeasureWith<()>, Subtype> MeasureWith<()>
-    for BeaconLikeBody<'a, Subtype, ElementContainer>
+impl<ElementContainer: MeasureWith<()>, Subtype> MeasureWith<()>
+    for BeaconLikeBody<'_, Subtype, ElementContainer>
 {
     fn measure_with(&self, ctx: &()) -> usize {
         12 + self.elements.measure_with(ctx)
@@ -116,8 +116,8 @@ impl<'a, Subtype: 'a> TryFromCtx<'a> for BeaconLikeBody<'a, Subtype> {
         ))
     }
 }
-impl<'a, ElementContainer: TryIntoCtx<Error = scroll::Error>, Subtype> TryIntoCtx
-    for BeaconLikeBody<'a, Subtype, ElementContainer>
+impl<ElementContainer: TryIntoCtx<Error = scroll::Error>, Subtype> TryIntoCtx
+    for BeaconLikeBody<'_, Subtype, ElementContainer>
 {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {

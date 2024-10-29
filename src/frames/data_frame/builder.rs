@@ -667,8 +667,8 @@ impl<
         }
     }
 }
-impl<'a, DS, Category, Payload, Address1, Address2, Address3, Address4>
-    DataFrameBuilderInner<'a, DS, Category, Payload, Address1, Address2, Address3, Address4>
+impl<DS, Category, Payload, Address1, Address2, Address3, Address4>
+    DataFrameBuilderInner<'_, DS, Category, Payload, Address1, Address2, Address3, Address4>
 {
     pub const fn more_fragments(mut self) -> Self {
         self.fcf_flags = self.fcf_flags.with_more_fragments(true);
@@ -752,7 +752,7 @@ impl<'a, DS: DSField, Category: DataFrameCategory, PayloadType: Copy>
         }
     }
 }
-impl<'a> Default for DataFrameBuilder<'a> {
+impl Default for DataFrameBuilder<'_> {
     fn default() -> Self {
         Self::new()
     }

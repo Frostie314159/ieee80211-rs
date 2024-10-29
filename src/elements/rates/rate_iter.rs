@@ -16,7 +16,7 @@ impl<'a> RatesReadIterator<'a> {
         }
     }
 }
-impl<'a> Iterator for RatesReadIterator<'a> {
+impl Iterator for RatesReadIterator<'_> {
     type Item = EncodedRate;
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {

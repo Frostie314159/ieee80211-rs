@@ -150,6 +150,6 @@ impl<Payload: TryIntoCtx<Error = scroll::Error>> TryIntoCtx<bool> for DataFrame<
         Ok(offset)
     }
 }
-impl<'a, Payload> IEEE80211Frame for DataFrame<'a, Payload> {
+impl<Payload> IEEE80211Frame for DataFrame<'_, Payload> {
     const TYPE: FrameType = FrameType::Data(DataFrameSubtype::Data);
 }

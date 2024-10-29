@@ -30,6 +30,5 @@ fn test_tim_aid_decode() {
         .unwrap()
         .aid_iter()
         .unwrap()
-        .into_iter()
         .eq([aid!(12), aid!(13)]));
 }

@@ -30,7 +30,7 @@ impl<'a> VendorSpecificElement<'a> {
         }
     }
 }
-impl<'a, Payload> VendorSpecificElement<'a, Payload> {
+impl<Payload> VendorSpecificElement<'_, Payload> {
     pub const fn get_payload(&self) -> &Payload {
         &self.payload
     }
@@ -38,7 +38,7 @@ impl<'a, Payload> VendorSpecificElement<'a, Payload> {
         &mut self.payload
     }
 }
-impl<'a, InnerPayload> VendorSpecificElement<'a, PrefixedVendorPayload<InnerPayload>> {
+impl<InnerPayload> VendorSpecificElement<'_, PrefixedVendorPayload<InnerPayload>> {
     pub const fn new_prefixed(prefix: &'static [u8], payload: InnerPayload) -> Self {
         VendorSpecificElement {
             payload: PrefixedVendorPayload { prefix, payload },
@@ -73,8 +73,8 @@ impl<Payload: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for VendorSpecificEl
         Ok(offset)
     }
 }
-impl<'a, Payload: MeasureWith<()> + TryIntoCtx<Error = scroll::Error>> Element
-    for VendorSpecificElement<'a, Payload>
+impl<Payload: MeasureWith<()> + TryIntoCtx<Error = scroll::Error>> Element
+    for VendorSpecificElement<'_, Payload>
 {
     const ELEMENT_ID: ElementID = ElementID::Id(0xdd);
     type ReadType<'b> = VendorSpecificElement<'b>;

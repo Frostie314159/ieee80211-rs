@@ -281,7 +281,7 @@ pub struct RSNElement<
     pub group_management_cipher_suite: Option<IEEE80211CipherSuiteSelector>,
     pub _phantom: PhantomData<&'a ()>,
 }
-impl<'a> RSNElement<'a> {
+impl RSNElement<'_> {
     /// Create a new empty [RSNElement].
     pub const fn new() -> RSNElement<
         'static,
@@ -552,8 +552,8 @@ impl<
             && self.group_management_cipher_suite == other.group_management_cipher_suite
     }
 }
-impl<'a, PairwiseCipherSuiteList, AKMList, PMKIDList> Default
-    for RSNElement<'a, PairwiseCipherSuiteList, AKMList, PMKIDList>
+impl<PairwiseCipherSuiteList, AKMList, PMKIDList> Default
+    for RSNElement<'_, PairwiseCipherSuiteList, AKMList, PMKIDList>
 {
     fn default() -> Self {
         Self {

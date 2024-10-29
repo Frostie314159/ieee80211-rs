@@ -23,8 +23,8 @@ impl DisassociationBody<'_> {
         2 + self.elements.bytes.len()
     }
 }
-impl<'a, ElementContainer: MeasureWith<()>> MeasureWith<()>
-    for DisassociationBody<'a, ElementContainer>
+impl<ElementContainer: MeasureWith<()>> MeasureWith<()>
+    for DisassociationBody<'_, ElementContainer>
 {
     fn measure_with(&self, ctx: &()) -> usize {
         2 + self.elements.measure_with(ctx)
@@ -48,8 +48,8 @@ impl<'a> TryFromCtx<'a> for DisassociationBody<'a> {
         ))
     }
 }
-impl<'a, ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
-    for DisassociationBody<'a, ElementContainer>
+impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
+    for DisassociationBody<'_, ElementContainer>
 {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {

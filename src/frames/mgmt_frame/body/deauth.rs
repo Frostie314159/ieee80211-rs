@@ -17,7 +17,7 @@ pub struct DeauthenticationBody<'a, ElementContainer = ReadElements<'a>> {
     pub elements: ElementContainer,
     pub _phantom: PhantomData<&'a ()>,
 }
-impl<'a> DeauthenticationBody<'a> {
+impl DeauthenticationBody<'_> {
     /// Returns the total length in bytes.
     pub const fn length_in_bytes(&self) -> usize {
         2 + self.elements.bytes.len()
@@ -41,8 +41,8 @@ impl<'a> TryFromCtx<'a> for DeauthenticationBody<'a> {
         ))
     }
 }
-impl<'a, ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
-    for DeauthenticationBody<'a, ElementContainer>
+impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
+    for DeauthenticationBody<'_, ElementContainer>
 {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
@@ -54,8 +54,8 @@ impl<'a, ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
         Ok(offset)
     }
 }
-impl<'a, ElementContainer: MeasureWith<()>> MeasureWith<()>
-    for DeauthenticationBody<'a, ElementContainer>
+impl<ElementContainer: MeasureWith<()>> MeasureWith<()>
+    for DeauthenticationBody<'_, ElementContainer>
 {
     fn measure_with(&self, ctx: &()) -> usize {
         2 + self.elements.measure_with(ctx)

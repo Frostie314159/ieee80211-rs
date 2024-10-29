@@ -29,6 +29,7 @@ pub trait IEEE80211Frame {
 /// A generic IEEE 802.11 frame.
 ///
 /// This allows extraction of certain fields, without knowing the actual type.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct GenericFrame<'a> {
     bytes: &'a [u8],
 }
@@ -110,7 +111,7 @@ impl<'a> GenericFrame<'a> {
         }
     }
     /// Check if the frame type matches.
-    pub fn matches<Frame: IEEE80211Frame>(&self) -> bool {
+    pub fn matches<Frame: IEEE80211Frame>(self) -> bool {
         let fcf = self.frame_control_field();
         match (fcf.frame_type(), Frame::TYPE) {
             (FrameType::Control(_), FrameType::Control(_))

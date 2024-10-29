@@ -172,6 +172,6 @@ impl TryIntoCtx for ControlFrame<'_> {
         Ok(offset)
     }
 }
-impl<'a> IEEE80211Frame for ControlFrame<'a> {
+impl IEEE80211Frame for ControlFrame<'_> {
     const TYPE: FrameType = FrameType::Control(ControlFrameSubtype::RTS);
 }

@@ -23,7 +23,7 @@ pub struct AuthenticationBody<'a, ElementContainer = ReadElements<'a>> {
     pub elements: ElementContainer,
     pub _phantom: PhantomData<&'a ()>,
 }
-impl<'a> AuthenticationBody<'a> {
+impl AuthenticationBody<'_> {
     /// Returns the total length in bytes.
     pub const fn length_in_bytes(&self) -> usize {
         6 + self.elements.bytes.len()
@@ -55,8 +55,8 @@ impl<'a> TryFromCtx<'a> for AuthenticationBody<'a> {
         ))
     }
 }
-impl<'a, ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
-    for AuthenticationBody<'a, ElementContainer>
+impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
+    for AuthenticationBody<'_, ElementContainer>
 {
     type Error = scroll::Error;
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
@@ -78,8 +78,8 @@ impl<'a, ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
         Ok(offset)
     }
 }
-impl<'a, ElementContainer: MeasureWith<()>> MeasureWith<()>
-    for AuthenticationBody<'a, ElementContainer>
+impl<ElementContainer: MeasureWith<()>> MeasureWith<()>
+    for AuthenticationBody<'_, ElementContainer>
 {
     fn measure_with(&self, ctx: &()) -> usize {
         6 + self.elements.measure_with(ctx)
