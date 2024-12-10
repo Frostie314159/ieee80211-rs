@@ -1,11 +1,13 @@
 //! This example demonstrates, how to use the [DynamicManagementFrame].
 
+use std::marker::PhantomData;
+
 use ieee80211::{
     common::CapabilitiesInformation,
     element_chain,
-    elements::{rsn::RSNElement, DSSSParameterSetElement},
+    elements::{rsn::RSNElement, tim::TIMElement, DSSSParameterSetElement},
     mgmt_frame::{body::BeaconBody, BeaconFrame, DynamicManagementFrame, ManagementFrameHeader},
-    ssid, supported_rates,
+    ssid, supported_rates, tim_bitmap,
 };
 use mac_parser::{MACAddress, BROADCAST};
 
@@ -37,6 +39,12 @@ fn main() {
                 ],
                 DSSSParameterSetElement {
                     current_channel: 1
+                },
+                TIMElement {
+                    dtim_count: 1,
+                    dtim_period: 2,
+                    bitmap: Some(tim_bitmap![]),
+                    _phantom: PhantomData
                 }
             },
             ..Default::default()
