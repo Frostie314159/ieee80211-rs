@@ -400,6 +400,12 @@ impl<Bitmap: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for TIMBitmap<Bitmap>
 /// let _bitmap = tim_bitmap!(0 => 1337);
 /// ```
 macro_rules! tim_bitmap {
+    () => {
+        {
+            use ::ieee80211::elements::tim::{TIMBitmapControl, TIMBitmap};
+            TIMBitmap::<&[u8]>::new_unchecked(TIMBitmapControl::new().with_traffic_indicator(false), None)
+        }
+    };
     (0) => {
         {
             use ::ieee80211::elements::tim::{TIMBitmapControl, TIMBitmap};
@@ -407,7 +413,7 @@ macro_rules! tim_bitmap {
             TIMBitmap::<&[u8]>::new_unchecked(TIMBitmapControl::new().with_traffic_indicator(true), None)
         }
     };
-    ($($aid:expr),*) => {
+    ($($aid:expr),+) => {
         {
             use ::ieee80211::{macro_bits::{set_bit, bit}, elements::tim::{TIMBitmapControl, TIMBitmap, ConstBitmap}, common::AssociationID};
             const TRAFFIC_INDICATOR: bool = {
