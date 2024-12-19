@@ -578,7 +578,7 @@ impl<Bitmap: MeasureWith<()>> MeasureWith<()> for TIMElement<'_, Bitmap> {
         2 + if let Some(ref bitmap) = self.bitmap {
             bitmap.measure_with(ctx)
         } else {
-            0
+            1
         }
     }
 }
@@ -593,6 +593,8 @@ impl<Bitmap: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for TIMElement<'_, Bi
         buf.gwrite(self.dtim_period, &mut offset)?;
         if let Some(bitmap) = self.bitmap {
             buf.gwrite(bitmap, &mut offset)?;
+        } else {
+            offset += 1;
         }
 
         Ok(offset)
