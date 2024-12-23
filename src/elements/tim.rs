@@ -578,7 +578,8 @@ impl<Bitmap: MeasureWith<()>> MeasureWith<()> for TIMElement<'_, Bitmap> {
         2 + if let Some(ref bitmap) = self.bitmap {
             bitmap.measure_with(ctx)
         } else {
-            1
+            // Empty bitmap control and partial virtual bitmap.
+            2
         }
     }
 }
@@ -594,7 +595,8 @@ impl<Bitmap: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for TIMElement<'_, Bi
         if let Some(bitmap) = self.bitmap {
             buf.gwrite(bitmap, &mut offset)?;
         } else {
-            offset += 1;
+            // Empty bitmap control and partial virtual bitmap.
+            offset += 2;
         }
 
         Ok(offset)
