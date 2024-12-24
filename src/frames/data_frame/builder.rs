@@ -156,8 +156,16 @@ impl<'a, DS> DataFrameBuilderInner<'a, DS, (), (), (), (), (), ()> {
     }
     pub const fn category_data_null(
         self,
-    ) -> DataFrameBuilderInner<'a, DS, DataNull, (), (), (), (), ()> {
-        self.change_type_state()
+    ) -> DataFrameBuilderInner<'a, DS, DataNull, Empty, (), (), (), ()> {
+        DataFrameBuilderInner {
+            address_1: self.address_1,
+            address_2: self.address_2,
+            address_3: self.address_3,
+            address_4: self.address_4,
+            payload: None,
+            fcf_flags: self.fcf_flags,
+            _phantom: PhantomData,
+        }
     }
     pub const fn category_qos(self) -> DataFrameBuilderInner<'a, DS, QoS, (), (), (), (), ()> {
         self.change_type_state()
@@ -165,7 +173,15 @@ impl<'a, DS> DataFrameBuilderInner<'a, DS, (), (), (), (), (), ()> {
     pub const fn category_qos_null(
         self,
     ) -> DataFrameBuilderInner<'a, DS, QoSNull, (), (), (), (), ()> {
-        self.change_type_state()
+        DataFrameBuilderInner {
+            address_1: self.address_1,
+            address_2: self.address_2,
+            address_3: self.address_3,
+            address_4: self.address_4,
+            payload: None,
+            fcf_flags: self.fcf_flags,
+            _phantom: PhantomData,
+        }
     }
 }
 impl<'a, DS, Category: HasPayload + DataFrameCategory>
