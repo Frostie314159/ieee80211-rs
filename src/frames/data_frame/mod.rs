@@ -134,7 +134,7 @@ impl<Payload: TryIntoCtx<Error = scroll::Error>> TryIntoCtx<bool> for DataFrame<
 
         buf.gwrite_with(
             FrameControlField::new()
-                .with_frame_type(<Self as IEEE80211Frame>::TYPE)
+                .with_frame_type(FrameType::Data(self.header.subtype))
                 .with_flags(self.header.fcf_flags)
                 .into_bits(),
             &mut offset,
