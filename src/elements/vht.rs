@@ -93,7 +93,7 @@ impl VHTMCSMap {
     pub fn vht_mcs_support_for_nss(&self, nss: usize) -> Option<VHTMCSSupport> {
         if (1..9).contains(&nss) {
             Some(VHTMCSSupport::from_bits(
-                (self.0 >> ((nss - 1) * 2) & 0b0000_0011) as u8,
+                ((self.0 >> ((nss - 1) * 2)) & 0b0000_0011) as u8,
             ))
         } else {
             None
