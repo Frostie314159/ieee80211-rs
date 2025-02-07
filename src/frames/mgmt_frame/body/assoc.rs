@@ -101,12 +101,10 @@ impl<'a> TryFromCtx<'a> for AssociationResponseBody<'a> {
             None
         } else {
             Some(
-                AssociationID::new_checked(from.gread_with(&mut offset, Endian::Little)?).ok_or(
-                    scroll::Error::BadInput {
-                        size: offset,
-                        msg: "Association ID is out of bounds.",
-                    },
-                )?,
+                AssociationID::new_checked(association_id).ok_or(scroll::Error::BadInput {
+                    size: offset,
+                    msg: "Association ID is out of bounds.",
+                })?,
             )
         };
         let elements = from.gread(&mut offset)?;
