@@ -431,7 +431,7 @@ macro_rules! tim_bitmap {
                 let mut n2 = 0;
 
                 $(
-                    assert!($aid <= AssociationID::MAX_AID, "An AID higher than 2007 is invalid.");
+                    ::core::assert!($aid <= AssociationID::MAX_AID, "An AID higher than 2007 is invalid.");
                     // We actually set bit zero, if that AID is present, but it doesn't count towards N1.
                     let byte_index = ($aid / 8) as usize;
                     let bit_index = ($aid % 8) as usize;
@@ -464,7 +464,7 @@ macro_rules! tim_bitmap {
             use ::ieee80211::{macro_bits::{set_bit, bit}, elements::tim::{TIMBitmapControl, TIMBitmap, ConstBitmap}, common::AssociationID};
             const TRAFFIC_INDICATOR: bool = $min_aid == 0;
             const PARTIAL_VIRTUAL_BITMAP: [u8; 251] = {
-                assert!($max_aid <= AssociationID::MAX_AID, "An AID higher than 2007 is invalid.");
+                ::core::assert!($max_aid <= AssociationID::MAX_AID, "An AID higher than 2007 is invalid.");
                 let mut partial_virtual_bitmap = [0u8; 251];
 
                 let mut i = $min_aid;

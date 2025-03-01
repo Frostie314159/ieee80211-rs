@@ -176,7 +176,7 @@ macro_rules! supported_rates {
                 ),*
             ];
             const _: () = {
-                assert!(RATES.len() <= 8, "More than eight rates are invalid.");
+                ::core::assert!(RATES.len() <= 8, "More than eight rates are invalid.");
             };
             const RESULT: SupportedRatesElement<[EncodedRate; RATE_COUNT]> = SupportedRatesElement::new_unchecked(RATES);
             RESULT

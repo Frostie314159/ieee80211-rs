@@ -27,7 +27,7 @@ fn test_ssid_element_misc() {
     );
     // Not so fun fact: This test technically already caught an error, since I screwed up when writing the original function...
     assert_eq!(
-        EXPECTED_SSID_STRING.as_bytes().len(),
+        EXPECTED_SSID_STRING.len(),
         EXPECTED_SSID_ELEMENT.length_in_bytes(),
         "Length in bytes returned didn't match what was expected."
     );

@@ -79,8 +79,8 @@ macro_rules! aid {
             use ::ieee80211::common::AssociationID;
             // We could use inline const, but that would mean an MSRV of 1.79.0, which may be too recent.
             const AID: AssociationID = {
-                assert!($aid != 0, "An AssociationID of zero is invalid.");
-                assert!($aid <= AssociationID::MAX_AID, "An AssociationID greater than 2007 is invalid");
+                ::core::assert!($aid != 0, "An AssociationID of zero is invalid.");
+                ::core::assert!($aid <= AssociationID::MAX_AID, "An AssociationID greater than 2007 is invalid");
                 AssociationID::new_unchecked($aid)
             };
             AID

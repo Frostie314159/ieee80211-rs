@@ -6,7 +6,7 @@
 //! 1. Create a [DataFrameBuilder] with [new](DataFrameBuilder::new)
 //! 2. Specify `ToDS` and `FromDS`, using [neither_to_nor_from_ds](DataFrameBuilder::neither_to_nor_from_ds), [to_ds](DataFrameBuilder::to_ds), [from_ds](DataFrameBuilder::from_ds) or [to_and_from_ds](DataFrameBuilder::to_and_from_ds).
 //! 3. Specify a category, using [category_data](DataFrameBuilder::category_data), [category_data_null](DataFrameBuilder::category_data_null), [category_qos](DataFrameBuilder::category_qos) or [category_qos_null](DataFrameBuilder::category_qos_null). These are equivalent to [DataFrameCF], just as type state.
-//!     3.5. If your selected category is not [DataNull] or [QoSNull], specify a payload using [payload](DataFrameBuilder::payload) or [payload_amsdu](DataFrameBuilder::payload_amsdu).
+//!    3.5. If your selected category is not [DataNull] or [QoSNull], specify a payload using [payload](DataFrameBuilder::payload) or [payload_amsdu](DataFrameBuilder::payload_amsdu).
 //! 4. Specify your addresses using [destination_address](DataFrameBuilder::destination_address), [source_address](DataFrameBuilder::source_address) and [bssid](DataFrameBuilder::bssid).
 //! 5. Call [build](DataFrameBuilder::build).
 //! ## Example

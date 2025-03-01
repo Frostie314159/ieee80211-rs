@@ -146,11 +146,11 @@ macro_rules! supported_rx_mcs_set {
                 $(
                     {
                         use ::ieee80211::macro_bits::{bit, check_bit, set_bit};
-                        assert!($supported_rx_mcs_index >= 0, "MCS indices lower zero are invalid.");
-                        assert!($supported_rx_mcs_index < 77, "MCS indices greater than 76 are invalid.");
+                        ::core::assert!($supported_rx_mcs_index >= 0, "MCS indices lower zero are invalid.");
+                        ::core::assert!($supported_rx_mcs_index < 77, "MCS indices greater than 76 are invalid.");
 
                         let (byte, bit) = ($supported_rx_mcs_index >> 3, $supported_rx_mcs_index & 0b0000_0111);
-                        assert!(!check_bit!(buf[byte], bit!(bit)), concat!("MCS index: ", concat!($supported_rx_mcs_index, " is a duplicate.")));
+                        ::core::assert!(!check_bit!(buf[byte], bit!(bit)), concat!("MCS index: ", concat!($supported_rx_mcs_index, " is a duplicate.")));
                         set_bit!(buf[byte], bit!(bit));
                     }
                 )*
@@ -164,8 +164,8 @@ macro_rules! supported_rx_mcs_set {
         {
             const RESULT: [u8; 10] = {
                 use ::ieee80211::macro_bits::{bit, check_bit, set_bit};
-                assert!($start >= 0, "MCS indices lower zero are invalid.");
-                assert!($end < 77, "MCS indices greater than 76 are invalid.");
+                ::core::assert!($start >= 0, "MCS indices lower zero are invalid.");
+                ::core::assert!($end < 77, "MCS indices greater than 76 are invalid.");
 
                 let mut buf = [0x00; 10];
 

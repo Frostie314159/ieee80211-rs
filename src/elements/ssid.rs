@@ -148,7 +148,7 @@ macro_rules! ssid {
     ($ssid:expr) => {{
         use ::ieee80211::elements::SSIDElement;
         const RESULT: SSIDElement<'static> = {
-            assert!(
+            ::core::assert!(
                 $ssid.as_bytes().len() <= 32,
                 "SSIDs must not exceed a length of more than 32 bytes."
             );

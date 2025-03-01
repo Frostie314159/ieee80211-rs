@@ -137,7 +137,7 @@ macro_rules! extended_supported_rates {
                 ),*
             ];
             const _: () = {
-                assert!(RATES.len() <= 251, "More than 251 rates are invalid.");
+                ::core::assert!(RATES.len() <= 251, "More than 251 rates are invalid.");
             };
             const RESULT: ExtendedSupportedRatesElement<[EncodedRate; RATE_COUNT]> = ExtendedSupportedRatesElement::new_unchecked(RATES);
             RESULT
