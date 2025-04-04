@@ -13,6 +13,7 @@ mod rsn;
 mod ssid;
 mod supported_rates;
 mod tim;
+mod mesh_id;
 
 #[test]
 fn test_read_elements() {

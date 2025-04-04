@@ -36,8 +36,8 @@ mod owe_transition;
 pub mod vht;
 pub use owe_transition::OWETransitionModeElement;
 pub mod tim;
-
 pub mod element_chain;
+pub mod mesh;
 
 /// A raw TLV.
 pub type RawIEEE80211Element<'a> = RawTLV<'a, u8, u8>;
