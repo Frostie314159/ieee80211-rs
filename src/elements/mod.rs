@@ -20,7 +20,10 @@ mod dsss_parameter_set;
 pub use dsss_parameter_set::DSSSParameterSetElement;
 pub mod rates;
 mod ssid;
-pub use ssid::SSIDElement;
+pub use ssid::{
+    MeshIDElement, MeshIDElementType, SSIDElement, SSIDElementType, SSIDLikeElement,
+    SSIDLikeElementType,
+};
 mod bss_load;
 pub use bss_load::BSSLoadElement;
 pub mod ht;

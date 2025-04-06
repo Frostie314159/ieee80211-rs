@@ -7,15 +7,23 @@ use scroll::{
 
 use super::{Element, ElementID};
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-/// The SSID element holds the human-readable identifier of a BSS.
+#[doc(hidden)]
+/// The actual type of an SSID element.
 ///
-/// The SSID isn't public, since if we check the length at initialization, we won't have to do checks while serializing.
-pub struct SSIDElement<'a, SSID = &'a str> {
-    ssid: SSID,
-    _phantom: PhantomData<&'a ()>,
+/// This is used to differentiate between SSID and MeshID, which share the exact same element
+/// encoding.
+pub trait SSIDLikeElementType {
+    /// The ID of the element.
+    const ELEMENT_ID: ElementID;
 }
-impl<'a> SSIDElement<'a> {
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+/// Common functionality for [SSIDElement] and [MeshIDElement].
+pub struct SSIDLikeElement<'a, Type: SSIDLikeElementType, SSID = &'a str> {
+    ssid: SSID,
+    _phantom: PhantomData<(&'a (), Type)>,
+}
+impl<'a, Type: SSIDLikeElementType> SSIDLikeElement<'a, Type> {
     /// Create a new SSID element.
     ///
     /// This returns [None] if `ssid` is longer than 32 bytes.
@@ -30,7 +38,7 @@ impl<'a> SSIDElement<'a> {
         }
     }
 }
-impl<SSID: AsRef<str>> SSIDElement<'_, SSID> {
+impl<Type: SSIDLikeElementType, SSID: AsRef<str>> SSIDLikeElement<'_, Type, SSID> {
     /// Create a new SSID element.
     ///
     /// This returns [None] if `ssid` is longer than 32 bytes.
@@ -81,27 +89,29 @@ impl<SSID: AsRef<str>> SSIDElement<'_, SSID> {
         self.ssid().len()
     }
 }
-impl<SSID: AsRef<str>> Element for SSIDElement<'_, SSID> {
-    const ELEMENT_ID: ElementID = ElementID::Id(0x00);
-    type ReadType<'a> = SSIDElement<'a>;
+impl<Type: SSIDLikeElementType + 'static, SSID: AsRef<str>> Element
+    for SSIDLikeElement<'_, Type, SSID>
+{
+    const ELEMENT_ID: ElementID = Type::ELEMENT_ID;
+    type ReadType<'a> = SSIDLikeElement<'a, Type>;
 }
-impl<SSID: AsRef<str>> AsRef<str> for SSIDElement<'_, SSID> {
+impl<Type: SSIDLikeElementType, SSID: AsRef<str>> AsRef<str> for SSIDLikeElement<'_, Type, SSID> {
     fn as_ref(&self) -> &str {
         self.ssid()
     }
 }
-impl<SSID: AsRef<str>> Display for SSIDElement<'_, SSID> {
+impl<Type: SSIDLikeElementType, SSID: AsRef<str>> Display for SSIDLikeElement<'_, Type, SSID> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str(self.ssid.as_ref())
     }
 }
 #[cfg(feature = "defmt")]
-impl<SSID: AsRef<str>> defmt::Format for SSIDElement<'_, SSID> {
+impl<SSID: AsRef<str>> defmt::Format for SSIDLikeElement<'_, SSID> {
     fn format(&self, fmt: defmt::Formatter) {
         self.ssid.as_ref().format(fmt)
     }
 }
-impl<'a> TryFromCtx<'a> for SSIDElement<'a> {
+impl<'a, Type: SSIDLikeElementType + 'static> TryFromCtx<'a> for SSIDLikeElement<'a, Type> {
     type Error = scroll::Error;
     #[inline]
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
@@ -115,17 +125,58 @@ impl<'a> TryFromCtx<'a> for SSIDElement<'a> {
             .map(|(ssid, len)| (Self::new_unchecked(ssid), len))
     }
 }
-impl<SSID: AsRef<str>> MeasureWith<()> for SSIDElement<'_, SSID> {
+impl<Type: SSIDLikeElementType, SSID: AsRef<str>> MeasureWith<()>
+    for SSIDLikeElement<'_, Type, SSID>
+{
     fn measure_with(&self, _ctx: &()) -> usize {
         self.length_in_bytes()
     }
 }
-impl<SSID: AsRef<str>> TryIntoCtx for SSIDElement<'_, SSID> {
+impl<Type: SSIDLikeElementType, SSID: AsRef<str>> TryIntoCtx for SSIDLikeElement<'_, Type, SSID> {
     type Error = scroll::Error;
     #[inline]
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         buf.pwrite(self.ssid(), 0)
     }
+}
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[doc(hidden)]
+pub struct SSIDElementType;
+impl SSIDLikeElementType for SSIDElementType {
+    const ELEMENT_ID: ElementID = ElementID::Id(0x00);
+}
+/// The SSID element holds the human-readable identifier of a BSS.
+///
+/// The SSID isn't public, since if we check the length at initialization, we won't have to do checks while serializing.
+pub type SSIDElement<'a, SSID = &'a str> = SSIDLikeElement<'a, SSIDElementType, SSID>;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[doc(hidden)]
+pub struct MeshIDElementType;
+impl SSIDLikeElementType for MeshIDElementType {
+    const ELEMENT_ID: ElementID = ElementID::Id(0x72);
+}
+/// The MeshID element holds the human-readable identifier of a MBSS.
+///
+/// The MeshID isn't public, since if we check the length at initialization, we won't have to do checks while serializing.
+pub type MeshIDElement<'a, SSID = &'a str> = SSIDLikeElement<'a, MeshIDElementType, SSID>;
+
+#[macro_export]
+#[doc(hidden)]
+macro_rules! ssid_internal {
+    ($ssid:expr, $ssid_type:ident) => {{
+        use ::ieee80211::elements::$ssid_type;
+        const RESULT: $ssid_type<'static> = {
+            ::core::assert!(
+                $ssid.as_bytes().len() <= 32,
+                "SSIDs or MeshIDs must not exceed a length of more than 32 bytes."
+            );
+            $ssid_type::new_unchecked($ssid)
+        };
+        RESULT
+    }};
 }
 #[macro_export]
 /// Generate an [SSIDElement], while performing all validation at compile time.
@@ -145,15 +196,13 @@ impl<SSID: AsRef<str>> TryIntoCtx for SSIDElement<'_, SSID> {
 /// let _ssid_element = ssid!("Some unreasonably long SSID, for whatever reason.");
 /// ```
 macro_rules! ssid {
-    ($ssid:expr) => {{
-        use ::ieee80211::elements::SSIDElement;
-        const RESULT: SSIDElement<'static> = {
-            ::core::assert!(
-                $ssid.as_bytes().len() <= 32,
-                "SSIDs must not exceed a length of more than 32 bytes."
-            );
-            SSIDElement::new_unchecked($ssid)
-        };
-        RESULT
-    }};
+    ($ssid:expr) => {
+        ::ieee80211::ssid_internal!($ssid, SSIDElement)
+    };
+}
+#[macro_export]
+macro_rules! mesh_id {
+    ($mesh_id:expr) => {
+        ::ieee80211::ssid_internal!($ssid, MeshIDElement);
+    };
 }
