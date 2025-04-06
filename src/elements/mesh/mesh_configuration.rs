@@ -171,7 +171,7 @@ pub struct MeshCapability {
 
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-#[derive(Clone, Copy, Debug, Hash)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 /// The Mesh Configuration element is used to advertise mesh services.
 pub struct MeshConfigurationElement {
     pub active_path_selection_protocol_identifier: MeshConfigurationActivePathSelectionProtocolIdentifier,
