@@ -1,112 +1,28 @@
+use macro_bits::serializable_enum;
+
 use scroll::{
-    ctx::{MeasureWith, SizeWith, TryFromCtx, TryIntoCtx},
-    Endian, Pread, Pwrite,
+    ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
+    Pread, Pwrite,
 };
 
 use bitfield_struct::bitfield;
 
 use crate::elements::{Element, ElementID};
 
-macro_rules! mesh_configuration_property {
-    (
-        $(
-            #[$enum_meta:meta]
-        )*
-        $enum_vis:vis enum $enum_name:ident {
-            $(
-                $(
-                    #[$mesh_configuration_property_meta:meta]
-                )*
-                $mesh_configuration_property_name:ident => $mesh_configuration_property_type:expr
-            ),*
-        }
-    ) => {
-        $(
-            #[$enum_meta]
-        )*
-        #[non_exhaustive]
-        $enum_vis enum $enum_name {
-            Unknown {
-                mesh_configuration_property_selector: u8
-            },
-            $(
-                $(
-                    #[$mesh_configuration_property_meta]
-                )*
-                $mesh_configuration_property_name
-            ),*
-        }
-        impl $enum_name {
-
-            #[inline]
-            pub const fn with_mesh_configuration_property_selector(mesh_configuration_property_selector: u8) -> Self {
-                match mesh_configuration_property_selector {
-                    $(
-                        $mesh_configuration_property_type => Self::$mesh_configuration_property_name,
-                    )*
-                    identifier => Self::Unknown {
-                        mesh_configuration_property_selector: identifier
-                    }
-                }
-            }
-            #[inline]
-            pub const fn mesh_configuration_property_selector(&self) -> u8 {
-                match *self {
-                    $(
-                        Self::$mesh_configuration_property_name => $mesh_configuration_property_type,
-                    )*
-                    Self::Unknown { mesh_configuration_property_selector } => mesh_configuration_property_selector
-                }
-            }
-        }
-        impl<'a> TryFromCtx<'a> for $enum_name {
-            type Error = scroll::Error;
-            #[inline]
-            fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
-                let mut offset = 0;
-
-                let mesh_configuration_property_selector = from.gread_with(&mut offset, Endian::Little)?;
-
-                Ok((
-                    Self::with_mesh_configuration_property_selector(mesh_configuration_property_selector),
-                    offset
-                ))
-            }
-        }
-        impl SizeWith for $enum_name {
-            #[inline]
-            fn size_with(_ctx: &()) -> usize {
-                1
-            }
-        }
-        impl TryIntoCtx for $enum_name {
-            type Error = scroll::Error;
-            #[inline]
-            fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
-                let mut offset = 0;
-
-                buf.gwrite_with(self.mesh_configuration_property_selector(), &mut offset, Endian::Little)?;
-
-                Ok(offset)
-            }
-        }
-    };
-}
-
-mesh_configuration_property! {
+serializable_enum! {
     #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-    pub enum MeshConfigurationActivePathSelectionProtocolIdentifier {
+    pub enum MeshConfigurationActivePathSelectionProtocolIdentifier : u8 {
         #[default]
         HWMP => 1,
         VendorSpecific => 255
     }
 }
 
-mesh_configuration_property! {
+serializable_enum! {
     #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-    pub enum MeshConfigurationActivePathSelectionMetricIdentifier {
+    pub enum MeshConfigurationActivePathSelectionMetricIdentifier : u8 {
         #[default]
         AirtimeLinkMetric => 1,
         HighPHYRateAirtimeLinkMetric => 2,
@@ -114,10 +30,10 @@ mesh_configuration_property! {
     }
 }
 
-mesh_configuration_property! {
+serializable_enum! {
     #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-    pub enum MeshConfigurationCongestionControlModeIdentifier {
+    pub enum MeshConfigurationCongestionControlModeIdentifier : u8 {
         #[default]
         NotActivated => 0,
         SignalingProtocol => 1,
@@ -125,20 +41,20 @@ mesh_configuration_property! {
     }
 }
 
-mesh_configuration_property! {
+serializable_enum! {
     #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-    pub enum MeshConfigurationSynchronizationMethodIdentifier {
+    pub enum MeshConfigurationSynchronizationMethodIdentifier : u8 {
         #[default]
         NeighborOffsetSynchronization => 1,
         VendorSpecific => 255
     }
 }
 
-mesh_configuration_property! {
+serializable_enum! {
     #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-    pub enum MeshConfigurationAuthenticationProtocolIdentifier {
+    pub enum MeshConfigurationAuthenticationProtocolIdentifier : u8 {
         #[default]
         NoAuthentication => 0,
         SAE => 1,
@@ -194,11 +110,11 @@ impl TryFromCtx<'_> for MeshConfigurationElement {
     fn try_from_ctx(from: &[u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
 
-        let active_path_selection_protocol_identifier = from.gread(&mut offset)?;
-        let active_path_selection_metric_identifier = from.gread(&mut offset)?;
-        let congestion_control_mode_identifier = from.gread(&mut offset)?;
-        let syncronization_method_identifier = from.gread(&mut offset)?;
-        let authentication_protocol_identifier = from.gread(&mut offset)?;
+        let active_path_selection_protocol_identifier = MeshConfigurationActivePathSelectionProtocolIdentifier::from_bits(from.gread(&mut offset)?);
+        let active_path_selection_metric_identifier = MeshConfigurationActivePathSelectionMetricIdentifier::from_bits(from.gread(&mut offset)?);
+        let congestion_control_mode_identifier = MeshConfigurationCongestionControlModeIdentifier::from_bits(from.gread(&mut offset)?);
+        let syncronization_method_identifier = MeshConfigurationSynchronizationMethodIdentifier::from_bits(from.gread(&mut offset)?);
+        let authentication_protocol_identifier = MeshConfigurationAuthenticationProtocolIdentifier::from_bits(from.gread(&mut offset)?);
         let mesh_formation_info = MeshFormationInfo::from_bits(from.gread(&mut offset)?);
         let mesh_capability = MeshCapability::from_bits(from.gread(&mut offset)?);
 
@@ -222,11 +138,11 @@ impl TryIntoCtx for MeshConfigurationElement {
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         let mut offset = 0;
 
-        buf.gwrite(self.active_path_selection_protocol_identifier, &mut offset)?;
-        buf.gwrite(self.active_path_selection_metric_identifier, &mut offset)?;
-        buf.gwrite(self.congestion_control_mode_identifier, &mut offset)?;
-        buf.gwrite(self.syncronization_method_identifier, &mut offset)?;
-        buf.gwrite(self.authentication_protocol_identifier, &mut offset)?;
+        buf.gwrite(self.active_path_selection_protocol_identifier.into_bits(), &mut offset)?;
+        buf.gwrite(self.active_path_selection_metric_identifier.into_bits(), &mut offset)?;
+        buf.gwrite(self.congestion_control_mode_identifier.into_bits(), &mut offset)?;
+        buf.gwrite(self.syncronization_method_identifier.into_bits(), &mut offset)?;
+        buf.gwrite(self.authentication_protocol_identifier.into_bits(), &mut offset)?;
         buf.gwrite(self.mesh_formation_info.into_bits(), &mut offset)?;
         buf.gwrite(self.mesh_capability.into_bits(), &mut offset)?;
 
