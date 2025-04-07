@@ -1,8 +1,9 @@
 use ieee80211::{
-    elements::mesh::{MeshCapability, MeshConfigurationElement, MeshFormationInfo, MeshIDElement}, match_frames, mgmt_frame::{
+    elements::mesh::{MeshCapability, MeshConfigurationElement, MeshFormationInfo}, match_frames, mgmt_frame::{
         body::action::{CategoryCode, MeshPeeringOpenFrame, RawVendorSpecificActionFrame},
         RawActionFrame,
-    }
+    },
+    elements::MeshIDElement
 };
 
 #[test]
@@ -38,7 +39,7 @@ fn test_action_mesh_open() {
         mesh_peering = MeshPeeringOpenFrame => {
             let mesh_id = mesh_peering.elements
                 .get_first_element::<MeshIDElement>()
-                .map(MeshIDElement::take_mesh_id);
+                .map(MeshIDElement::take_ssid);
             assert_eq!(mesh_id, Some("meshtest"));
             let mesh_configuration = mesh_peering.elements
                 .get_first_element::<MeshConfigurationElement>();

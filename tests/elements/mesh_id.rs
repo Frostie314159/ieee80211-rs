@@ -1,4 +1,4 @@
-use ieee80211::{elements::mesh::MeshIDElement, mesh_id};
+use ieee80211::{elements::MeshIDElement, mesh_id};
 
 use crate::roundtrip_test;
 
@@ -22,7 +22,7 @@ roundtrip_test!(
 #[test]
 fn test_mesh_id_element_misc() {
     assert!(
-        WILDCARD_MESHID_ELEMENT.is_empty(),
+        WILDCARD_MESHID_ELEMENT.is_hidden(),
         "Wildcard Mesh ID wasn't marked as hidden. How did this happen?"
     );
     // Not so fun fact: This test technically already caught an error, since I screwed up when writing the original function...

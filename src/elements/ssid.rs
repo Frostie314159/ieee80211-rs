@@ -203,6 +203,6 @@ macro_rules! ssid {
 #[macro_export]
 macro_rules! mesh_id {
     ($mesh_id:expr) => {
-        ::ieee80211::ssid_internal!($ssid, MeshIDElement);
+        ::ieee80211::ssid_internal!($mesh_id, MeshIDElement);
     };
 }
