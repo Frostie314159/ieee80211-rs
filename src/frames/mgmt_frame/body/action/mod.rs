@@ -23,11 +23,18 @@ pub use vendor::{
     RawVendorSpecificActionFrame, VENDOR_SPECIFIC_ACTION_HEADER_LENGTH,
 };
 
+mod self_protected;
+pub use self_protected::*;
+
 serializable_enum! {
     #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
     /// This enum contains the category code specified in the body of an [Action Frame](ActionBody).
     pub enum CategoryCode: u8 {
+        Mesh => 13,
+        Multihop => 14,
+        SelfProtected => 15,
+
         #[default]
         VendorSpecific => 127
     }
