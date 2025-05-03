@@ -69,7 +69,7 @@ pub struct MeshFormationInfo {
     pub connected_to_mesh_gate: bool,
     #[bits(6)]
     pub num_peerings: u8,
-    pub connected_to_as: bool
+    pub connected_to_as: bool,
 }
 
 #[bitfield(u8, defmt = cfg(feature = "defmt"))]
@@ -82,16 +82,17 @@ pub struct MeshCapability {
     pub mbca_enabled: bool,
     pub tbtt_adjusting: bool,
     pub mesh_power_save_level: bool,
-    pub _reserved: bool
+    pub _reserved: bool,
 }
-
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 /// The Mesh Configuration element is used to advertise mesh services.
 pub struct MeshConfigurationElement {
-    pub active_path_selection_protocol_identifier: MeshConfigurationActivePathSelectionProtocolIdentifier,
-    pub active_path_selection_metric_identifier: MeshConfigurationActivePathSelectionMetricIdentifier,
+    pub active_path_selection_protocol_identifier:
+        MeshConfigurationActivePathSelectionProtocolIdentifier,
+    pub active_path_selection_metric_identifier:
+        MeshConfigurationActivePathSelectionMetricIdentifier,
     pub congestion_control_mode_identifier: MeshConfigurationCongestionControlModeIdentifier,
     pub syncronization_method_identifier: MeshConfigurationSynchronizationMethodIdentifier,
     pub authentication_protocol_identifier: MeshConfigurationAuthenticationProtocolIdentifier,
@@ -110,11 +111,20 @@ impl TryFromCtx<'_> for MeshConfigurationElement {
     fn try_from_ctx(from: &[u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
 
-        let active_path_selection_protocol_identifier = MeshConfigurationActivePathSelectionProtocolIdentifier::from_bits(from.gread(&mut offset)?);
-        let active_path_selection_metric_identifier = MeshConfigurationActivePathSelectionMetricIdentifier::from_bits(from.gread(&mut offset)?);
-        let congestion_control_mode_identifier = MeshConfigurationCongestionControlModeIdentifier::from_bits(from.gread(&mut offset)?);
-        let syncronization_method_identifier = MeshConfigurationSynchronizationMethodIdentifier::from_bits(from.gread(&mut offset)?);
-        let authentication_protocol_identifier = MeshConfigurationAuthenticationProtocolIdentifier::from_bits(from.gread(&mut offset)?);
+        let active_path_selection_protocol_identifier =
+            MeshConfigurationActivePathSelectionProtocolIdentifier::from_bits(
+                from.gread(&mut offset)?,
+            );
+        let active_path_selection_metric_identifier =
+            MeshConfigurationActivePathSelectionMetricIdentifier::from_bits(
+                from.gread(&mut offset)?,
+            );
+        let congestion_control_mode_identifier =
+            MeshConfigurationCongestionControlModeIdentifier::from_bits(from.gread(&mut offset)?);
+        let syncronization_method_identifier =
+            MeshConfigurationSynchronizationMethodIdentifier::from_bits(from.gread(&mut offset)?);
+        let authentication_protocol_identifier =
+            MeshConfigurationAuthenticationProtocolIdentifier::from_bits(from.gread(&mut offset)?);
         let mesh_formation_info = MeshFormationInfo::from_bits(from.gread(&mut offset)?);
         let mesh_capability = MeshCapability::from_bits(from.gread(&mut offset)?);
 
@@ -126,7 +136,7 @@ impl TryFromCtx<'_> for MeshConfigurationElement {
                 syncronization_method_identifier,
                 authentication_protocol_identifier,
                 mesh_formation_info,
-                mesh_capability
+                mesh_capability,
             },
             offset,
         ))
@@ -138,11 +148,26 @@ impl TryIntoCtx for MeshConfigurationElement {
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         let mut offset = 0;
 
-        buf.gwrite(self.active_path_selection_protocol_identifier.into_bits(), &mut offset)?;
-        buf.gwrite(self.active_path_selection_metric_identifier.into_bits(), &mut offset)?;
-        buf.gwrite(self.congestion_control_mode_identifier.into_bits(), &mut offset)?;
-        buf.gwrite(self.syncronization_method_identifier.into_bits(), &mut offset)?;
-        buf.gwrite(self.authentication_protocol_identifier.into_bits(), &mut offset)?;
+        buf.gwrite(
+            self.active_path_selection_protocol_identifier.into_bits(),
+            &mut offset,
+        )?;
+        buf.gwrite(
+            self.active_path_selection_metric_identifier.into_bits(),
+            &mut offset,
+        )?;
+        buf.gwrite(
+            self.congestion_control_mode_identifier.into_bits(),
+            &mut offset,
+        )?;
+        buf.gwrite(
+            self.syncronization_method_identifier.into_bits(),
+            &mut offset,
+        )?;
+        buf.gwrite(
+            self.authentication_protocol_identifier.into_bits(),
+            &mut offset,
+        )?;
         buf.gwrite(self.mesh_formation_info.into_bits(), &mut offset)?;
         buf.gwrite(self.mesh_capability.into_bits(), &mut offset)?;
 

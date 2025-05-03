@@ -1,9 +1,11 @@
 use ieee80211::{
-    elements::mesh::{MeshCapability, MeshConfigurationElement, MeshFormationInfo}, match_frames, mgmt_frame::{
+    elements::mesh::{MeshCapability, MeshConfigurationElement, MeshFormationInfo},
+    elements::MeshIDElement,
+    match_frames,
+    mgmt_frame::{
         body::action::{CategoryCode, MeshPeeringOpenFrame, RawVendorSpecificActionFrame},
         RawActionFrame,
     },
-    elements::MeshIDElement
 };
 
 #[test]
@@ -28,7 +30,6 @@ fn test_raw_vendor_action_frame() {
     }
     .expect("Failed to match raw action frame.");
 }
-
 
 #[test]
 fn test_action_mesh_open() {

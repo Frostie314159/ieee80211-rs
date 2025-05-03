@@ -4,15 +4,14 @@ use core::marker::PhantomData;
 
 use scroll::{
     ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
-    Pread, Pwrite, Endian
+    Endian, Pread, Pwrite,
 };
 
 use crate::{elements::ReadElements, mgmt_frame::ManagementFrame};
 
-use crate::common::{CapabilitiesInformation, AssociationID};
+use crate::common::{AssociationID, CapabilitiesInformation};
 
 use super::{ActionBody, CategoryCode, RawActionBody};
-
 
 serializable_enum! {
     #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -46,7 +45,8 @@ impl<'a> TryFromCtx<'a> for MeshPeeringOpenBody<'a> {
                 msg: "Category code wasn't self-protected.",
             });
         }
-        let selfprotected_action_code = SelfProtectedActionCode::from_bits(from.gread(&mut offset)?);
+        let selfprotected_action_code =
+            SelfProtectedActionCode::from_bits(from.gread(&mut offset)?);
         if selfprotected_action_code != SelfProtectedActionCode::MeshPeeringOpen {
             return Err(scroll::Error::BadInput {
                 size: offset,
@@ -54,7 +54,8 @@ impl<'a> TryFromCtx<'a> for MeshPeeringOpenBody<'a> {
             });
         }
 
-        let capabilities_info = CapabilitiesInformation::from_bits(from.gread_with(&mut offset, Endian::Little)?);
+        let capabilities_info =
+            CapabilitiesInformation::from_bits(from.gread_with(&mut offset, Endian::Little)?);
         let elements = from.gread(&mut offset)?;
 
         Ok((
@@ -67,7 +68,9 @@ impl<'a> TryFromCtx<'a> for MeshPeeringOpenBody<'a> {
         ))
     }
 }
-impl<ElementContainer: MeasureWith<()>> MeasureWith<()> for MeshPeeringOpenBody<'_, ElementContainer> {
+impl<ElementContainer: MeasureWith<()>> MeasureWith<()>
+    for MeshPeeringOpenBody<'_, ElementContainer>
+{
     fn measure_with(&self, ctx: &()) -> usize {
         1 + 2 + self.elements.measure_with(ctx)
     }
@@ -80,7 +83,10 @@ impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
         let mut offset = 0;
 
         buf.gwrite(CategoryCode::SelfProtected.into_bits(), &mut offset)?;
-        buf.gwrite(SelfProtectedActionCode::MeshPeeringOpen.into_bits(), &mut offset)?;
+        buf.gwrite(
+            SelfProtectedActionCode::MeshPeeringOpen.into_bits(),
+            &mut offset,
+        )?;
         buf.gwrite_with(
             self.capabilities_info.into_bits(),
             &mut offset,
@@ -94,14 +100,16 @@ impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
 impl<ElementContainer> ActionBody for MeshPeeringOpenBody<'_, ElementContainer> {
     const CATEGORY_CODE: CategoryCode = CategoryCode::SelfProtected;
     fn matches(action_body: RawActionBody<'_>) -> bool {
-        action_body.category_code == Self::CATEGORY_CODE && action_body.payload.pread::<u8>(0)
-        .map(|subtype| subtype == SelfProtectedActionCode::MeshPeeringOpen.into_bits())
-        .unwrap_or_default()
+        action_body.category_code == Self::CATEGORY_CODE
+            && action_body
+                .payload
+                .pread::<u8>(0)
+                .map(|subtype| subtype == SelfProtectedActionCode::MeshPeeringOpen.into_bits())
+                .unwrap_or_default()
     }
 }
 pub type MeshPeeringOpenFrame<'a, ElementContainer = ReadElements<'a>> =
     ManagementFrame<MeshPeeringOpenBody<'a, ElementContainer>>;
-
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
@@ -124,7 +132,8 @@ impl<'a> TryFromCtx<'a> for MeshPeeringConfirmBody<'a> {
                 msg: "Category code wasn't self-protected.",
             });
         }
-        let selfprotected_action_code = SelfProtectedActionCode::from_bits(from.gread(&mut offset)?);
+        let selfprotected_action_code =
+            SelfProtectedActionCode::from_bits(from.gread(&mut offset)?);
         if selfprotected_action_code != SelfProtectedActionCode::MeshPeeringConfirm {
             return Err(scroll::Error::BadInput {
                 size: offset,
@@ -132,13 +141,14 @@ impl<'a> TryFromCtx<'a> for MeshPeeringConfirmBody<'a> {
             });
         }
 
-        let capabilities_info = CapabilitiesInformation::from_bits(from.gread_with(&mut offset, Endian::Little)?);
+        let capabilities_info =
+            CapabilitiesInformation::from_bits(from.gread_with(&mut offset, Endian::Little)?);
         let association_id = from.gread_with::<u16>(&mut offset, Endian::Little)?;
-        let association_id =  AssociationID::new_checked(association_id).ok_or(scroll::Error::BadInput
-                {
-                    size: offset,
-                    msg: "Association ID is out of bounds.",
-                })?;        
+        let association_id =
+            AssociationID::new_checked(association_id).ok_or(scroll::Error::BadInput {
+                size: offset,
+                msg: "Association ID is out of bounds.",
+            })?;
         let elements = from.gread(&mut offset)?;
 
         Ok((
@@ -152,7 +162,9 @@ impl<'a> TryFromCtx<'a> for MeshPeeringConfirmBody<'a> {
         ))
     }
 }
-impl<ElementContainer: MeasureWith<()>> MeasureWith<()> for MeshPeeringConfirmBody<'_, ElementContainer> {
+impl<ElementContainer: MeasureWith<()>> MeasureWith<()>
+    for MeshPeeringConfirmBody<'_, ElementContainer>
+{
     fn measure_with(&self, ctx: &()) -> usize {
         1 + 2 + 2 + self.elements.measure_with(ctx)
     }
@@ -165,17 +177,16 @@ impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
         let mut offset = 0;
 
         buf.gwrite(CategoryCode::SelfProtected.into_bits(), &mut offset)?;
-        buf.gwrite(SelfProtectedActionCode::MeshPeeringConfirm.into_bits(), &mut offset)?;
+        buf.gwrite(
+            SelfProtectedActionCode::MeshPeeringConfirm.into_bits(),
+            &mut offset,
+        )?;
         buf.gwrite_with(
             self.capabilities_info.into_bits(),
             &mut offset,
             Endian::Little,
         )?;
-        buf.gwrite_with(
-            self.association_id.into_bits(),
-            &mut offset,
-            Endian::Little,
-        )?;
+        buf.gwrite_with(self.association_id.into_bits(), &mut offset, Endian::Little)?;
         buf.gwrite(self.elements, &mut offset)?;
         Ok(offset)
     }
@@ -183,15 +194,16 @@ impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
 impl<ElementContainer> ActionBody for MeshPeeringConfirmBody<'_, ElementContainer> {
     const CATEGORY_CODE: CategoryCode = CategoryCode::SelfProtected;
     fn matches(action_body: RawActionBody<'_>) -> bool {
-        action_body.category_code == Self::CATEGORY_CODE && action_body.payload.pread::<u8>(0)
-        .map(|subtype| subtype == SelfProtectedActionCode::MeshPeeringConfirm.into_bits())
-        .unwrap_or_default()
+        action_body.category_code == Self::CATEGORY_CODE
+            && action_body
+                .payload
+                .pread::<u8>(0)
+                .map(|subtype| subtype == SelfProtectedActionCode::MeshPeeringConfirm.into_bits())
+                .unwrap_or_default()
     }
 }
 pub type MeshPeeringConfirmFrame<'a, ElementContainer = ReadElements<'a>> =
     ManagementFrame<MeshPeeringConfirmBody<'a, ElementContainer>>;
-
-
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
@@ -212,7 +224,8 @@ impl<'a> TryFromCtx<'a> for MeshPeeringCloseBody<'a> {
                 msg: "Category code wasn't self-protected.",
             });
         }
-        let selfprotected_action_code = SelfProtectedActionCode::from_bits(from.gread(&mut offset)?);
+        let selfprotected_action_code =
+            SelfProtectedActionCode::from_bits(from.gread(&mut offset)?);
         if selfprotected_action_code != SelfProtectedActionCode::MeshPeeringClose {
             return Err(scroll::Error::BadInput {
                 size: offset,
@@ -231,7 +244,9 @@ impl<'a> TryFromCtx<'a> for MeshPeeringCloseBody<'a> {
     }
 }
 
-impl<ElementContainer: MeasureWith<()>> MeasureWith<()> for MeshPeeringCloseBody<'_, ElementContainer> {
+impl<ElementContainer: MeasureWith<()>> MeasureWith<()>
+    for MeshPeeringCloseBody<'_, ElementContainer>
+{
     fn measure_with(&self, ctx: &()) -> usize {
         1 + self.elements.measure_with(ctx)
     }
@@ -245,7 +260,10 @@ impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
         let mut offset = 0;
 
         buf.gwrite(CategoryCode::SelfProtected.into_bits(), &mut offset)?;
-        buf.gwrite(SelfProtectedActionCode::MeshPeeringConfirm.into_bits(), &mut offset)?;
+        buf.gwrite(
+            SelfProtectedActionCode::MeshPeeringConfirm.into_bits(),
+            &mut offset,
+        )?;
         buf.gwrite(self.elements, &mut offset)?;
         Ok(offset)
     }
@@ -254,9 +272,12 @@ impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
 impl<ElementContainer> ActionBody for MeshPeeringCloseBody<'_, ElementContainer> {
     const CATEGORY_CODE: CategoryCode = CategoryCode::SelfProtected;
     fn matches(action_body: RawActionBody<'_>) -> bool {
-        action_body.category_code == Self::CATEGORY_CODE && action_body.payload.pread::<u8>(0)
-        .map(|subtype| subtype == SelfProtectedActionCode::MeshPeeringClose.into_bits())
-        .unwrap_or_default()
+        action_body.category_code == Self::CATEGORY_CODE
+            && action_body
+                .payload
+                .pread::<u8>(0)
+                .map(|subtype| subtype == SelfProtectedActionCode::MeshPeeringClose.into_bits())
+                .unwrap_or_default()
     }
 }
 

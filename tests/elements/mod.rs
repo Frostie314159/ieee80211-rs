@@ -9,11 +9,11 @@ mod dsss_parameter_set;
 #[allow(unused)]
 mod element_chain;
 mod ibss_parameter_set;
+mod mesh_id;
 mod rsn;
 mod ssid;
 mod supported_rates;
 mod tim;
-mod mesh_id;
 
 #[test]
 fn test_read_elements() {
