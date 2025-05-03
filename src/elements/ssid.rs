@@ -106,7 +106,7 @@ impl<Type: SSIDLikeElementType, SSID: AsRef<str>> Display for SSIDLikeElement<'_
     }
 }
 #[cfg(feature = "defmt")]
-impl<SSID: AsRef<str>> defmt::Format for SSIDLikeElement<'_, SSID> {
+impl<Type: SSIDLikeElementType, SSID: AsRef<str>> defmt::Format for SSIDLikeElement<'_, Type, SSID> {
     fn format(&self, fmt: defmt::Formatter) {
         self.ssid.as_ref().format(fmt)
     }
