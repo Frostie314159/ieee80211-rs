@@ -9,6 +9,7 @@ use core::cmp;
 use crate::elements::{Element, ElementID};
 
 serializable_enum! {
+    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum MeshPeeringProtocolIdentifier : u16 {
         MeshPeeringManagementProtocol => 0,
