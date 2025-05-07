@@ -35,9 +35,9 @@ pub use vendor_specific_element::VendorSpecificElement;
 mod owe_transition;
 pub mod vht;
 pub use owe_transition::OWETransitionModeElement;
-pub mod tim;
-
 pub mod element_chain;
+pub mod mesh;
+pub mod tim;
 
 /// A raw TLV.
 pub type RawIEEE80211Element<'a> = RawTLV<'a, u8, u8>;
