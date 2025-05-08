@@ -106,7 +106,9 @@ impl<Type: SSIDLikeElementType, SSID: AsRef<str>> Display for SSIDLikeElement<'_
     }
 }
 #[cfg(feature = "defmt")]
-impl<SSID: AsRef<str>> defmt::Format for SSIDLikeElement<'_, SSID> {
+impl<Type: SSIDLikeElementType, SSID: AsRef<str>> defmt::Format
+    for SSIDLikeElement<'_, Type, SSID>
+{
     fn format(&self, fmt: defmt::Formatter) {
         self.ssid.as_ref().format(fmt)
     }
@@ -203,6 +205,6 @@ macro_rules! ssid {
 #[macro_export]
 macro_rules! mesh_id {
     ($mesh_id:expr) => {
-        ::ieee80211::ssid_internal!($ssid, MeshIDElement);
+        ::ieee80211::ssid_internal!($mesh_id, MeshIDElement);
     };
 }

@@ -34,6 +34,7 @@ The data frame implementation can handle any frames.
 - VHT Capabilities/Operation
 - Vendor Specific
 - OWE Transition
+- Mesh ID
 
 
 ## Contents
