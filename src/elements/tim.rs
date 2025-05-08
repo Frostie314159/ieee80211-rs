@@ -219,6 +219,10 @@ impl<Bitmap> TIMBitmap<Bitmap> {
             partial_virtual_bitmap,
         })
     }
+    /// Check if the TIM bitmap is empty.
+    pub const fn is_empty(&self) -> bool {
+        !self.bitmap_control.traffic_indicator() && self.partial_virtual_bitmap.is_none()
+    }
 }
 impl TIMBitmap<StaticBitmap> {
     /// Create a static [TIMBitmap].
@@ -593,7 +597,9 @@ impl<Bitmap: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for TIMElement<'_, Bi
         buf.gwrite(self.dtim_count, &mut offset)?;
         buf.gwrite(self.dtim_period, &mut offset)?;
         if let Some(bitmap) = self.bitmap {
-            buf.gwrite(bitmap, &mut offset)?;
+            if !bitmap.is_empty() {
+                buf.gwrite(bitmap, &mut offset)?;
+            }
         } else {
             // Empty bitmap control and partial virtual bitmap.
             offset += 2;

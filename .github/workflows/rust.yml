@@ -22,3 +22,5 @@ jobs:
       run: cargo test --verbose
     - name: Build benchmark
       run: cargo build --profile bench --verbose
+    - name: Build with defmt
+      run: cargo build --features defmt
