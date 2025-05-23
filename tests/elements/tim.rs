@@ -32,3 +32,15 @@ fn test_tim_aid_decode() {
         .unwrap()
         .eq([aid!(12), aid!(13)]));
 }
+const EMPTY_TIM_BYTES: &[u8] = &[0x02, 0x03];
+roundtrip_test!(
+    test_empty_tim_element_rw,
+    TIMElement,
+    TIMElement {
+        dtim_count: 2,
+        dtim_period: 3,
+        bitmap: TIMElement::NO_TIM_BITMAP,
+        _phantom: PhantomData,
+    },
+    EMPTY_TIM_BYTES
+);

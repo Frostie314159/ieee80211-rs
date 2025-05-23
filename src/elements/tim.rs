@@ -178,8 +178,6 @@ pub struct TIMBitmap<Bitmap> {
 impl<Bitmap> TIMBitmap<Bitmap> {
     #[inline]
     /// Returns the traffic indicator bit.
-    ///
-    /// This is
     pub const fn traffic_indicator(&self) -> bool {
         self.bitmap_control.traffic_indicator()
     }
@@ -344,8 +342,10 @@ impl<'a> TryFromCtx<'a> for TIMBitmap<&'a [u8]> {
 }
 impl<Bitmap: MeasureWith<()>> MeasureWith<()> for TIMBitmap<Bitmap> {
     fn measure_with(&self, ctx: &()) -> usize {
-        1 + if let Some(ref partial_virtual_bitmap) = self.partial_virtual_bitmap {
-            partial_virtual_bitmap.measure_with(ctx)
+        if let Some(ref partial_virtual_bitmap) = self.partial_virtual_bitmap {
+            1 + partial_virtual_bitmap.measure_with(ctx)
+        } else if self.traffic_indicator() {
+            1
         } else {
             0
         }
@@ -356,9 +356,12 @@ impl<Bitmap: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for TIMBitmap<Bitmap>
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         let mut offset = 0;
 
-        buf.gwrite_with(self.bitmap_control.into_bits(), &mut offset, Endian::Little)?;
         if let Some(partial_virtual_bitmap) = self.partial_virtual_bitmap {
+            buf.gwrite_with(self.bitmap_control.into_bits(), &mut offset, Endian::Little)?;
             buf.gwrite(partial_virtual_bitmap, &mut offset)?;
+        } else if self.traffic_indicator() {
+            buf.gwrite_with(self.bitmap_control.into_bits(), &mut offset, Endian::Little)?;
+            buf.gwrite(0u8, &mut offset)?;
         }
 
         Ok(offset)
@@ -404,12 +407,6 @@ impl<Bitmap: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for TIMBitmap<Bitmap>
 /// let _bitmap = tim_bitmap!(0 => 1337);
 /// ```
 macro_rules! tim_bitmap {
-    () => {
-        {
-            use ::ieee80211::elements::tim::{TIMBitmapControl, TIMBitmap};
-            TIMBitmap::<&[u8]>::new_unchecked(TIMBitmapControl::new().with_traffic_indicator(false), None)
-        }
-    };
     (0) => {
         {
             use ::ieee80211::elements::tim::{TIMBitmapControl, TIMBitmap};
@@ -503,6 +500,10 @@ pub struct TIMElement<'a, Bitmap = &'a [u8]> {
     pub bitmap: Option<TIMBitmap<Bitmap>>,
     pub _phantom: PhantomData<&'a ()>,
 }
+impl TIMElement<'_, &[u8]> {
+    /// Value for an empty TIM bitmap.
+    pub const NO_TIM_BITMAP: Option<TIMBitmap<&'static [u8]>>= None;
+}
 impl<Bitmap> TIMElement<'_, Bitmap> {
     /// Check if the DTIM parameters are valid.
     const fn check_dtim_parameters(dtim_period: u8, dtim_count: u8) -> Result<(), scroll::Error> {
@@ -582,8 +583,7 @@ impl<Bitmap: MeasureWith<()>> MeasureWith<()> for TIMElement<'_, Bitmap> {
         2 + if let Some(ref bitmap) = self.bitmap {
             bitmap.measure_with(ctx)
         } else {
-            // Empty bitmap control and partial virtual bitmap.
-            2
+            0
         }
     }
 }
@@ -600,9 +600,6 @@ impl<Bitmap: TryIntoCtx<Error = scroll::Error>> TryIntoCtx for TIMElement<'_, Bi
             if !bitmap.is_empty() {
                 buf.gwrite(bitmap, &mut offset)?;
             }
-        } else {
-            // Empty bitmap control and partial virtual bitmap.
-            offset += 2;
         }
 
         Ok(offset)
