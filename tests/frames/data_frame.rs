@@ -1,4 +1,4 @@
-use ieee80211::data_frame::{builder::DataFrameBuilder, DataFrame, DataFrameReadPayload};
+use ieee80211::{crypto::MicState, data_frame::{builder::DataFrameBuilder, DataFrame, DataFrameReadPayload, PotentiallyWrappedPayload}};
 use mac_parser::MACAddress;
 use scroll::{ctx::MeasureWith, Pread, Pwrite};
 
@@ -22,7 +22,7 @@ const EXPECTED_BYTES: &[u8] = &[
 fn test_data_frame_rw() {
     let read = EXPECTED_BYTES.pread_with::<DataFrame>(0, false).unwrap();
     assert_eq!(read.header, EXPECTED_DATA_FRAME.header);
-    let Some(Ok(DataFrameReadPayload::Single(payload))) = read.potentially_encrypted_payload(None)
+    let Some(PotentiallyWrappedPayload::Unwrapped(DataFrameReadPayload::Single(payload))) = read.potentially_wrapped_payload(None)
     else {
         panic!("Data frame payload wasn't single.");
     };
@@ -45,7 +45,7 @@ fn test_encrypted_data_frame() {
     let read = ENCRYPTED_DATA_FRAME_BYTES
         .pread_with::<DataFrame>(0, false)
         .unwrap();
-    let Some(Err(crypto_wrapper)) = read.potentially_encrypted_payload(Some(false)) else {
+    let Some(PotentiallyWrappedPayload::CryptoWrapped(crypto_wrapper)) = read.potentially_wrapped_payload(Some(MicState::NotPresent)) else {
         panic!();
     };
     assert_eq!(crypto_wrapper.crypto_header.packet_number(), 0x3a);

@@ -7,7 +7,7 @@ use scroll::{
 
 use crate::{
     common::{attach_fcs, strip_and_validate_fcs, DataFrameSubtype, FrameControlField, FrameType},
-    crypto::{CryptoHeader, CryptoWrapper},
+    crypto::{CryptoHeader, CryptoWrapper, MicState},
 };
 
 use self::{amsdu::AMSDUSubframeIterator, header::DataFrameHeader};
@@ -66,13 +66,45 @@ impl TryIntoCtx for DataFrameReadPayload<'_> {
 }
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+/// A payload, that may be crypto wrapped.
+pub enum PotentiallyWrappedPayload<P> {
+    /// A non crypto wrapped payload.
+    Unwrapped(P),
+    /// A crypto wrapped payload.
+    CryptoWrapped(CryptoWrapper<P>),
+}
+impl<P> PotentiallyWrappedPayload< P> {
+    /// Get a reference to the inner payload.
+    pub const fn payload(&self) -> &P {
+        match self {
+            Self::Unwrapped(payload) | Self::CryptoWrapped(CryptoWrapper { payload, .. }) => {
+                payload
+            }
+        }
+    }
+    /// Get a mutable reference to the inner payload.
+    pub const fn payload_mut(&mut self) -> &mut P {
+        match self {
+            Self::Unwrapped(payload) | Self::CryptoWrapped(CryptoWrapper { payload, .. }) => {
+                payload
+            }
+        }
+    }
+}
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-/// This is a data frame. The individual subtypes don't have there own seperate structs, since the only difference is the header.
+/// This is a data frame.
+///
+/// The individual subtypes don't have there own seperate structs, since the only difference is the header.
 pub struct DataFrame<'a, DataFramePayload = &'a [u8]> {
     /// This is the header of the data frame.
     pub header: DataFrameHeader,
     /// This is the payload of the data frame.
     /// It will be set to [None] for all null function frames.
+    /// NOTE: This may be crypto wrapped, so using [DataFrame::potentially_wrapped_payload] is
+    /// recommended.
     pub payload: Option<DataFramePayload>,
 
     pub _phantom: PhantomData<&'a ()>,
@@ -87,17 +119,24 @@ impl DataFrame<'_> {
                 0
             }
     }
-    pub fn potentially_encrypted_payload(
+    /// Get the potentially wrapped inner payload.
+    ///
+    /// If the payload is protected, but `mic_state` is None, None will be returned.
+    pub fn potentially_wrapped_payload(
         &self,
-        long_mic: Option<bool>,
-    ) -> Option<Result<DataFrameReadPayload<'_>, CryptoWrapper<DataFrameReadPayload<'_>>>> {
+        mic_state: Option<MicState>,
+    ) -> Option<PotentiallyWrappedPayload<DataFrameReadPayload<'_>>> {
         let payload = self.payload?;
         Some(if self.header.fcf_flags.protected() {
-            Err(payload
-                .pread_with(0, (self.header.is_amsdu(), long_mic?))
-                .ok()?)
+            PotentiallyWrappedPayload::CryptoWrapped(
+                payload
+                    .pread_with(0, (mic_state?, self.header.is_amsdu()))
+                    .unwrap(),
+            )
         } else {
-            Ok(payload.pread_with(0, self.header.is_amsdu()).ok()?)
+            PotentiallyWrappedPayload::Unwrapped(
+                payload.pread_with(0, self.header.is_amsdu()).ok()?,
+            )
         })
     }
 }
@@ -106,7 +145,7 @@ impl<'a, P> DataFrame<'a, P> {
     pub fn crypto_wrap(
         self,
         crypto_header: CryptoHeader,
-        long_mic: bool,
+        mic_state: MicState,
     ) -> DataFrame<'a, CryptoWrapper<P>> {
         DataFrame {
             header: DataFrameHeader {
@@ -116,7 +155,7 @@ impl<'a, P> DataFrame<'a, P> {
             payload: self.payload.map(|payload| CryptoWrapper {
                 crypto_header,
                 payload,
-                long_mic,
+                mic_state,
             }),
             _phantom: self._phantom,
         }

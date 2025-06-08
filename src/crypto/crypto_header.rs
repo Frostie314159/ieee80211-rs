@@ -61,7 +61,7 @@ impl<'a> TryFromCtx<'a> for CryptoHeader {
         packet_number[..2].copy_from_slice(&header[..2]);
         packet_number[2..].copy_from_slice(&header[4..]);
 
-        if check_bit!(header[3], bit!(5)) {
+        if !check_bit!(header[3], bit!(5)) {
             return Err(scroll::Error::BadInput {
                 size: offset,
                 msg: "Ext IV bit not set.",
@@ -97,7 +97,28 @@ impl MeasureWith<()> for CryptoHeader {
     }
 }
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+/// The state of the MIC in a frame.
+pub enum MicState {
+    /// No MIC is present.
+    NotPresent,
+    /// An 8 byte MIC is present.
+    Short,
+    // A 16 byte MIC is present.
+    Long,
+}
+impl MicState {
+    /// The length of the MIC.
+    pub const fn mic_length(&self) -> usize {
+        match self {
+            Self::NotPresent => 0,
+            Self::Short => 8,
+            Self::Long => 16,
+        }
+    }
+}
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 /// Wrapper around a payload, which adds fields required for cryptographic algorithms.
 ///
 /// This currently does not do any encryption or MIC calculation on it's own, but merely generates
@@ -107,41 +128,31 @@ pub struct CryptoWrapper<P> {
     pub crypto_header: CryptoHeader,
     /// The actual payload.
     pub payload: P,
-    /// Should an 8 or 16 byte MIC be attached.
-    pub long_mic: bool,
-}
-impl<P> CryptoWrapper<P> {
-    /// The length of the MIC.
-    pub const fn mic_length(&self) -> usize {
-        if self.long_mic {
-            16
-        } else {
-            8
-        }
-    }
+    /// The state of the MIC.
+    pub mic_state: MicState,
 }
 impl<'a, P: TryFromCtx<'a, PayloadCtx, Error = scroll::Error>, PayloadCtx: Copy>
-    TryFromCtx<'a, (bool, PayloadCtx)> for CryptoWrapper<P>
+    TryFromCtx<'a, (MicState, PayloadCtx)> for CryptoWrapper<P>
 {
     type Error = scroll::Error;
     fn try_from_ctx(
         from: &'a [u8],
-        (long_mic, payload_ctx): (bool, PayloadCtx),
+        (mic_state, payload_ctx): (MicState, PayloadCtx),
     ) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
 
         let crypto_header = from.gread(&mut offset)?;
-        let mic_length = if long_mic { 16 } else { 8 };
-        let payload_end = from.len() - mic_length;
-        let payload = from[offset..payload_end].gread_with(&mut offset, payload_ctx)?;
+        let mic_length = mic_state.mic_length();
+        let payload =
+            from[offset..][..from.len() - offset - mic_length].pread_with(0, payload_ctx)?;
 
         Ok((
             Self {
                 crypto_header,
                 payload,
-                long_mic,
+                mic_state,
             },
-            offset,
+            from.len(),
         ))
     }
 }
@@ -150,7 +161,7 @@ impl<P: TryIntoCtx<(), Error = scroll::Error>> TryIntoCtx<()> for CryptoWrapper<
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         let mut offset = 0;
 
-        let mic_length = self.mic_length();
+        let mic_length = self.mic_state.mic_length();
 
         buf.gwrite(self.crypto_header, &mut offset)?;
         buf.gwrite(self.payload, &mut offset)?;
@@ -162,6 +173,8 @@ impl<P: TryIntoCtx<(), Error = scroll::Error>> TryIntoCtx<()> for CryptoWrapper<
 }
 impl<P: MeasureWith<()>> MeasureWith<()> for CryptoWrapper<P> {
     fn measure_with(&self, ctx: &()) -> usize {
-        self.crypto_header.measure_with(ctx) + self.payload.measure_with(ctx) + self.mic_length()
+        self.crypto_header.measure_with(ctx)
+            + self.payload.measure_with(ctx)
+            + self.mic_state.mic_length()
     }
 }
