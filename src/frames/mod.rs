@@ -167,7 +167,6 @@ macro_rules! match_frames {
                 with_fcs
             };
             let generic_frame = GenericFrame::new($bytes, WITH_FCS);
-            assert!(generic_frame.is_ok());
             match generic_frame {
                 Ok(generic_frame) => {
                     if false {

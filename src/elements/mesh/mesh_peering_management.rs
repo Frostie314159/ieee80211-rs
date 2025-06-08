@@ -30,15 +30,13 @@ pub struct MeshPeeringManagement {
     rest_len: usize,
 }
 
+#[non_exhaustive]
 pub struct ParsedMeshPeeringManagement {
     pub mesh_peering_protocol_identifier: MeshPeeringProtocolIdentifier,
     pub local_link_id: u16,
     pub peer_link_id: Option<u16>,
     pub reason_code: Option<IEEE80211Reason>,
     pub pmk: Option<[u8; 16]>,
-
-    // Don't allow creation of the struct
-    _private: (),
 }
 
 impl MeshPeeringManagement {
@@ -61,7 +59,7 @@ impl MeshPeeringManagement {
         Self {
             mesh_peering_protocol_identifier,
             local_link_id,
-            rest: rest,
+            rest,
             rest_len: offset,
         }
     }
@@ -84,7 +82,7 @@ impl MeshPeeringManagement {
         Self {
             mesh_peering_protocol_identifier,
             local_link_id,
-            rest: rest,
+            rest,
             rest_len: offset,
         }
     }
@@ -111,32 +109,29 @@ impl MeshPeeringManagement {
         Self {
             mesh_peering_protocol_identifier,
             local_link_id,
-            rest: rest,
+            rest,
             rest_len: offset,
         }
     }
 
     pub fn parse_as_open(&self) -> Option<ParsedMeshPeeringManagement> {
-        let pmk;
         let mut offset = 0;
 
-        if self.rest_len == 0 {
-            pmk = None;
+        let pmk = if self.rest_len == 0 {
+            None
         } else if self.rest_len == 16 {
-            let pmk_inner: [u8; 16];
-            pmk_inner = self.rest.gread(&mut offset).unwrap();
-            pmk = Some(pmk_inner);
+            let pmk_inner = self.rest.gread(&mut offset).unwrap();
+            Some(pmk_inner)
         } else {
             return None;
-        }
+        };
 
         Some(ParsedMeshPeeringManagement {
             mesh_peering_protocol_identifier: self.mesh_peering_protocol_identifier,
             local_link_id: self.local_link_id,
             peer_link_id: None,
             reason_code: None,
-            pmk: pmk,
-            _private: (),
+            pmk,
         })
     }
 
@@ -150,8 +145,7 @@ impl MeshPeeringManagement {
             peer_link_id = self.rest.gread(&mut offset).unwrap();
         } else if self.rest_len == 2 + 16 {
             peer_link_id = self.rest.gread(&mut offset).unwrap();
-            let pmk_inner: [u8; 16];
-            pmk_inner = self.rest.gread(&mut offset).unwrap();
+            let pmk_inner = self.rest.gread(&mut offset).unwrap();
             pmk = Some(pmk_inner);
         } else {
             return None;
@@ -162,8 +156,7 @@ impl MeshPeeringManagement {
             local_link_id: self.local_link_id,
             peer_link_id: Some(peer_link_id),
             reason_code: None,
-            pmk: pmk,
-            _private: (),
+            pmk,
         })
     }
 
@@ -185,15 +178,13 @@ impl MeshPeeringManagement {
         } else if self.rest_len == 2 + 16 {
             peer_link_id = None;
             reason_code = IEEE80211Reason::from_bits(self.rest.gread(&mut offset).unwrap());
-            let pmk_inner: [u8; 16];
-            pmk_inner = self.rest.gread(&mut offset).unwrap();
+            let pmk_inner = self.rest.gread(&mut offset).unwrap();
             pmk = Some(pmk_inner);
         } else if self.rest_len == 2 + 2 + 16 {
             let peer_link_id_ = self.rest.gread(&mut offset).unwrap();
             peer_link_id = Some(peer_link_id_);
             reason_code = IEEE80211Reason::from_bits(self.rest.gread(&mut offset).unwrap());
-            let pmk_inner: [u8; 16];
-            pmk_inner = self.rest.gread(&mut offset).unwrap();
+            let pmk_inner = self.rest.gread(&mut offset).unwrap();
             pmk = Some(pmk_inner);
         } else {
             return None;
@@ -202,10 +193,9 @@ impl MeshPeeringManagement {
         Some(ParsedMeshPeeringManagement {
             mesh_peering_protocol_identifier: self.mesh_peering_protocol_identifier,
             local_link_id: self.local_link_id,
-            peer_link_id: peer_link_id,
+            peer_link_id,
             reason_code: Some(reason_code),
-            pmk: pmk,
-            _private: (),
+            pmk,
         })
     }
 }

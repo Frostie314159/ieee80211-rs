@@ -5,9 +5,9 @@ use std::marker::PhantomData;
 use ieee80211::{
     common::CapabilitiesInformation,
     element_chain,
-    elements::{rsn::RSNElement, tim::TIMElement, DSSSParameterSetElement},
+    elements::{rsn::RSNElement, tim::{TIMBitmap, TIMElement}, DSSSParameterSetElement},
     mgmt_frame::{body::BeaconBody, BeaconFrame, DynamicManagementFrame, ManagementFrameHeader},
-    ssid, supported_rates, tim_bitmap,
+    ssid, supported_rates
 };
 use mac_parser::{MACAddress, BROADCAST};
 
@@ -43,7 +43,7 @@ fn main() {
                 TIMElement {
                     dtim_count: 1,
                     dtim_period: 2,
-                    bitmap: Some(tim_bitmap![]),
+                    bitmap: None::<TIMBitmap<&[u8]>>,
                     _phantom: PhantomData
                 }
             },
