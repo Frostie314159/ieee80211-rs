@@ -349,7 +349,7 @@ dependencies = [
 
 [[package]]
 name = "ieee80211"
-version = "0.5.5"
+version = "0.5.6"
 dependencies = [
  "bitfield-struct",
  "const_soft_float",

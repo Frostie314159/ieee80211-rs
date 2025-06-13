@@ -7,13 +7,31 @@ serializable_enum! {
     /// An IEEE 802.11 reason code used in certain management frames.
     pub enum IEEE80211Reason: u16 {
         #[default]
-        Unspecified => 0x01,
-        InvalidAuthentication => 0x02,
-        LeavingNetworkDeauth => 0x03,
-        Inactivity => 0x04,
-        NoMoreSTAs => 0x05,
-        InvalidClass2Frame => 0x06,
-        InvalidClass3Frame => 0x07,
-        LeavingNetworkDisassoc => 0x08
+        Unspecified => 1,
+        InvalidAuthentication => 2,
+        LeavingNetworkDeauth => 3,
+        Inactivity => 4,
+        NoMoreSTAs => 5,
+        InvalidClass2Frame => 6,
+        InvalidClass3Frame => 7,
+        LeavingNetworkDisassoc => 8,
+
+        MeshPeeringCancelled => 52,
+        MeshMaxPeers => 53,
+        MeshConfigurationPolicyViolation => 54,
+        MeshCloseRcvd => 55,
+        MeshMaxRetries => 56,
+        MeshConfirmTimeout => 57,
+        MeshInvalidGTK => 58,
+        MeshInconsistentParameters => 59,
+        MeshInvalidSecurityCapability => 60,
+        MeshPathErrorNoProxyInformation => 61,
+        MeshPathErrorNoForwardingInformation => 62,
+        MeshPathErrorDestinationUnreachable => 63,
+        MacAddressAlreadyExistsInMBSS => 64,
+        MeshChannelSwitchRegulatoryRequirements => 65,
+        MeshChannelSwitchUnspecified => 66,
+        TransmissionLinkEstablishmentFailed => 67,
+        AlternativeChannelOccupied => 68
     }
 }
