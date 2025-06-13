@@ -8,6 +8,8 @@ use pbkdf2::pbkdf2_hmac;
 use sha1::Sha1;
 use sha2::{Sha256, Sha384};
 
+use crate::elements::rsn::{IEEE80211AKMType, IEEE80211CipherSuiteSelector};
+
 /// HMAC-SHA-1 function
 pub type HSha1 = Hmac<Sha1>;
 /// HMAC-SHA-256 function
@@ -82,7 +84,8 @@ where
 }
 /// Pseudo Random Function (PRF)
 ///
-/// According to 12.7.1.2 IEEE 802.11-2020
+/// Implemented according to 12.7.1.2 IEEE 802.11-2020. This is the default PRF, with HMAC-SHA-1.
+/// For some AKM suites, different PRF's are used.
 pub fn prf(key: &[u8], label: &str, data: &[u8], output: &mut [u8]) {
     prf_iter(key, label, &[data], output)
 }
@@ -120,4 +123,22 @@ pub fn derive_ptk(
         &[min_address, max_address, min_nonce, max_nonce],
         ptk,
     );
+}
+/// Partition a PTK into KCK, KEK and TK
+///
+/// This will return [None], if either the AKM or Cipher suite are unknown, or the provided PTK is
+/// too short. If the PTK is longer than the KCK, KEK and TK together, the excess data will just be
+/// truncated.
+pub fn partition_ptk(
+    ptk: &[u8],
+    akm_suite: IEEE80211AKMType,
+    cipher_suite: IEEE80211CipherSuiteSelector,
+) -> Option<(&[u8], &[u8], &[u8])> {
+    let kck_len = akm_suite.kck_len()?;
+    let kek_len = akm_suite.kek_len()?;
+    let tk_len = cipher_suite.tk_len()?;
+    let (kck, kek_and_tk) = ptk.split_at_checked(kck_len)?;
+    let (kek, tk) = kek_and_tk.split_at_checked(kek_len)?;
+    let tk = tk.get(..tk_len)?;
+    Some((kck, kek, tk))
 }

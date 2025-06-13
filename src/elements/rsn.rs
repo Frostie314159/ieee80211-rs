@@ -152,7 +152,7 @@ impl IEEE80211CipherSuiteSelector {
     /// Get the length of the temporal key (TK).
     ///
     /// Length is in bytes.
-    pub const fn temporal_key_len(&self) -> Option<usize> {
+    pub const fn tk_len(&self) -> Option<usize> {
         if let Some(suite_type) = get_suite_type_if_oui_is_ieee(self.cipher_suite_selector()) {
             Some(match suite_type {
                 1 => 5,
