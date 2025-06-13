@@ -12,6 +12,7 @@ use crate::common::{ReadIterator, IEEE_OUI};
 
 use super::{Element, ElementID};
 
+/// Combine the OUI and suite type into the cipher suite selector.
 const fn merge_oui_and_suite_type(oui: [u8; 3], suite_type: u8) -> u32 {
     let mut cipher_suite_selector = [0x00u8; 4];
 
@@ -23,13 +24,22 @@ const fn merge_oui_and_suite_type(oui: [u8; 3], suite_type: u8) -> u32 {
 
     u32::from_le_bytes(cipher_suite_selector)
 }
+/// Split the cipher suite selector into OUI and suite type.
 const fn split_cipher_suite_selector(cipher_suite_selector: u32) -> ([u8; 3], u8) {
-    let cipher_suite_selector = cipher_suite_selector.to_le_bytes();
+    let suite_type = cipher_suite_selector.to_le_bytes();
     let mut oui = [0x00u8; 3];
-    oui[0] = cipher_suite_selector[0];
-    oui[1] = cipher_suite_selector[1];
-    oui[2] = cipher_suite_selector[2];
-    (oui, cipher_suite_selector[3])
+    oui[0] = suite_type[0];
+    oui[1] = suite_type[1];
+    oui[2] = suite_type[2];
+    (oui, suite_type[3])
+}
+/// This is a const method to extract the suite type, if the OUI matches that of the IEEE.
+const fn get_suite_type_if_oui_is_ieee(cipher_suite_selector: u32) -> Option<u8> {
+    if cipher_suite_selector >> 24 == 0xac0f00u32 {
+        Some((cipher_suite_selector >> 8) as u8)
+    } else {
+        None
+    }
 }
 
 macro_rules! cipher_suite_selectors {
@@ -138,6 +148,38 @@ cipher_suite_selectors! {
         BIPCcmp256 => (IEEE_OUI, 13)
     }
 }
+impl IEEE80211CipherSuiteSelector {
+    /// Get the length of the temporal key (TK).
+    ///
+    /// Length is in bytes.
+    pub const fn temporal_key_len(&self) -> Option<usize> {
+        if let Some(suite_type) = get_suite_type_if_oui_is_ieee(self.cipher_suite_selector()) {
+            Some(match suite_type {
+                1 => 5,
+                2 | 9..=10 | 12..=13 => 32,
+                4 | 6 | 8 | 11 => 16,
+                5 => 13,
+                _ => return None,
+            })
+        } else {
+            None
+        }
+    }
+    /// Get the length of the Message Integrity Check (MIC)
+    ///
+    /// Length is in bytes.
+    pub const fn mic_len(&self) -> Option<usize> {
+        if let Some(suite_type) = get_suite_type_if_oui_is_ieee(self.cipher_suite_selector()) {
+            Some(match suite_type {
+                2 | 4 | 6 => 8,
+                8..=13 => 16,
+                _ => return None,
+            })
+        } else {
+            None
+        }
+    }
+}
 cipher_suite_selectors! {
     #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
@@ -171,49 +213,155 @@ cipher_suite_selectors! {
         FTUsingSaeGroupDefend => (IEEE_OUI, 23)
     }
 }
+impl IEEE80211AKMType {
+    /// Get the length of the EAPOL-Key confirmation key (KCK)
+    ///
+    /// Length is in bytes.
+    pub const fn kck_len(&self) -> Option<usize> {
+        if let Some(suite_type) = get_suite_type_if_oui_is_ieee(self.cipher_suite_selector()) {
+            Some(match suite_type {
+                1..=11 => 16,
+                12..=13 => 24,
+                _ => return None,
+            })
+        } else {
+            None
+        }
+    }
+    /// Get the length of the EAPOL-Key encryption key (KEK)
+    ///
+    /// Length is in bytes.
+    pub const fn kek_len(&self) -> Option<usize> {
+        if let Some(suite_type) = get_suite_type_if_oui_is_ieee(self.cipher_suite_selector()) {
+            Some(match suite_type {
+                1..=11 => 16,
+                12..=14 | 16 => 32,
+                15 | 17 => 64,
+                _ => return None,
+            })
+        } else {
+            None
+        }
+    }
+    /// Get the length of the EAPOL-Key confirmation key 2 (KCK2)
+    ///
+    /// Length is in bytes.
+    /// Used in Fast Transistion.
+    pub const fn kck2_len(&self) -> Option<usize> {
+        if let Some(suite_type) = get_suite_type_if_oui_is_ieee(self.cipher_suite_selector()) {
+            Some(match suite_type {
+                16 => 16,
+                17 => 24,
+                _ => return None,
+            })
+        } else {
+            None
+        }
+    }
+    /// Get the length of the EAPOL-Key encryption key 2 (KEK2)
+    ///
+    /// Length is in bytes.
+    /// Used in Fast Transistion.
+    pub const fn kek2_len(&self) -> Option<usize> {
+        if let Some(suite_type) = get_suite_type_if_oui_is_ieee(self.cipher_suite_selector()) {
+            Some(match suite_type {
+                16 => 16,
+                17 => 32,
+                _ => return None,
+            })
+        } else {
+            None
+        }
+    }
+    /// Get the length of the key message integrity check (MIC)
+    ///
+    /// Length is in bytes.
+    pub const fn key_mic_len(&self) -> Option<usize> {
+        if let Some(suite_type) = get_suite_type_if_oui_is_ieee(self.cipher_suite_selector()) {
+            Some(match suite_type {
+                1..=11 | 16 => 16,
+                12..=13 | 17 => 24,
+                14..=15 => 0,
+                _ => return None,
+            })
+        } else {
+            None
+        }
+    }
+}
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+/// Configuration of an optional feature
+pub enum OptionalFeatureConfig {
+    #[default]
+    /// The feature is disabled.
+    Disabled,
+    /// The feature is enabled but not required.
+    Capable,
+    /// The feature is enabled and required.
+    Required,
+    /// The configuration is invalid.
+    Invalid,
+}
+impl OptionalFeatureConfig {
+    pub const fn from_bits(bits: u8) -> Self {
+        match bits & 0b11 {
+            0b00 => Self::Disabled,
+            0b01 => Self::Capable,
+            0b10 => Self::Required,
+            _ => Self::Invalid,
+        }
+    }
+    pub const fn into_bits(self) -> u8 {
+        match self {
+            Self::Disabled => 0b00,
+            Self::Capable => 0b01,
+            Self::Required => 0b11,
+            Self::Invalid => 0b10,
+        }
+    }
+    /// Check if the transmitting station is capable of the feature.
+    pub const fn is_capable(&self) -> bool {
+        matches!(self, Self::Required | Self::Capable)
+    }
+    /// Check if the feature is required.
+    pub const fn is_required(&self) -> bool {
+        matches!(self, Self::Required)
+    }
+    /// Check if the configurations are compatible.
+    pub const fn is_compatible(&self, rhs: &Self) -> bool {
+        self.is_required() == rhs.is_capable() && self.is_capable() == rhs.is_required()
+    }
+}
 
 #[bitfield(u16, defmt = cfg(feature = "defmt"))]
 #[derive(PartialEq, Eq, Hash)]
 /// The specific capabilities of the transmitting STA.
 pub struct RSNCapabilities {
+    /// Is preauthentication supported.
     pub supports_preauthentication: bool,
     pub no_pairwise_key: bool,
     #[bits(2)]
     pub ptksa_replay_counter: u8,
     #[bits(2)]
     pub gtksa_replay_counter: u8,
-    /// Protection of management frames is required.
-    pub mfp_required: bool,
-    /// Protection of management frames is optionally supported.
-    pub mfp_enabled: bool,
-    pub supports_joint_multi_band_rsna: bool,
-    pub supports_peer_key_enabled_handshake: bool,
-    pub spp_amsdu_capable: bool,
-    pub spp_amsdu_required: bool,
+    #[bits(2)]
+    /// Management Frame Protection (MFP) configuration
+    pub mfp_config: OptionalFeatureConfig,
+    /// Joint Multi Band RSNA capable
+    pub joint_multi_band_rsna_capable: bool,
+    /// Peer Key Enabled Handshake capable
+    pub peer_key_enabled_handshake_capable: bool,
+    #[bits(2)]
+    /// A-MPDU Signalling and Payload Protection (SPP) configuration
+    pub spp_ampdu_config: OptionalFeatureConfig,
+    /// Protected Block ACK Agreement Capable
     pub pbac_capable: bool,
     pub ext_key_id_for_individually_addressed_frames: bool,
-    pub ocvc: bool,
+    /// Is Operating Channel Validation (OCV).
+    pub ocv_capable: bool,
     pub __: bool,
-}
-impl RSNCapabilities {
-    /// Check if the specified management frame protection (MFP) policy is valid.
-    ///
-    /// This returns false, if MFP is required but not enabled.
-    pub const fn is_mfp_valid(&self) -> bool {
-        !self.mfp_required() || self.mfp_enabled()
-    }
-    /// Check if the own management frame protection (MFP) policy is compatible with the other provided one.
-    pub const fn is_mfp_compatible(&self, other: RSNCapabilities) -> bool {
-        // Associations aren't allowed with invalid MFP policies, so rule them out directly.
-        if !self.is_mfp_valid() || !other.is_mfp_valid() {
-            return false;
-        }
-        if !self.mfp_enabled() & other.mfp_required() || self.mfp_required() & !other.mfp_enabled()
-        {
-            return false;
-        }
-        true
-    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
@@ -373,9 +521,7 @@ impl RSNElement<'_> {
         pairwise_cipher_suite_list: Some([IEEE80211CipherSuiteSelector::Ccmp128]),
         akm_list: Some([IEEE80211AKMType::Sae]),
         rsn_capbilities: Some(
-            RSNCapabilities::new()
-                .with_mfp_enabled(true)
-                .with_mfp_required(true),
+            RSNCapabilities::new().with_mfp_config(OptionalFeatureConfig::Required),
         ),
         pmkid_list: Some([]),
         group_management_cipher_suite: Some(IEEE80211CipherSuiteSelector::BipCmac128),
@@ -392,9 +538,7 @@ impl RSNElement<'_> {
         pairwise_cipher_suite_list: Some([IEEE80211CipherSuiteSelector::Ccmp128]),
         akm_list: Some([IEEE80211AKMType::OpportunisticWirelessEncryption]),
         rsn_capbilities: Some(
-            RSNCapabilities::new()
-                .with_mfp_enabled(true)
-                .with_mfp_required(true),
+            RSNCapabilities::new().with_mfp_config(OptionalFeatureConfig::Required),
         ),
         pmkid_list: None,
         group_management_cipher_suite: Some(IEEE80211CipherSuiteSelector::Ccmp128),

@@ -5,9 +5,13 @@ use std::marker::PhantomData;
 use ieee80211::{
     common::CapabilitiesInformation,
     element_chain,
-    elements::{rsn::RSNElement, tim::{TIMBitmap, TIMElement}, DSSSParameterSetElement},
+    elements::{
+        rsn::RSNElement,
+        tim::{TIMBitmap, TIMElement},
+        DSSSParameterSetElement,
+    },
     mgmt_frame::{body::BeaconBody, BeaconFrame, DynamicManagementFrame, ManagementFrameHeader},
-    ssid, supported_rates
+    ssid, supported_rates,
 };
 use mac_parser::{MACAddress, BROADCAST};
 
