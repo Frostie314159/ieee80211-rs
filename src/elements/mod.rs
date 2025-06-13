@@ -38,6 +38,7 @@ pub use owe_transition::OWETransitionModeElement;
 pub mod element_chain;
 pub mod mesh;
 pub mod tim;
+pub mod kde;
 
 /// A raw TLV.
 pub type RawIEEE80211Element<'a> = RawTLV<'a, u8, u8>;
