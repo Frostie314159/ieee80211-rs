@@ -35,7 +35,7 @@ const fn split_cipher_suite_selector(cipher_suite_selector: u32) -> ([u8; 3], u8
 }
 /// This is a const method to extract the suite type, if the OUI matches that of the IEEE.
 const fn get_suite_type_if_oui_is_ieee(cipher_suite_selector: u32) -> Option<u8> {
-    if cipher_suite_selector >> 24 == 0xac0f00u32 {
+    if cipher_suite_selector >> 24 == 0x000facu32 {
         Some((cipher_suite_selector >> 8) as u8)
     } else {
         None

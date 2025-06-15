@@ -84,6 +84,13 @@ fn test_prf() {
 }
 #[test]
 fn test_ptk_derivation() {
+    // These test vectors are taken from Aircrack-NG's test suite, since those in IEEE 802.11 Annex
+    // J are missing some quite crucial details, like AKM and such.
+    // https://github.com/aircrack-ng/aircrack-ng/blob/master/test/cryptounittest/test-calc-ptk.c
+    // Aircrack-NG is under GPL, while this library is under Apache/MIT, so I'm unsure about the
+    // legality of using the test vectors. If they have anything against us using them, I'll
+    // happily remove them.
+
     let pmk = b"\xee\x51\x88\x37\x93\xa6\xf6\x8e\x96\x15\xfe\x73\xc8\x0a\x3a\xa6\xf2\xdd\x0e\xa5\x37\xbc\xe6\x27\xb9\x29\x18\x3c\xc6\xe5\x79\x25";
     let authenticator_address = [0x00, 0x14, 0x6c, 0x7e, 0x40, 0x80];
     let supplicant_address = [0x00, 0x13, 0x46, 0xfe, 0x32, 0x0c];
