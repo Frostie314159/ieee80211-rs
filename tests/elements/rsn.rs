@@ -37,3 +37,7 @@ fn test_rsn_element_builder() {
             .with_akm_list([IEEE80211AKMType::Psk])
     )
 }
+#[test]
+fn test_akm_parameters() {
+    assert_eq!(IEEE80211AKMType::Psk.kek_len().unwrap(), 16);
+}
