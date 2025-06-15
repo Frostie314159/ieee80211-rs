@@ -22,13 +22,13 @@ pub fn michael(key: u64, bytes: &[u8]) -> u64 {
     let left = bytes.len() % 4;
 
     for i in 0..blocks {
-        let block = &bytes[(i * 4)..(i * 4 + 4)];
+        let block = &bytes[(i * 4)..][..4];
         let block = u32::from_le_bytes(block.try_into().unwrap());
         l ^= block;
         (l, r) = michael_block_function(l, r);
     }
     let mut block = [0x00; 4];
-    block[..left].copy_from_slice(&bytes[(blocks * 4)..(blocks * 4 + left)]);
+    block[..left].copy_from_slice(&bytes[(blocks * 4)..][..left]);
     block[left] = 0x5a;
     let block = u32::from_le_bytes(block);
     l ^= block;

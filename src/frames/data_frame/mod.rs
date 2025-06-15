@@ -74,7 +74,7 @@ pub enum PotentiallyWrappedPayload<P> {
     /// A crypto wrapped payload.
     CryptoWrapped(CryptoWrapper<P>),
 }
-impl<P> PotentiallyWrappedPayload< P> {
+impl<P> PotentiallyWrappedPayload<P> {
     /// Get a reference to the inner payload.
     pub const fn payload(&self) -> &P {
         match self {
