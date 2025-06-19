@@ -2,3 +2,4 @@
 
 mod key_mgmt;
 mod michael;
+mod eapol;

@@ -184,7 +184,7 @@ cipher_suite_selectors! {
     #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
     /// The authentication and key-management type.
-    pub enum IEEE80211AKMType {
+    pub enum IEEE80211AkmType {
         #[default]
         None => (IEEE_OUI, 0),
         Wpa => (IEEE_OUI, 1),
@@ -213,7 +213,7 @@ cipher_suite_selectors! {
         FTUsingSaeGroupDefend => (IEEE_OUI, 23)
     }
 }
-impl IEEE80211AKMType {
+impl IEEE80211AkmType {
     /// Get the length of the EAPOL-Key confirmation key (KCK)
     ///
     /// Length is in bytes.
@@ -338,7 +338,7 @@ impl OptionalFeatureConfig {
 #[bitfield(u16, defmt = cfg(feature = "defmt"))]
 #[derive(PartialEq, Eq, Hash)]
 /// The specific capabilities of the transmitting STA.
-pub struct RSNCapabilities {
+pub struct RsnCapabilities {
     /// Is preauthentication supported.
     pub supports_preauthentication: bool,
     pub no_pairwise_key: bool,
@@ -356,46 +356,50 @@ pub struct RSNCapabilities {
     #[bits(2)]
     /// A-MPDU Signalling and Payload Protection (SPP) configuration
     pub spp_ampdu_config: OptionalFeatureConfig,
-    /// Protected Block ACK Agreement Capable
+    /// Protected Block ACK Agreement capable
     pub pbac_capable: bool,
     pub ext_key_id_for_individually_addressed_frames: bool,
-    /// Is Operating Channel Validation (OCV).
+    /// Operating Channel Validation (OCV) capable
     pub ocv_capable: bool,
     pub __: bool,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-/// This is a temporary fix until <https://github.com/m4b/scroll/pull/99> and <https://github.com/m4b/scroll/pull/100> get merged.
-pub struct IEEE80211PMKID(pub [u8; 16]);
-impl Display for IEEE80211PMKID {
+/// A Pairwise Master Key Identifier (PMKID)
+pub struct IEEE80211Pmkid(pub [u8; 16]);
+impl Display for IEEE80211Pmkid {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_fmt(format_args!("{:16x}", u128::from_be_bytes(self.0)))
     }
 }
 #[cfg(feature = "defmt")]
-impl defmt::Format for IEEE80211PMKID {
+impl defmt::Format for IEEE80211Pmkid {
     fn format(&self, fmt: defmt::Formatter) {
         defmt::write!(fmt, "{=u128:x}", u128::from_be_bytes(self.0))
     }
 }
-impl<'a> TryFromCtx<'a> for IEEE80211PMKID {
+impl<'a> TryFromCtx<'a> for IEEE80211Pmkid {
     type Error = scroll::Error;
     #[inline]
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         <[u8; 16]>::try_from_ctx(from, Endian::Little)
-            .map(|(pmkid, offset)| (IEEE80211PMKID(pmkid), offset))
+            .map(|(pmkid, offset)| (IEEE80211Pmkid(pmkid), offset))
     }
 }
-impl TryIntoCtx for IEEE80211PMKID {
+impl TryIntoCtx for IEEE80211Pmkid {
     type Error = scroll::Error;
     #[inline]
     fn try_into_ctx(self, buf: &mut [u8], _ctx: ()) -> Result<usize, Self::Error> {
         buf.pwrite(self.0.as_slice(), 0)
     }
 }
-impl SizeWith for IEEE80211PMKID {
-    #[inline]
+impl SizeWith for IEEE80211Pmkid {
     fn size_with(_ctx: &()) -> usize {
+        16
+    }
+}
+impl MeasureWith<()> for IEEE80211Pmkid {
+    fn measure_with(&self, _ctx: &()) -> usize {
         16
     }
 }
@@ -409,35 +413,35 @@ impl SizeWith for IEEE80211PMKID {
 /// This means, that if you want to use the `rsn_capabilities` field, all prior fields need to be [Option::Some] even if they are just default values.
 /// Due to this, it is highly recommended, that you use the `with_` methods, to construct the element.
 /// This is not validated while writing, due to the performance hit, and can cause invalid outputs.
-pub struct RSNElement<
+pub struct RsnElement<
     'a,
     PairwiseCipherSuiteList = ReadIterator<'a, (), IEEE80211CipherSuiteSelector>,
-    AKMList = ReadIterator<'a, (), IEEE80211AKMType>,
-    PMKIDList = ReadIterator<'a, (), IEEE80211PMKID>,
+    AkmList = ReadIterator<'a, (), IEEE80211AkmType>,
+    PmkidList = ReadIterator<'a, (), IEEE80211Pmkid>,
 > {
     /// The cipher suite used for group addressed data traffic.
     pub group_data_cipher_suite: Option<IEEE80211CipherSuiteSelector>,
     /// The list of cipher suites supported for individually addressed traffic.
     pub pairwise_cipher_suite_list: Option<PairwiseCipherSuiteList>,
     /// The list of supported authentication and key-management suites.
-    pub akm_list: Option<AKMList>,
+    pub akm_list: Option<AkmList>,
     /// The RSN capabilities of the transmitting STA.
-    pub rsn_capbilities: Option<RSNCapabilities>,
+    pub rsn_capbilities: Option<RsnCapabilities>,
     /// The list of primary master key IDs.
-    pub pmkid_list: Option<PMKIDList>,
+    pub pmkid_list: Option<PmkidList>,
     /// The cipher suite used for group addressed management frames.
     pub group_management_cipher_suite: Option<IEEE80211CipherSuiteSelector>,
     pub _phantom: PhantomData<&'a ()>,
 }
-impl RSNElement<'_> {
+impl RsnElement<'_> {
     /// Create a new empty [RSNElement].
-    pub const fn new() -> RSNElement<
+    pub const fn new() -> RsnElement<
         'static,
         [IEEE80211CipherSuiteSelector; 0],
-        [IEEE80211AKMType; 0],
-        [IEEE80211PMKID; 0],
+        [IEEE80211AkmType; 0],
+        [IEEE80211Pmkid; 0],
     > {
-        RSNElement {
+        RsnElement {
             group_data_cipher_suite: None,
             pairwise_cipher_suite_list: None,
             akm_list: None,
@@ -448,109 +452,109 @@ impl RSNElement<'_> {
         }
     }
     /// An [RSNElement] equivalent to WPA-Personal.
-    pub const WPA_PERSONAL: RSNElement<
+    pub const WPA_PERSONAL: RsnElement<
         'static,
         [IEEE80211CipherSuiteSelector; 1],
-        [IEEE80211AKMType; 1],
-        [IEEE80211PMKID; 0],
-    > = RSNElement {
+        [IEEE80211AkmType; 1],
+        [IEEE80211Pmkid; 0],
+    > = RsnElement {
         group_data_cipher_suite: Some(IEEE80211CipherSuiteSelector::Tkip),
         pairwise_cipher_suite_list: Some([IEEE80211CipherSuiteSelector::Tkip]),
-        akm_list: Some([IEEE80211AKMType::Psk]),
-        rsn_capbilities: None,
+        akm_list: Some([IEEE80211AkmType::Psk]),
+        rsn_capbilities: Some(RsnCapabilities::new()),
         pmkid_list: None,
         group_management_cipher_suite: None,
         _phantom: PhantomData,
     };
     /// An [RSNElement] equivalent to WPA/WPA2-Personal.
-    pub const WPA_WPA2_PERSONAL: RSNElement<
+    pub const WPA_WPA2_PERSONAL: RsnElement<
         'static,
         [IEEE80211CipherSuiteSelector; 2],
-        [IEEE80211AKMType; 1],
-        [IEEE80211PMKID; 0],
-    > = RSNElement {
+        [IEEE80211AkmType; 1],
+        [IEEE80211Pmkid; 0],
+    > = RsnElement {
         group_data_cipher_suite: Some(IEEE80211CipherSuiteSelector::Tkip),
         pairwise_cipher_suite_list: Some([
             IEEE80211CipherSuiteSelector::Tkip,
             IEEE80211CipherSuiteSelector::Ccmp128,
         ]),
-        akm_list: Some([IEEE80211AKMType::Psk]),
-        rsn_capbilities: None,
+        akm_list: Some([IEEE80211AkmType::Psk]),
+        rsn_capbilities: Some(RsnCapabilities::new()),
         pmkid_list: None,
         group_management_cipher_suite: None,
         _phantom: PhantomData,
     };
     /// An [RSNElement] equivalent to WPA2-Personal.
-    pub const WPA2_PERSONAL: RSNElement<
+    pub const WPA2_PERSONAL: RsnElement<
         'static,
         [IEEE80211CipherSuiteSelector; 1],
-        [IEEE80211AKMType; 1],
-        [IEEE80211PMKID; 0],
-    > = RSNElement {
+        [IEEE80211AkmType; 1],
+        [IEEE80211Pmkid; 0],
+    > = RsnElement {
         group_data_cipher_suite: Some(IEEE80211CipherSuiteSelector::Ccmp128),
         pairwise_cipher_suite_list: Some([IEEE80211CipherSuiteSelector::Ccmp128]),
-        akm_list: Some([IEEE80211AKMType::Psk]),
-        rsn_capbilities: None,
+        akm_list: Some([IEEE80211AkmType::Psk]),
+        rsn_capbilities: Some(RsnCapabilities::new()),
         pmkid_list: None,
         group_management_cipher_suite: None,
         _phantom: PhantomData,
     };
     /// An [RSNElement] equivalent to WPA2/WPA3-Personal.
-    pub const WPA2_WPA3_PERSONAL: RSNElement<
+    pub const WPA2_WPA3_PERSONAL: RsnElement<
         'static,
         [IEEE80211CipherSuiteSelector; 1],
-        [IEEE80211AKMType; 2],
-        [IEEE80211PMKID; 0],
-    > = RSNElement {
+        [IEEE80211AkmType; 2],
+        [IEEE80211Pmkid; 0],
+    > = RsnElement {
         group_data_cipher_suite: Some(IEEE80211CipherSuiteSelector::Ccmp128),
         pairwise_cipher_suite_list: Some([IEEE80211CipherSuiteSelector::Ccmp128]),
-        akm_list: Some([IEEE80211AKMType::Psk, IEEE80211AKMType::Sae]),
-        rsn_capbilities: None,
+        akm_list: Some([IEEE80211AkmType::Psk, IEEE80211AkmType::Sae]),
+        rsn_capbilities: Some(RsnCapabilities::new().with_mfp_config(OptionalFeatureConfig::Required)),
         pmkid_list: None,
         group_management_cipher_suite: None,
         _phantom: PhantomData,
     };
     /// An [RSNElement] equivalent to WPA3-Personal.
-    pub const WPA3_PERSONAL: RSNElement<
+    pub const WPA3_PERSONAL: RsnElement<
         'static,
         [IEEE80211CipherSuiteSelector; 1],
-        [IEEE80211AKMType; 1],
-        [IEEE80211PMKID; 0],
-    > = RSNElement {
+        [IEEE80211AkmType; 1],
+        [IEEE80211Pmkid; 0],
+    > = RsnElement {
         group_data_cipher_suite: Some(IEEE80211CipherSuiteSelector::Ccmp128),
         pairwise_cipher_suite_list: Some([IEEE80211CipherSuiteSelector::Ccmp128]),
-        akm_list: Some([IEEE80211AKMType::Sae]),
+        akm_list: Some([IEEE80211AkmType::Sae]),
         rsn_capbilities: Some(
-            RSNCapabilities::new().with_mfp_config(OptionalFeatureConfig::Required),
+            RsnCapabilities::new().with_mfp_config(OptionalFeatureConfig::Required),
         ),
         pmkid_list: Some([]),
         group_management_cipher_suite: Some(IEEE80211CipherSuiteSelector::BipCmac128),
         _phantom: PhantomData,
     };
     /// An [RSNElement] equivalent to OWE.
-    pub const OWE: RSNElement<
+    pub const OWE: RsnElement<
         'static,
         [IEEE80211CipherSuiteSelector; 1],
-        [IEEE80211AKMType; 1],
-        [IEEE80211PMKID; 0],
-    > = RSNElement {
+        [IEEE80211AkmType; 1],
+        [IEEE80211Pmkid; 0],
+    > = RsnElement {
         group_data_cipher_suite: Some(IEEE80211CipherSuiteSelector::Ccmp128),
         pairwise_cipher_suite_list: Some([IEEE80211CipherSuiteSelector::Ccmp128]),
-        akm_list: Some([IEEE80211AKMType::OpportunisticWirelessEncryption]),
+        akm_list: Some([IEEE80211AkmType::OpportunisticWirelessEncryption]),
         rsn_capbilities: Some(
-            RSNCapabilities::new().with_mfp_config(OptionalFeatureConfig::Required),
+            RsnCapabilities::new().with_mfp_config(OptionalFeatureConfig::Required),
         ),
         pmkid_list: None,
         group_management_cipher_suite: Some(IEEE80211CipherSuiteSelector::Ccmp128),
         _phantom: PhantomData,
     };
 }
-impl<PairwiseCipherSuiteList: Default, AKMList: Default, PMKIDList: Default>
-    RSNElement<'static, PairwiseCipherSuiteList, AKMList, PMKIDList>
+impl<PairwiseCipherSuiteList: Default, AKMList: Default, PmkidList: Default>
+    RsnElement<'static, PairwiseCipherSuiteList, AKMList, PmkidList>
 {
     const DEFAULT_CIPHER_SUITE: IEEE80211CipherSuiteSelector =
         IEEE80211CipherSuiteSelector::Ccmp128;
-    const DEFAULT_RSN_CAPABILITIES: RSNCapabilities = RSNCapabilities::new();
+    const DEFAULT_RSN_CAPABILITIES: RsnCapabilities = RsnCapabilities::new();
     /// Add a group data cipher suite to the [RSNElement].
     pub fn with_group_data_cipher_suite(
         mut self,
@@ -565,8 +569,8 @@ impl<PairwiseCipherSuiteList: Default, AKMList: Default, PMKIDList: Default>
     pub fn with_pairwise_cipher_suite_list<InnerPairwiseCipherSuiteList>(
         self,
         pairwise_cipher_suite_list: InnerPairwiseCipherSuiteList,
-    ) -> RSNElement<'static, InnerPairwiseCipherSuiteList, AKMList, PMKIDList> {
-        RSNElement {
+    ) -> RsnElement<'static, InnerPairwiseCipherSuiteList, AKMList, PmkidList> {
+        RsnElement {
             group_data_cipher_suite: self
                 .group_data_cipher_suite
                 .or(Some(Self::DEFAULT_CIPHER_SUITE)),
@@ -584,8 +588,8 @@ impl<PairwiseCipherSuiteList: Default, AKMList: Default, PMKIDList: Default>
     pub fn with_akm_list<InnerAKMList>(
         self,
         akm_list: InnerAKMList,
-    ) -> RSNElement<'static, PairwiseCipherSuiteList, InnerAKMList, PMKIDList> {
-        RSNElement {
+    ) -> RsnElement<'static, PairwiseCipherSuiteList, InnerAKMList, PmkidList> {
+        RsnElement {
             group_data_cipher_suite: self
                 .group_data_cipher_suite
                 .or(Some(Self::DEFAULT_CIPHER_SUITE)),
@@ -604,9 +608,9 @@ impl<PairwiseCipherSuiteList: Default, AKMList: Default, PMKIDList: Default>
     /// This overrides all previous fields with a default value, if they are [None].
     pub fn with_rsn_capabilities(
         self,
-        rsn_capabilities: RSNCapabilities,
-    ) -> RSNElement<'static, PairwiseCipherSuiteList, AKMList, PMKIDList> {
-        RSNElement {
+        rsn_capabilities: RsnCapabilities,
+    ) -> RsnElement<'static, PairwiseCipherSuiteList, AKMList, PmkidList> {
+        RsnElement {
             group_data_cipher_suite: self
                 .group_data_cipher_suite
                 .or(Some(Self::DEFAULT_CIPHER_SUITE)),
@@ -620,14 +624,14 @@ impl<PairwiseCipherSuiteList: Default, AKMList: Default, PMKIDList: Default>
             _phantom: PhantomData,
         }
     }
-    /// Add a PMKID list to the [RSNElement].
+    /// Add a Pmkid list to the [RSNElement].
     ///
     /// This overrides all previous fields with a default value, if they are [None].
-    pub fn with_pmkid_list<InnerPMKIDList>(
+    pub fn with_pmkid_list<InnerPmkidList>(
         self,
-        pmkid_list: InnerPMKIDList,
-    ) -> RSNElement<'static, PairwiseCipherSuiteList, AKMList, InnerPMKIDList> {
-        RSNElement {
+        pmkid_list: InnerPmkidList,
+    ) -> RsnElement<'static, PairwiseCipherSuiteList, AKMList, InnerPmkidList> {
+        RsnElement {
             group_data_cipher_suite: self
                 .group_data_cipher_suite
                 .or(Some(Self::DEFAULT_CIPHER_SUITE)),
@@ -649,8 +653,8 @@ impl<PairwiseCipherSuiteList: Default, AKMList: Default, PMKIDList: Default>
     pub fn with_group_management_cipher_suite(
         self,
         group_management_cipher_suite: IEEE80211CipherSuiteSelector,
-    ) -> RSNElement<'static, PairwiseCipherSuiteList, AKMList, PMKIDList> {
-        RSNElement {
+    ) -> RsnElement<'static, PairwiseCipherSuiteList, AKMList, PmkidList> {
+        RsnElement {
             group_data_cipher_suite: self
                 .group_data_cipher_suite
                 .or(Some(Self::DEFAULT_CIPHER_SUITE)),
@@ -661,7 +665,7 @@ impl<PairwiseCipherSuiteList: Default, AKMList: Default, PMKIDList: Default>
             rsn_capbilities: self
                 .rsn_capbilities
                 .or(Some(Self::DEFAULT_RSN_CAPABILITIES)),
-            pmkid_list: self.pmkid_list.or(Some(PMKIDList::default())),
+            pmkid_list: self.pmkid_list.or(Some(PmkidList::default())),
             group_management_cipher_suite: Some(group_management_cipher_suite),
             _phantom: PhantomData,
         }
@@ -679,15 +683,15 @@ macro_rules! compare_list_option {
 impl<
         'a,
         LPairwiseCipherSuiteList: IntoIterator<Item = IEEE80211CipherSuiteSelector> + Clone,
-        LAKMList: IntoIterator<Item = IEEE80211AKMType> + Clone,
-        LPMKIDList: IntoIterator<Item = IEEE80211PMKID> + Clone,
+        LAKMList: IntoIterator<Item = IEEE80211AkmType> + Clone,
+        LPmkidList: IntoIterator<Item = IEEE80211Pmkid> + Clone,
         RPairwiseCipherSuiteList: IntoIterator<Item = IEEE80211CipherSuiteSelector> + Clone,
-        RAKMList: IntoIterator<Item = IEEE80211AKMType> + Clone,
-        RPMKIDList: IntoIterator<Item = IEEE80211PMKID> + Clone,
-    > PartialEq<RSNElement<'a, RPairwiseCipherSuiteList, RAKMList, RPMKIDList>>
-    for RSNElement<'a, LPairwiseCipherSuiteList, LAKMList, LPMKIDList>
+        RAKMList: IntoIterator<Item = IEEE80211AkmType> + Clone,
+        RPmkidList: IntoIterator<Item = IEEE80211Pmkid> + Clone,
+    > PartialEq<RsnElement<'a, RPairwiseCipherSuiteList, RAKMList, RPmkidList>>
+    for RsnElement<'a, LPairwiseCipherSuiteList, LAKMList, LPmkidList>
 {
-    fn eq(&self, other: &RSNElement<RPairwiseCipherSuiteList, RAKMList, RPMKIDList>) -> bool {
+    fn eq(&self, other: &RsnElement<RPairwiseCipherSuiteList, RAKMList, RPmkidList>) -> bool {
         self.group_data_cipher_suite == other.group_data_cipher_suite
             && compare_list_option!(self, other, pairwise_cipher_suite_list)
             && compare_list_option!(self, other, akm_list)
@@ -696,8 +700,8 @@ impl<
             && self.group_management_cipher_suite == other.group_management_cipher_suite
     }
 }
-impl<PairwiseCipherSuiteList, AKMList, PMKIDList> Default
-    for RSNElement<'_, PairwiseCipherSuiteList, AKMList, PMKIDList>
+impl<PairwiseCipherSuiteList, AKMList, PmkidList> Default
+    for RsnElement<'_, PairwiseCipherSuiteList, AKMList, PmkidList>
 {
     fn default() -> Self {
         Self {
@@ -723,12 +727,12 @@ macro_rules! read_list {
         }
     };
 }
-impl<'a> TryFromCtx<'a> for RSNElement<'a> {
+impl<'a> TryFromCtx<'a> for RsnElement<'a> {
     type Error = scroll::Error;
     fn try_from_ctx(from: &'a [u8], _ctx: ()) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
 
-        let mut rsn_element = RSNElement::default();
+        let mut rsn_element = RsnElement::default();
         if from.gread_with::<u16>(&mut offset, Endian::Little)? != 1 {
             return Err(scroll::Error::BadInput {
                 size: offset,
@@ -743,7 +747,7 @@ impl<'a> TryFromCtx<'a> for RSNElement<'a> {
         read_list!(rsn_element, from, offset, pairwise_cipher_suite_list);
         read_list!(rsn_element, from, offset, akm_list);
         if let Ok(rsn_capabilities) = from.gread(&mut offset) {
-            rsn_element.rsn_capbilities = Some(RSNCapabilities::from_bits(rsn_capabilities));
+            rsn_element.rsn_capbilities = Some(RsnCapabilities::from_bits(rsn_capabilities));
         } else {
             return Ok((rsn_element, offset));
         }
@@ -759,9 +763,9 @@ impl<'a> TryFromCtx<'a> for RSNElement<'a> {
 }
 impl<
         PairwiseCipherSuiteList: IntoIterator<Item = IEEE80211CipherSuiteSelector> + Clone,
-        AKMList: IntoIterator<Item = IEEE80211AKMType> + Clone,
-        PMKIDList: IntoIterator<Item = IEEE80211PMKID> + Clone,
-    > MeasureWith<()> for RSNElement<'_, PairwiseCipherSuiteList, AKMList, PMKIDList>
+        AKMList: IntoIterator<Item = IEEE80211AkmType> + Clone,
+        PmkidList: IntoIterator<Item = IEEE80211Pmkid> + Clone,
+    > MeasureWith<()> for RsnElement<'_, PairwiseCipherSuiteList, AKMList, PmkidList>
 {
     fn measure_with(&self, _ctx: &()) -> usize {
         2 + if self.group_data_cipher_suite.is_some() {
@@ -804,8 +808,8 @@ macro_rules! write_list {
 impl<
         PairwiseCipherSuiteList: TryIntoCtx<(), Error = scroll::Error>,
         AKMList: TryIntoCtx<(), Error = scroll::Error>,
-        PMKIDList: TryIntoCtx<(), Error = scroll::Error>,
-    > TryIntoCtx for RSNElement<'_, PairwiseCipherSuiteList, AKMList, PMKIDList>
+        PmkidList: TryIntoCtx<(), Error = scroll::Error>,
+    > TryIntoCtx for RsnElement<'_, PairwiseCipherSuiteList, AKMList, PmkidList>
 where
     Self: MeasureWith<()>,
 {
@@ -848,11 +852,11 @@ where
         Ok(offset)
     }
 }
-impl<PairwiseCipherSuiteList, AKMList, PMKIDList> Element
-    for RSNElement<'_, PairwiseCipherSuiteList, AKMList, PMKIDList>
+impl<PairwiseCipherSuiteList, AKMList, PmkidList> Element
+    for RsnElement<'_, PairwiseCipherSuiteList, AKMList, PmkidList>
 where
     Self: MeasureWith<()> + TryIntoCtx<Error = scroll::Error>,
 {
     const ELEMENT_ID: ElementID = ElementID::Id(0x30);
-    type ReadType<'a> = RSNElement<'a>;
+    type ReadType<'a> = RsnElement<'a>;
 }

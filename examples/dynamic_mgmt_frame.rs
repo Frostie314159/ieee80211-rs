@@ -6,7 +6,7 @@ use ieee80211::{
     common::CapabilitiesInformation,
     element_chain,
     elements::{
-        rsn::RSNElement,
+        rsn::RsnElement,
         tim::{TIMBitmap, TIMElement},
         DSSSParameterSetElement,
     },
@@ -58,7 +58,7 @@ fn main() {
     let mut dynamic_frame =
         DynamicManagementFrame::new(fixed_beacon_frame, buf.as_mut_slice()).unwrap();
     dynamic_frame
-        .add_element(RSNElement::WPA2_PERSONAL)
+        .add_element(RsnElement::WPA2_PERSONAL)
         .unwrap();
     let written_length = dynamic_frame.finish(false).unwrap();
     let frame = &buf[..written_length];

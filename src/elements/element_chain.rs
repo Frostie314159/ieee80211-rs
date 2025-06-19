@@ -174,11 +174,11 @@ where
 /// ```
 macro_rules! element_chain {
     () => {
-        ::ieee80211::common::Empty
+        $crate::common::Empty
     };
     ($element:expr) => {
         {
-            use ieee80211::elements::element_chain::{ChainElement, ElementChainEnd};
+            use $crate::elements::element_chain::ElementChainEnd;
             ElementChainEnd {
                 inner: $element
             }

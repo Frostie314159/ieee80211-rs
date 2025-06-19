@@ -1,14 +1,23 @@
 use core::cmp::Ordering;
 
+use aes_kw::KekAes128;
 use hmac::{
     digest::{FixedOutput, KeyInit},
     Hmac, Mac,
 };
+use llc_rs::EtherType;
 use pbkdf2::pbkdf2_hmac;
+use scroll::{ctx::TryIntoCtx, Endian, Pread, Pwrite};
 use sha1::Sha1;
 use sha2::{Sha256, Sha384};
 
-use crate::elements::rsn::{IEEE80211AKMType, IEEE80211CipherSuiteSelector};
+use crate::{
+    crypto::eapol::KeyInformation,
+    data_frame::header::DataFrameHeader,
+    elements::rsn::{IEEE80211AkmType, IEEE80211CipherSuiteSelector},
+};
+
+use super::eapol::{EapolDataFrame, EapolKeyFrame};
 
 /// HMAC-SHA-1 function
 pub type HSha1 = Hmac<Sha1>;
@@ -94,7 +103,7 @@ pub fn prf(key: &[u8], label: &str, data: &[u8], output: &mut [u8]) {
 ///
 /// The first slice in the returned tuple is lexicographically smaller than the second one, unless
 /// both are equal, in which case it's `b`.
-pub fn sort_lexicographically<'a>(a: &'a [u8], b: &'a [u8]) -> (&'a [u8], &'a [u8]) {
+fn sort_lexicographically<'a>(a: &'a [u8], b: &'a [u8]) -> (&'a [u8], &'a [u8]) {
     if a.iter().partial_cmp(b.iter()) == Some(Ordering::Less) {
         (a, b)
     } else {
@@ -131,7 +140,7 @@ pub fn derive_ptk(
 /// truncated.
 pub fn partition_ptk(
     ptk: &[u8],
-    akm_suite: IEEE80211AKMType,
+    akm_suite: IEEE80211AkmType,
     cipher_suite: IEEE80211CipherSuiteSelector,
 ) -> Option<(&[u8], &[u8], &[u8])> {
     let kck_len = akm_suite.kck_len()?;
@@ -141,4 +150,270 @@ pub fn partition_ptk(
     let (kek, tk) = kek_and_tk.split_at_checked(kek_len)?;
     let tk = tk.get(..tk_len)?;
     Some((kck, kek, tk))
+}
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// An error related to cryptographic key management operation.
+pub enum KeyManagementError {
+    /// The key was too short.
+    InvalidKeyLength,
+    /// The output slice length didn't match the output size of the algorithm.
+    InvalidOutputLength,
+    /// The provided scratch buffer was too short.
+    ScratchBufferTooShort,
+}
+/*
+/// Calculate the MIC for an EAPOL key frame.
+///
+/// The length of the KCK and output need to match the AKM suite being used.
+pub fn calculate_eapol_mic<D: KeyInit + digest::Update + FixedOutput>(
+    kck: &[u8],
+    eapol_data_frame: &mut [u8],
+    eapol_mic_range: Range<usize>,
+) -> Result<(), KeyManagementError> {
+    let mut digest =
+        <D as KeyInit>::new_from_slice(kck).map_err(|_| KeyManagementError::InvalidKeyLength)?;
+    eapol_data_frame[eapol_mic_range].fill(0);
+
+    <D as digest::Update>::update(&mut digest, data);
+    // This conversion can very much fail, since the provided output slice could be smaller than
+    // expected.
+    #[allow(clippy::unnecessary_fallible_conversions)]
+    <D as FixedOutput>::finalize_into(
+        digest,
+        output
+            .try_into()
+            .map_err(|_| KeyManagementError::InvalidOutputLength)?,
+    );
+    Ok(())
+}
+*/
+/// Wrap the EAPOL key data using the NIST AES Key-Wrap algorithm.
+///
+/// The `key_data` slice should contain the entire Key Data segment of the EAPOL Key frame.
+/// Currently this assumes a 128 bit KEK is in use, which is true for most AKM suites.
+pub fn wrap_eapol_key_data(
+    kek: &[u8; 16],
+    key_data: &[u8],
+    output: &mut [u8],
+) -> Result<(), KeyManagementError> {
+    let kw = KekAes128::new(kek.into());
+    kw.wrap_with_padding(key_data, output)
+        .map_err(|_| KeyManagementError::InvalidOutputLength)?;
+    Ok(())
+}
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// An error related to EAPOL frame serialization.
+pub enum EapolSerdeError {
+    /// The provided output buffer was too short.
+    BufferTooShort,
+    /// The provided temporary buffer was too short.
+    TemporaryBufferToShort,
+    /// The data frame didn't contain a payload.
+    NoPayload,
+    /// A needed key wasn't provided.
+    MissingKey,
+    /// The provided buffer did not contain a valid key frame.
+    InvalidKeyFrame,
+    /// The used AKM suite is unknown.
+    UnknownAkmSuite,
+    /// The MIC in the frame didn't match the calculated MIC.
+    InvalidMic,
+}
+#[allow(unused)]
+pub fn serialize_eapol_data_frame<
+    KeyMic: AsRef<[u8]>,
+    ElementContainer: TryIntoCtx<(), Error = scroll::Error>,
+>(
+    kck: Option<&[u8; 16]>,
+    kek: Option<&[u8; 16]>,
+    eapol_data_frame: EapolDataFrame<'_, KeyMic, ElementContainer>,
+    buffer: &mut [u8],
+    temp_buffer: &mut [u8],
+) -> Result<usize, EapolSerdeError> {
+    if temp_buffer.len() < 24 {
+        return Err(EapolSerdeError::TemporaryBufferToShort);
+    }
+    let mic_range = eapol_data_frame
+        .eapol_mic_range()
+        .ok_or(EapolSerdeError::NoPayload)?;
+    let mic_len = eapol_data_frame
+        .payload
+        .as_ref()
+        .ok_or(EapolSerdeError::NoPayload)?
+        .payload
+        .key_mic
+        .as_ref()
+        .len();
+    let key_data_length_range = eapol_data_frame
+        .eapol_key_data_length_range()
+        .ok_or(EapolSerdeError::NoPayload)?;
+    let key_data_range = eapol_data_frame
+        .eapol_key_data_range()
+        .ok_or(EapolSerdeError::NoPayload)?;
+    let key_information = eapol_data_frame
+        .payload
+        .as_ref()
+        .ok_or(EapolSerdeError::NoPayload)?
+        .payload
+        .key_information;
+    let eapol_frame_start = eapol_data_frame.header.length_in_bytes() + 8;
+
+    let mut written = buffer
+        .pwrite(eapol_data_frame, 0)
+        .map_err(|_| EapolSerdeError::BufferTooShort)?;
+
+    let key_data_length = buffer[key_data_length_range.clone()]
+        .pread_with::<u16>(0, Endian::Big)
+        .expect("If the TryIntoCtx impl for EapolKeyFrame is correct, this can't fail.")
+        as usize;
+
+    if key_data_length != 0 && key_information.encrypted_key_data() {
+        let padded_key_data_length = if key_data_length < 16 {
+            16
+        } else if key_data_length % 8 != 0 {
+            (key_data_length & !(0b111)) + 8
+        } else {
+            key_data_length
+        };
+
+        let padded_key_data = buffer[key_data_range.clone()]
+            .get_mut(..padded_key_data_length)
+            .ok_or(EapolSerdeError::BufferTooShort)?;
+        if padded_key_data_length != key_data_length {
+            padded_key_data[key_data_length] = 0xdd;
+            padded_key_data[key_data_length + 1..].fill(0x00);
+        }
+        let padded_and_wrapped_key_data_length = padded_key_data_length + 8;
+
+        let kw = KekAes128::new(kek.ok_or(EapolSerdeError::MissingKey)?.into());
+        kw.wrap(
+            padded_key_data,
+            &mut temp_buffer[..padded_and_wrapped_key_data_length],
+        )
+        .map_err(|_| EapolSerdeError::TemporaryBufferToShort)?;
+
+        let wrapped_key_data = buffer[key_data_range]
+            .get_mut(..padded_and_wrapped_key_data_length)
+            .ok_or(EapolSerdeError::BufferTooShort)?;
+        wrapped_key_data.copy_from_slice(&temp_buffer[..padded_and_wrapped_key_data_length]);
+        written += padded_and_wrapped_key_data_length - key_data_length;
+
+        let _ = buffer.pwrite_with(
+            padded_and_wrapped_key_data_length as u16,
+            key_data_length_range.start,
+            Endian::Big,
+        );
+        let _ = buffer.pwrite_with(
+            (77 + mic_len + 2 + padded_and_wrapped_key_data_length) as u16,
+            eapol_frame_start + 2,
+            Endian::Big,
+        );
+    }
+    if key_information.key_mic() {
+        let mut h_sha_1 =
+            <HSha1 as Mac>::new_from_slice(kck.ok_or(EapolSerdeError::MissingKey)?).unwrap();
+        h_sha_1.update(&buffer[eapol_frame_start..written]);
+        h_sha_1.finalize_into((&mut temp_buffer[..20]).into());
+        buffer[mic_range].copy_from_slice(&temp_buffer[..16]);
+    }
+    Ok(written)
+}
+/// Decrypt and verify and EAPOL data frame.
+pub fn deserialize_eapol_data_frame<'a>(
+    kck: Option<&[u8; 16]>,
+    kek: Option<&[u8; 16]>,
+    mut buffer: &'a mut [u8],
+    temp_buffer: &mut [u8],
+    akm_suite: IEEE80211AkmType,
+    with_fcs: bool,
+) -> Result<EapolKeyFrame<'a>, EapolSerdeError> {
+    if with_fcs {
+        buffer = buffer
+            .get_mut(..buffer.len() - 4)
+            .ok_or(EapolSerdeError::InvalidKeyFrame)?;
+    }
+    let data_frame_header = buffer
+        .pread::<DataFrameHeader>(0)
+        .map_err(|_| EapolSerdeError::InvalidKeyFrame)?;
+    let payload_offset = data_frame_header.length_in_bytes();
+    let llc_ether_type_offset = payload_offset + 6;
+    let ether_type = buffer
+        .get(llc_ether_type_offset..)
+        .and_then(|bytes| bytes.pread_with::<u16>(0, Endian::Big).ok())
+        .ok_or(EapolSerdeError::InvalidKeyFrame)?;
+    if ether_type != EtherType::Eapol.into() {
+        return Err(EapolSerdeError::InvalidKeyFrame);
+    }
+    let eapol_key_frame_offset = payload_offset + 8;
+    let eapol_key_information_offset = eapol_key_frame_offset + 5;
+    let eapol_key_information = KeyInformation::from_bits(
+        buffer[eapol_key_information_offset..]
+            .pread_with(0, Endian::Big)
+            .map_err(|_| EapolSerdeError::InvalidKeyFrame)?,
+    );
+    let mic_len = akm_suite
+        .key_mic_len()
+        .ok_or(EapolSerdeError::UnknownAkmSuite)?;
+    if eapol_key_information.key_mic() {
+        let mut h_sha_1 =
+            <HSha1 as Mac>::new_from_slice(kck.ok_or(EapolSerdeError::MissingKey)?).unwrap();
+        h_sha_1.update(
+            buffer
+                .get(eapol_key_frame_offset..eapol_key_frame_offset + 81)
+                .ok_or(EapolSerdeError::InvalidKeyFrame)?,
+        );
+        for _ in 0..mic_len / 8 {
+            h_sha_1.update(&[0x00u8; 8]);
+        }
+        h_sha_1.update(
+            buffer
+                .get(eapol_key_frame_offset + 81 + mic_len..)
+                .ok_or(EapolSerdeError::BufferTooShort)?,
+        );
+        let calculated_mic = h_sha_1.finalize();
+        let mic = &buffer[eapol_key_frame_offset + 81..][..mic_len];
+        if &calculated_mic.into_bytes().as_slice()[..mic_len] != mic {
+            return Err(EapolSerdeError::InvalidMic);
+        }
+    }
+    if eapol_key_information.encrypted_key_data() {
+        let key_data_length_offset = eapol_key_frame_offset + 81 + mic_len;
+        let key_data_length: u16 = buffer
+            .pread_with(key_data_length_offset, Endian::Big)
+            .map_err(|_| EapolSerdeError::InvalidKeyFrame)?;
+
+        let key_data = buffer[key_data_length_offset + 2..]
+            .get_mut(..key_data_length as usize)
+            .ok_or(EapolSerdeError::InvalidKeyFrame)
+            .unwrap();
+        let kw = KekAes128::new(kek.ok_or(EapolSerdeError::MissingKey)?.into());
+        kw.unwrap(key_data, &mut temp_buffer[..key_data_length as usize - 8])
+            .map_err(|_| EapolSerdeError::TemporaryBufferToShort)?;
+
+        buffer
+            .pwrite_with(key_data_length - 8, key_data_length_offset, Endian::Big)
+            .unwrap();
+        buffer
+            .pwrite(
+                &temp_buffer[..key_data_length as usize - 8],
+                key_data_length_offset + 2,
+            )
+            .unwrap();
+
+        let new_buffer_len = buffer.len() - 8;
+        buffer = &mut buffer[..new_buffer_len];
+        buffer
+            .pwrite_with(
+                (new_buffer_len - eapol_key_frame_offset - 4) as u16,
+                eapol_key_frame_offset + 2,
+                Endian::Big,
+            )
+            .unwrap();
+    }
+    buffer
+        .pread_with::<EapolKeyFrame>(eapol_key_frame_offset, akm_suite)
+        .map_err(|_| EapolSerdeError::InvalidKeyFrame)
 }
