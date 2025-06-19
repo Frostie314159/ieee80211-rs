@@ -502,7 +502,7 @@ pub struct TIMElement<'a, Bitmap = &'a [u8]> {
 }
 impl TIMElement<'_, &[u8]> {
     /// Value for an empty TIM bitmap.
-    pub const NO_TIM_BITMAP: Option<TIMBitmap<&'static [u8]>>= None;
+    pub const NO_TIM_BITMAP: Option<TIMBitmap<&'static [u8]>> = None;
 }
 impl<Bitmap> TIMElement<'_, Bitmap> {
     /// Check if the DTIM parameters are valid.

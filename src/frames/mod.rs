@@ -1,3 +1,4 @@
+use data_frame::DataFrame;
 use mac_parser::MACAddress;
 use mgmt_frame::{body::action::RawActionBody, RawActionFrame};
 use scroll::{ctx::TryFromCtx, Endian, Pread};
@@ -138,6 +139,22 @@ impl<'a> GenericFrame<'a> {
             Some(self.bytes.pread_with(0, false))
         } else {
             None
+        }
+    }
+    pub fn is_eapol_key_frame(&self) -> bool {
+        if let FrameType::Data(subtype) = self.frame_control_field().frame_type() {
+            if !subtype.has_payload() {
+                return false;
+            }
+            let Some(Ok(data_frame)) = self.parse_to_typed::<DataFrame>() else {
+                return false;
+            };
+            let Some(payload) = data_frame.payload else {
+                return false;
+            };
+            payload.get(6..8) == Some(&[0x88, 0x8e])
+        } else {
+            false
         }
     }
 }
