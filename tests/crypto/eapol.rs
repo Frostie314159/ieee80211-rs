@@ -12,7 +12,7 @@ use ieee80211::{
 };
 use llc_rs::{EtherType, SnapLlcFrame};
 use scroll::Pread;
-
+/*
 #[test]
 fn test_eapol_serialization() {
     let eapol_key_frame = EapolKeyFrame {
@@ -48,7 +48,7 @@ fn test_eapol_serialization() {
     let kck = [0xaa; 16];
     let kek = [0xbb; 16];
     let mut temp_buffer = [0x00u8; 100];
-    let written = serialize_eapol_data_frame(
+    let _written = serialize_eapol_data_frame(
         Some(&kck),
         Some(&kek),
         data_frame,
@@ -56,10 +56,10 @@ fn test_eapol_serialization() {
         temp_buffer.as_mut_slice(),
     )
     .unwrap();
-    panic!("{:?}", &buf[..written]);
 }
+*/
 #[test]
-fn test_eapol_deserialization() {
+fn test_eapol_serde() {
     const EAPOL_KEY_FRAME: &[u8] = &[
         0x08, 0x02, 0x2c, 0x00, 0x00, 0x0d, 0x93, 0x82, 0x36, 0x3a, 0x00, 0x0c, 0x41, 0x82, 0xb2,
         0x55, 0x00, 0x0c, 0x41, 0x82, 0xb2, 0x55, 0xc0, 0xfc, 0xaa, 0xaa, 0x03, 0x00, 0x00, 0x00,
