@@ -1,13 +1,11 @@
 use core::marker::PhantomData;
 use ieee80211::{
-    common::FCFFlags,
     crypto::{
         deserialize_eapol_data_frame,
-        eapol::{EapolKeyFrame, KeyDescriptorVersion, KeyInformation},
+        eapol::EapolKeyFrame,
         serialize_eapol_data_frame,
     },
-    data_frame::{header::DataFrameHeader, DataFrame},
-    element_chain,
+    data_frame::DataFrame,
     elements::rsn::IEEE80211AkmType,
 };
 use llc_rs::{EtherType, SnapLlcFrame};
