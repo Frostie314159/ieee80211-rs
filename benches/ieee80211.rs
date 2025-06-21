@@ -2,7 +2,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use ieee80211::{
     elements::{
         element_chain::{ChainElement, ElementChainEnd},
-        rsn::RSNElement,
+        rsn::RsnElement,
         ElementID, ReadElements,
     },
     mgmt_frame::{body::BeaconBody, BeaconFrame, ManagementFrameHeader, RawActionFrame},
@@ -85,7 +85,7 @@ macro_rules! gen_element_benchmarks {
         }
     };
 }
-gen_element_benchmarks!((RSNElement, "rsn"));
+gen_element_benchmarks!((RsnElement, "rsn"));
 
 criterion_group!(
     benches,

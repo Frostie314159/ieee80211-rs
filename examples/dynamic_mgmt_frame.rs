@@ -5,9 +5,13 @@ use std::marker::PhantomData;
 use ieee80211::{
     common::CapabilitiesInformation,
     element_chain,
-    elements::{rsn::RSNElement, tim::{TIMBitmap, TIMElement}, DSSSParameterSetElement},
+    elements::{
+        rsn::RsnElement,
+        tim::{TIMBitmap, TIMElement},
+        DSSSParameterSetElement,
+    },
     mgmt_frame::{body::BeaconBody, BeaconFrame, DynamicManagementFrame, ManagementFrameHeader},
-    ssid, supported_rates
+    ssid, supported_rates,
 };
 use mac_parser::{MACAddress, BROADCAST};
 
@@ -54,7 +58,7 @@ fn main() {
     let mut dynamic_frame =
         DynamicManagementFrame::new(fixed_beacon_frame, buf.as_mut_slice()).unwrap();
     dynamic_frame
-        .add_element(RSNElement::WPA2_PERSONAL)
+        .add_element(RsnElement::WPA2_PERSONAL)
         .unwrap();
     let written_length = dynamic_frame.finish(false).unwrap();
     let frame = &buf[..written_length];
