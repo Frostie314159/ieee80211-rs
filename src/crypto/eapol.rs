@@ -99,14 +99,8 @@ impl<'a> TryFromCtx<'a, IEEE80211AkmType> for EapolKeyFrame<'a> {
         akm_suite: IEEE80211AkmType,
     ) -> Result<(Self, usize), Self::Error> {
         let mut offset = 0;
-        let protocol_version: u8 = from.gread(&mut offset)?;
+        let _protocol_version: u8 = from.gread(&mut offset)?;
 
-        if protocol_version != EAPOL_2004_PROTOCOL_VERSION {
-            return Err(scroll::Error::BadInput {
-                size: offset,
-                msg: "EAPOL frame protocol version IEEE Std 802.1X-2004.",
-            });
-        }
         let packet_type: u8 = from.gread(&mut offset)?;
         if packet_type != EAPOL_KEY_MESSAGE_TYPE {
             return Err(scroll::Error::BadInput {

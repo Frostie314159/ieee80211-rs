@@ -162,32 +162,6 @@ pub enum KeyManagementError {
     /// The provided scratch buffer was too short.
     ScratchBufferTooShort,
 }
-/*
-/// Calculate the MIC for an EAPOL key frame.
-///
-/// The length of the KCK and output need to match the AKM suite being used.
-pub fn calculate_eapol_mic<D: KeyInit + digest::Update + FixedOutput>(
-    kck: &[u8],
-    eapol_data_frame: &mut [u8],
-    eapol_mic_range: Range<usize>,
-) -> Result<(), KeyManagementError> {
-    let mut digest =
-        <D as KeyInit>::new_from_slice(kck).map_err(|_| KeyManagementError::InvalidKeyLength)?;
-    eapol_data_frame[eapol_mic_range].fill(0);
-
-    <D as digest::Update>::update(&mut digest, data);
-    // This conversion can very much fail, since the provided output slice could be smaller than
-    // expected.
-    #[allow(clippy::unnecessary_fallible_conversions)]
-    <D as FixedOutput>::finalize_into(
-        digest,
-        output
-            .try_into()
-            .map_err(|_| KeyManagementError::InvalidOutputLength)?,
-    );
-    Ok(())
-}
-*/
 /// Wrap the EAPOL key data using the NIST AES Key-Wrap algorithm.
 ///
 /// The `key_data` slice should contain the entire Key Data segment of the EAPOL Key frame.
@@ -204,7 +178,7 @@ pub fn wrap_eapol_key_data(
 }
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug)]
 /// An error related to EAPOL frame serialization.
 pub enum EapolSerdeError {
     /// The provided output buffer was too short.
@@ -215,14 +189,19 @@ pub enum EapolSerdeError {
     NoPayload,
     /// A needed key wasn't provided.
     MissingKey,
-    /// The provided buffer did not contain a valid key frame.
-    InvalidKeyFrame,
+    /// Deserializing the key frame failed.
+    KeyFrameDeserializationFailure,
     /// The used AKM suite is unknown.
     UnknownAkmSuite,
     /// The MIC in the frame didn't match the calculated MIC.
     InvalidMic,
+    /// The ether type wasn't EAPOL.
+    EtherTypeNotEapol,
 }
-#[allow(unused)]
+/// Serialize the provided EAPOL Key frame.
+///
+/// The temp_buffer needs to be at least as long as the key data field aligned to eight bytes, plus
+/// eight bytes.
 pub fn serialize_eapol_data_frame<
     KeyMic: AsRef<[u8]>,
     ElementContainer: TryIntoCtx<(), Error = scroll::Error>,
@@ -321,7 +300,9 @@ pub fn serialize_eapol_data_frame<
     }
     Ok(written)
 }
-/// Decrypt and verify and EAPOL data frame.
+/// Decrypt, verify and deserialize an EAPOL data frame.
+///
+/// The temp buffer needs to be as long as the key data minus eight.
 pub fn deserialize_eapol_data_frame<'a>(
     kck: Option<&[u8; 16]>,
     kek: Option<&[u8; 16]>,
@@ -333,26 +314,29 @@ pub fn deserialize_eapol_data_frame<'a>(
     if with_fcs {
         buffer = buffer
             .get_mut(..buffer.len() - 4)
-            .ok_or(EapolSerdeError::InvalidKeyFrame)?;
+            .ok_or(EapolSerdeError::BufferTooShort)?;
     }
     let data_frame_header = buffer
         .pread::<DataFrameHeader>(0)
-        .map_err(|_| EapolSerdeError::InvalidKeyFrame)?;
+        .map_err(|_| EapolSerdeError::BufferTooShort)?;
+
     let payload_offset = data_frame_header.length_in_bytes();
+
     let llc_ether_type_offset = payload_offset + 6;
     let ether_type = buffer
         .get(llc_ether_type_offset..)
         .and_then(|bytes| bytes.pread_with::<u16>(0, Endian::Big).ok())
-        .ok_or(EapolSerdeError::InvalidKeyFrame)?;
+        .ok_or(EapolSerdeError::BufferTooShort)?;
     if ether_type != EtherType::Eapol.into() {
-        return Err(EapolSerdeError::InvalidKeyFrame);
+        return Err(EapolSerdeError::EtherTypeNotEapol);
     }
+
     let eapol_key_frame_offset = payload_offset + 8;
     let eapol_key_information_offset = eapol_key_frame_offset + 5;
     let eapol_key_information = KeyInformation::from_bits(
         buffer[eapol_key_information_offset..]
             .pread_with(0, Endian::Big)
-            .map_err(|_| EapolSerdeError::InvalidKeyFrame)?,
+            .map_err(|_| EapolSerdeError::BufferTooShort)?,
     );
     let mic_len = akm_suite
         .key_mic_len()
@@ -363,7 +347,7 @@ pub fn deserialize_eapol_data_frame<'a>(
         h_sha_1.update(
             buffer
                 .get(eapol_key_frame_offset..eapol_key_frame_offset + 81)
-                .ok_or(EapolSerdeError::InvalidKeyFrame)?,
+                .ok_or(EapolSerdeError::BufferTooShort)?,
         );
         for _ in 0..mic_len / 8 {
             h_sha_1.update(&[0x00u8; 8]);
@@ -373,9 +357,12 @@ pub fn deserialize_eapol_data_frame<'a>(
                 .get(eapol_key_frame_offset + 81 + mic_len..)
                 .ok_or(EapolSerdeError::BufferTooShort)?,
         );
-        let calculated_mic = h_sha_1.finalize();
-        let mic = &buffer[eapol_key_frame_offset + 81..][..mic_len];
-        if &calculated_mic.into_bytes().as_slice()[..mic_len] != mic {
+        let provided_mic = &buffer[eapol_key_frame_offset + 81..][..mic_len];
+
+        let calculated_mic = h_sha_1.finalize().into_bytes();
+        let calculated_mic = &calculated_mic.as_slice()[..mic_len];
+        if calculated_mic != provided_mic {
+            defmt::info!("Provided MIC: {:02x} Calculated MIC: {:02x}", provided_mic, calculated_mic);
             return Err(EapolSerdeError::InvalidMic);
         }
     }
@@ -383,11 +370,11 @@ pub fn deserialize_eapol_data_frame<'a>(
         let key_data_length_offset = eapol_key_frame_offset + 81 + mic_len;
         let key_data_length: u16 = buffer
             .pread_with(key_data_length_offset, Endian::Big)
-            .map_err(|_| EapolSerdeError::InvalidKeyFrame)?;
+            .map_err(|_| EapolSerdeError::BufferTooShort)?;
 
         let key_data = buffer[key_data_length_offset + 2..]
             .get_mut(..key_data_length as usize)
-            .ok_or(EapolSerdeError::InvalidKeyFrame)
+            .ok_or(EapolSerdeError::BufferTooShort)
             .unwrap();
         let kw = KekAes128::new(kek.ok_or(EapolSerdeError::MissingKey)?.into());
         kw.unwrap(key_data, &mut temp_buffer[..key_data_length as usize - 8])
@@ -415,5 +402,5 @@ pub fn deserialize_eapol_data_frame<'a>(
     }
     buffer
         .pread_with::<EapolKeyFrame>(eapol_key_frame_offset, akm_suite)
-        .map_err(|_| EapolSerdeError::InvalidKeyFrame)
+        .map_err(|_| EapolSerdeError::KeyFrameDeserializationFailure)
 }

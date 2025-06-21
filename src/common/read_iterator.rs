@@ -45,7 +45,7 @@ impl<
     > defmt::Format for ReadIterator<'a, Ctx, Type>
 {
     fn format(&self, fmt: defmt::Formatter) {
-        let mut iter = self.clone();
+        let mut iter = *self;
         defmt::write!(fmt, "[");
 
         if let Some(first) = iter.next() {
