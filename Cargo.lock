@@ -325,9 +325,9 @@ checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
 
 [[package]]
 name = "ether-type"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29cff11db17ff664d8ed0801e8a372fcda247f5131cd9f9ee68d2c6b07f7c870"
+checksum = "e886b8e15547bd98f54a78b5ad1b381d825fa8cd09c088615fc00e26957fabd7"
 dependencies = [
  "macro-bits",
 ]
@@ -461,9 +461,9 @@ checksum = "d750af042f7ef4f724306de029d18836c26c1765a54a6a3f094cbd23a7267ffa"
 
 [[package]]
 name = "llc-rs"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb44e5d2a86b05c50007d8858e8a66de9e79c3873de23da752eae8b7071b2ff1"
+checksum = "33bd85503d851a892baeffb0c56799623e908f55a92d912eabbe568c6e1af45b"
 dependencies = [
  "ether-type",
  "macro-bits",
