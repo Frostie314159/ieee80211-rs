@@ -1,13 +1,15 @@
 use core::marker::PhantomData;
 
 use scroll::{
-    ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
     Endian, Pread, Pwrite,
+    ctx::{MeasureWith, TryFromCtx, TryIntoCtx},
 };
 
-use crate::{
-    common::{attach_fcs, strip_and_validate_fcs, DataFrameSubtype, FrameControlField, FrameType},
-    crypto::{CryptoHeader, CryptoWrapper, MicState},
+#[cfg(feature = "crypto")]
+use crate::crypto::{CryptoHeader, CryptoWrapper, MicState};
+
+use crate::common::{
+    DataFrameSubtype, FrameControlField, FrameType, attach_fcs, strip_and_validate_fcs,
 };
 
 use self::{amsdu::AMSDUSubframeIterator, header::DataFrameHeader};
@@ -65,6 +67,7 @@ impl TryIntoCtx for DataFrameReadPayload<'_> {
     }
 }
 
+#[cfg(feature = "crypto")]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 /// A payload, that may be crypto wrapped.
@@ -74,6 +77,8 @@ pub enum PotentiallyWrappedPayload<P> {
     /// A crypto wrapped payload.
     CryptoWrapped(CryptoWrapper<P>),
 }
+
+#[cfg(feature = "crypto")]
 impl<P> PotentiallyWrappedPayload<P> {
     /// Get a reference to the inner payload.
     pub const fn payload(&self) -> &P {
@@ -119,9 +124,11 @@ impl DataFrame<'_> {
                 0
             }
     }
+
     /// Get the potentially wrapped inner payload.
     ///
     /// If the payload is protected, but `mic_state` is None, None will be returned.
+    #[cfg(feature = "crypto")]
     pub fn potentially_wrapped_payload(
         &self,
         mic_state: Option<MicState>,
@@ -142,6 +149,7 @@ impl DataFrame<'_> {
 }
 impl<'a, P> DataFrame<'a, P> {
     /// Wrap the payload in a [CryptoWrapper].
+    #[cfg(feature = "crypto")]
     pub fn crypto_wrap(
         self,
         crypto_header: CryptoHeader,

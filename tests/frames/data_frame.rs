@@ -1,11 +1,13 @@
+#![cfg(feature = "crypto")]
+
 use ieee80211::{
     crypto::MicState,
     data_frame::{
-        builder::DataFrameBuilder, DataFrame, DataFrameReadPayload, PotentiallyWrappedPayload,
+        DataFrame, DataFrameReadPayload, PotentiallyWrappedPayload, builder::DataFrameBuilder,
     },
 };
 use mac_parser::MACAddress;
-use scroll::{ctx::MeasureWith, Pread, Pwrite};
+use scroll::{Pread, Pwrite, ctx::MeasureWith};
 
 const OUR_MAC_ADDRESS: MACAddress = MACAddress::new([0x00, 0x20, 0x91, 0x13, 0x37, 0x00]);
 const AP_MAC_ADDRESS: MACAddress = MACAddress::new([0x00, 0x20, 0x91, 0x13, 0x37, 0x01]);
