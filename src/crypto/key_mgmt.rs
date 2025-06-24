@@ -2,12 +2,12 @@ use core::cmp::Ordering;
 
 use aes_kw::KekAes128;
 use hmac::{
-    digest::{FixedOutput, KeyInit},
     Hmac, Mac,
+    digest::{FixedOutput, KeyInit},
 };
 use llc_rs::EtherType;
 use pbkdf2::pbkdf2_hmac;
-use scroll::{ctx::TryIntoCtx, Endian, Pread, Pwrite};
+use scroll::{Endian, Pread, Pwrite, ctx::TryIntoCtx};
 use sha1::Sha1;
 use sha2::{Sha256, Sha384};
 
@@ -362,7 +362,6 @@ pub fn deserialize_eapol_data_frame<'a>(
         let calculated_mic = h_sha_1.finalize().into_bytes();
         let calculated_mic = &calculated_mic.as_slice()[..mic_len];
         if calculated_mic != provided_mic {
-            defmt::info!("Provided MIC: {:02x} Calculated MIC: {:02x}", provided_mic, calculated_mic);
             return Err(EapolSerdeError::InvalidMic);
         }
     }
