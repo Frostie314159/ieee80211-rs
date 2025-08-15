@@ -241,7 +241,7 @@ impl TryIntoCtx for MeshPeeringManagement {
             &mut offset,
         )?;
         buf.gwrite(self.local_link_id, &mut offset)?;
-        buf.gwrite(self.rest, &mut offset)?;
+        buf.gwrite(&self.rest[..self.rest_len], &mut offset)?;
 
         Ok(offset)
     }
