@@ -261,7 +261,7 @@ impl<ElementContainer: TryIntoCtx<Error = scroll::Error>> TryIntoCtx
 
         buf.gwrite(CategoryCode::SelfProtected.into_bits(), &mut offset)?;
         buf.gwrite(
-            SelfProtectedActionCode::MeshPeeringConfirm.into_bits(),
+            SelfProtectedActionCode::MeshPeeringClose.into_bits(),
             &mut offset,
         )?;
         buf.gwrite(self.elements, &mut offset)?;
