@@ -1,6 +1,6 @@
 [package]
 name = "ieee80211"
-version = "0.5.8"
+version = "0.5.9"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
